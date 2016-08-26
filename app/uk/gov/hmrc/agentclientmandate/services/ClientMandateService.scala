@@ -17,8 +17,10 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import play.api.libs.json.Json
+import reactivemongo.bson.Macros
 import uk.gov.hmrc.agentclientmandate.ClientMandateRepository
 import uk.gov.hmrc.agentclientmandate.controllers.ClientMandateDto
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class Party(id: String, name: String, `type`: String)

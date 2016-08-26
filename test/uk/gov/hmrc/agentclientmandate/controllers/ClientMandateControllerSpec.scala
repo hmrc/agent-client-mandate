@@ -63,6 +63,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
       "valid json is sent" in {
 
         when(clientMandateServiceMock.createMandate(Matchers.any())) thenReturn Future.successful("123")
+        println(s"####  ${requestJson}")
 
         val request = TestClientMandateController.create().apply(FakeRequest().withBody(requestJson))
         status(request) must be(CREATED)

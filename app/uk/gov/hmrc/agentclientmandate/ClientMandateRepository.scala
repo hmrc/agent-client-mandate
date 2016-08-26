@@ -19,21 +19,27 @@ package uk.gov.hmrc.agentclientmandate
 import play.modules.reactivemongo.MongoDbConnection
 import play.modules.reactivemongo.ReactiveMongoPlugin
 import reactivemongo.api.{DB, DefaultDB}
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.agentclientmandate.services.{ContactDetails, Party, ClientMandate}
-import uk.gov.hmrc.mongo.{Saved, DatabaseUpdate, Repository, ReactiveRepository}
+import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import uk.gov.hmrc.agentclientmandate.services.{ClientMandate, ContactDetails, Party}
+import uk.gov.hmrc.mongo.{DatabaseUpdate, ReactiveRepository, Repository, Saved}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import play.api.Play.current
+import uk.gov.hmrc.agentclientmandate.models.Id
+import uk.gov.hmrc.play.http.NotFoundException
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class ClientMandateCreated(clientMandate: ClientMandate)
 
+case class ClientMandateFetched(clientMandate: ClientMandate)
+
 
 trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
   def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated]
+
+  def fetchMandate(mandateId: String): Future[ClientMandateFetched]
 
 }
 
@@ -50,11 +56,20 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
     with ClientMandateRepository {
 
 
-
   def insertMandate(clientMandate: ClientMandate) = {
     collection.insert[ClientMandate](clientMandate).map {
       wr =>
         ClientMandateCreated(clientMandate)
+    }
+  }
+
+  def fetchMandate(mandateId: String): Future[ClientMandateFetched] = {
+    val query = BSONDocument(
+      "id" -> mandateId
+    )
+    collection.find(query).one[ClientMandate] map {
+      case Some(clientMandate) => ClientMandateFetched(clientMandate)
+      case _ => throw new NotFoundException(s"Client Mandate not found for id $mandateId")
     }
   }
 

@@ -19,8 +19,8 @@ package uk.gov.hmrc.agentclientmandate.repositories
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import reactivemongo.api.DB
-import uk.gov.hmrc.agentclientmandate.services.{ContactDetails, Party, ClientMandate}
-import uk.gov.hmrc.agentclientmandate.{ClientMandateMongoRepository}
+import uk.gov.hmrc.agentclientmandate.services.{ClientMandate, ContactDetails, Party}
+import uk.gov.hmrc.agentclientmandate.{ClientMandateCreated, ClientMandateFetched, ClientMandateMongoRepository}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,7 +41,19 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
         await(clientMandateRepository.findAll()).head must be(clientMandate)
         await(clientMandateRepository.count) must be(1)
       }
+    }
 
+    "get a client mandate from the repo" when {
+
+      "the correct mandate id is passed" in {
+        await(clientMandateRepository.insertMandate(clientMandate))
+
+        await(clientMandateRepository.findAll()).head must be(clientMandate)
+        await(clientMandateRepository.count) must be(1)
+
+        await(clientMandateRepository.fetchMandate("123")) must be(clientMandateFetched)
+
+      }
     }
 
   }
@@ -49,6 +61,8 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
   def clientMandateRepository(implicit mongo: () => DB) = new ClientMandateMongoRepository
 
   val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
+  val clientMandateFetched = ClientMandateFetched(clientMandate)
+  val mandateId = "123"
 
   override def beforeEach(): Unit = {
     await(clientMandateRepository.drop)
