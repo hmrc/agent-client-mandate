@@ -27,6 +27,7 @@ trait FetchClientMandateService {
   def fetchClientMandate(mandateId: String): Future[ClientMandateFetchStatus] = {
     clientMandateRepository.fetchMandate(mandateId)
   }
+  
 }
 
 object FetchClientMandateService extends FetchClientMandateService {
