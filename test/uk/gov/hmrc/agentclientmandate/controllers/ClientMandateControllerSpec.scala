@@ -79,16 +79,6 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
     // get API tests ---- START
 
-    "not return a 404" when {
-
-      "GET /agent-client-mandate/mandate/:mandateId exists" in {
-
-        val request = route(FakeRequest(GET, s"/agent-client-mandate/mandate/$mandateId")).get
-        status(request) mustNot be(NOT_FOUND)
-      }
-
-    }
-
     "return a success response" when {
 
       "mandate id is found" in {
