@@ -40,9 +40,7 @@ class ClientMandateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
 
         val clientMandateFromDto = TestClientMandateService.createBananas(mandateDto)
         clientMandateFromDto must be(clientMandate)
-
       }
-
     }
 
     "return success response" when {

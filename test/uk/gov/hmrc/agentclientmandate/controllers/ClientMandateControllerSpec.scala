@@ -24,7 +24,8 @@ import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
-import uk.gov.hmrc.agentclientmandate.services.ClientMandateService
+import uk.gov.hmrc.agentclientmandate.ClientMandateFetched
+import uk.gov.hmrc.agentclientmandate.services._
 
 import scala.concurrent.Future
 
@@ -33,6 +34,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
   "ClientMandateController" should {
 
+    // create API tests ---- START
     "not return a 404" when {
 
       "POST /agent-client-mandate/mandate exists" in {
@@ -63,6 +65,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
       "valid json is sent" in {
 
         when(clientMandateServiceMock.createMandate(Matchers.any())) thenReturn Future.successful("123")
+        println(s"####  ${requestJson}")
 
         val request = TestClientMandateController.create().apply(FakeRequest().withBody(requestJson))
         status(request) must be(CREATED)
@@ -71,19 +74,46 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
       }
 
     }
+    // create API tests ---- END
+
+
+    // get API tests ---- START
+
+    "return a success response" when {
+
+      "mandate id is found" in {
+
+        when(mockFetchClientMandateService.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(clientMandateFetched)
+
+        val reponse = TestClientMandateController.fetch(mandateId).apply(FakeRequest())
+        status(reponse) must be(OK)
+
+      }
+
+    }
+
+    // get API tests ---- START
 
   }
 
   override def beforeEach(): Unit = {
     reset(clientMandateServiceMock)
+    reset(mockFetchClientMandateService)
   }
+
+  val mandateId = "123"
+  val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
+
+  val clientMandateFetched = ClientMandateFetched(clientMandate)
 
   val requestJson = Json.toJson(ClientMandateDto(PartyDto("ARN123456", "Joe Bloggs", "Organisation"), ContactDetailsDto("test@test.com", "0123456789")))
 
   val clientMandateServiceMock = mock[ClientMandateService]
+  val mockFetchClientMandateService = mock[FetchClientMandateService]
 
   object TestClientMandateController extends ClientMandateController {
     override val clientMandateService = clientMandateServiceMock
+    override val fetchClientMandateService = mockFetchClientMandateService
   }
 
 }
