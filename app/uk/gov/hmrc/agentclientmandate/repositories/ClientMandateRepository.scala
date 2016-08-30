@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate
+package uk.gov.hmrc.agentclientmandate.repositories
 
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
+import reactivemongo.api.indexes.{IndexType, Index}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import uk.gov.hmrc.agentclientmandate.services.ClientMandate
+import uk.gov.hmrc.agentclientmandate.models.ClientMandate
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import scala.concurrent.ExecutionContext.Implicits.global
+
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class ClientMandateCreated(clientMandate: ClientMandate)
 
@@ -53,8 +55,14 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[ClientMandate, BSONObjectID]("clientMandates", mongo, ClientMandate.formats, ReactiveMongoFormats.objectIdFormats)
     with ClientMandateRepository {
 
+  override def indexes: Seq[Index] = {
+    Seq(
+      Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
+      Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true)
+    )
+  }
 
-  def insertMandate(clientMandate: ClientMandate) = {
+  def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated] = {
     collection.insert[ClientMandate](clientMandate).map {
       wr =>
         ClientMandateCreated(clientMandate)
