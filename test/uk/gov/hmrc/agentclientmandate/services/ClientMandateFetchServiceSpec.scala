@@ -16,17 +16,19 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import uk.gov.hmrc.agentclientmandate.{ClientMandateFetched, ClientMandateRepository}
+import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateRepository}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class FetchClientMandateServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   def await[A](future: Future[A]) = Await.result(future, 5 seconds)
 
@@ -38,11 +40,10 @@ class FetchClientMandateServiceSpec extends PlaySpec with OneServerPerSuite with
 
       "a client mandate is found for a valid mandate id in MongoDB" in {
 
-        when(mockClientMandateRepository.fetchMandate(Matchers.any())) thenReturn {
-          Future.successful(clientMandateFetched)}
+        when(mockClientMandateRepository.fetchMandate(Matchers.any())) thenReturn Future.successful(ClientMandateFetched(clientMandate))
 
-        val reponse = TestFetchClientMandateService.fetchClientMandate(mandateId)
-        await(reponse) must be(clientMandateFetched)
+        val response = TestFetchClientMandateService.fetchClientMandate(mandateId)
+        await(response) must be(ClientMandateFetched(clientMandate))
 
       }
 
@@ -50,13 +51,19 @@ class FetchClientMandateServiceSpec extends PlaySpec with OneServerPerSuite with
 
   }
 
-  val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
-
-  val clientMandateFetched = ClientMandateFetched(clientMandate)
+  val clientMandate =
+    ClientMandate(
+      id = "123",
+      createdBy = "credid",
+      party = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
+      statusHistory = None,
+      service = Service(None, "ATED")
+    )
 
   val mockClientMandateRepository = mock[ClientMandateRepository]
 
-  object TestFetchClientMandateService extends FetchClientMandateService {
+  object TestFetchClientMandateService extends ClientMandateFetchService {
     override val clientMandateRepository = mockClientMandateRepository
   }
 

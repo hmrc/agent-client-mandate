@@ -16,56 +16,38 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.agentclientmandate.services.{ClientMandateService, FetchClientMandateService}
+import play.api.libs.json.Json
+import uk.gov.hmrc.agentclientmandate.models.ClientMandateDto
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateNotFound, ClientMandateFetched}
+import uk.gov.hmrc.agentclientmandate.services.{ClientMandateFetchService, ClientMandateCreateService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import play.api.mvc._
-import uk.gov.hmrc.agentclientmandate.{ClientMandateFetched, ClientMandateNotFound}
 
 import scala.concurrent.Future
 
-case class PartyDto(id: String, name: String, `type`: String)
-
-object PartyDto {
-  implicit val formats = Json.format[PartyDto]
-}
-
-case class ContactDetailsDto(email: String, phone: String)
-
-object ContactDetailsDto {
-  implicit val formats = Json.format[ContactDetailsDto]
-}
-
-case class ClientMandateDto(party: PartyDto, contactDetails: ContactDetailsDto)
-
-object ClientMandateDto {
-  implicit val formats = Json.format[ClientMandateDto]
-}
-
-
 object ClientMandateController extends ClientMandateController {
-  val clientMandateService = ClientMandateService
-  val fetchClientMandateService = FetchClientMandateService
+  val clientMandateService = ClientMandateCreateService
+  val fetchClientMandateService = ClientMandateFetchService
 }
 
-case class Resp(id: String)
+case class CreateMandateResponse(mandateId: String)
 
-object Resp {
-  implicit val formats = Json.format[Resp]
+object CreateMandateResponse {
+  implicit val formats = Json.format[CreateMandateResponse]
 }
 
 trait ClientMandateController extends BaseController {
 
-  def clientMandateService: ClientMandateService
+  def clientMandateService: ClientMandateCreateService
 
-  def fetchClientMandateService: FetchClientMandateService
+  def fetchClientMandateService: ClientMandateFetchService
 
   def create = Action.async(parse.json) { implicit request =>
     request.body.asOpt[ClientMandateDto] match {
       case Some(x) =>
         clientMandateService.createMandate(x).map {
-          mandateId => Created(Json.toJson(Resp(mandateId)))
+          mandateId => Created(Json.toJson(CreateMandateResponse(mandateId)))
         }
       case None => Future.successful(BadRequest)
     }

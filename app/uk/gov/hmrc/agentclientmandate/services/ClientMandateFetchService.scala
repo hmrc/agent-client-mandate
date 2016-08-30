@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import uk.gov.hmrc.agentclientmandate.{ClientMandateFetchStatus, ClientMandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetchStatus, ClientMandateRepository}
 
 import scala.concurrent.Future
 
-trait FetchClientMandateService {
+trait ClientMandateFetchService {
 
   def clientMandateRepository: ClientMandateRepository
 
@@ -30,6 +30,6 @@ trait FetchClientMandateService {
 
 }
 
-object FetchClientMandateService extends FetchClientMandateService {
+object ClientMandateFetchService extends ClientMandateFetchService {
   val clientMandateRepository: ClientMandateRepository = ClientMandateRepository()
 }
