@@ -52,7 +52,7 @@ class FetchClientMandateServiceSpec extends PlaySpec with OneServerPerSuite with
 
   val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
 
-  val clientMandateFetched = Some(ClientMandateFetched(clientMandate))
+  val clientMandateFetched = ClientMandateFetched(clientMandate)
 
   val mockClientMandateRepository = mock[ClientMandateRepository]
 

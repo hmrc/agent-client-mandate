@@ -111,10 +111,10 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     reset(mockFetchClientMandateService)
   }
 
-  val mandateId = "12345678"
+  val mandateId = "123"
   val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
 
-  val clientMandateFetched = Some(ClientMandateFetched(clientMandate))
+  val clientMandateFetched = ClientMandateFetched(clientMandate)
 
   val requestJson = Json.toJson(ClientMandateDto(PartyDto("ARN123456", "Joe Bloggs", "Organisation"), ContactDetailsDto("test@test.com", "0123456789")))
 

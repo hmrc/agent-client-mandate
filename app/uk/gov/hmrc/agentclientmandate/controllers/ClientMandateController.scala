@@ -21,6 +21,7 @@ import uk.gov.hmrc.agentclientmandate.services.{ClientMandateService, FetchClien
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import play.api.mvc._
+import uk.gov.hmrc.agentclientmandate.{ClientMandateFetched, ClientMandateNotFound}
 
 import scala.concurrent.Future
 
@@ -57,6 +58,7 @@ object Resp {
 trait ClientMandateController extends BaseController {
 
   def clientMandateService: ClientMandateService
+
   def fetchClientMandateService: FetchClientMandateService
 
   def create = Action.async(parse.json) { implicit request =>
@@ -70,10 +72,10 @@ trait ClientMandateController extends BaseController {
   }
 
   def fetch(mandateId: String) = Action.async { implicit request =>
-      for {
-        fetchData <- fetchClientMandateService.fetchClientMandate(mandateId)
-      } yield Ok(Json.toJson(fetchData))
-//      ???
+    fetchClientMandateService.fetchClientMandate(mandateId).map {
+      case ClientMandateFetched(x) => Ok(Json.toJson(x))
+      case ClientMandateNotFound => NotFound
+    }
   }
 
 }

@@ -17,33 +17,27 @@
 package uk.gov.hmrc.agentclientmandate
 
 import play.modules.reactivemongo.MongoDbConnection
-import play.modules.reactivemongo.ReactiveMongoPlugin
-import reactivemongo.api.{DB, DefaultDB}
+import reactivemongo.api.DB
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import uk.gov.hmrc.agentclientmandate.services.{ClientMandate, ContactDetails, Party}
-import uk.gov.hmrc.mongo.{DatabaseUpdate, ReactiveRepository, Repository, Saved}
+import uk.gov.hmrc.agentclientmandate.services.ClientMandate
+import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import play.api.Play.current
-import play.api.libs.json.Json
-import uk.gov.hmrc.agentclientmandate.models.Id
-import uk.gov.hmrc.play.http.NotFoundException
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 case class ClientMandateCreated(clientMandate: ClientMandate)
 
-case class ClientMandateFetched(clientMandate: ClientMandate)
+sealed trait ClientMandateFetchStatus
 
-object ClientMandateFetched {
-  implicit val formats = Json.format[ClientMandateFetched]
-}
+case class ClientMandateFetched(clientMandate: ClientMandate) extends ClientMandateFetchStatus
+
+case object ClientMandateNotFound extends ClientMandateFetchStatus
 
 trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
   def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated]
 
-  def fetchMandate(mandateId: String): Future[Option[ClientMandateFetched]]
+  def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus]
 
 }
 
@@ -67,13 +61,13 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def fetchMandate(mandateId: String): Future[Option[ClientMandateFetched]] = {
+  def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus] = {
     val query = BSONDocument(
       "id" -> mandateId
     )
     collection.find(query).one[ClientMandate] map {
-      case Some(clientMandate) => Some(ClientMandateFetched(clientMandate))
-      case _ => None
+      case Some(clientMandate) => ClientMandateFetched(clientMandate)
+      case _ => ClientMandateNotFound
     }
   }
 
