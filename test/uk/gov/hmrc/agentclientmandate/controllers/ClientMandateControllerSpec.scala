@@ -24,7 +24,8 @@ import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
-import uk.gov.hmrc.agentclientmandate.services.ClientMandateService
+import uk.gov.hmrc.agentclientmandate.ClientMandateFetched
+import uk.gov.hmrc.agentclientmandate.services._
 
 import scala.concurrent.Future
 
@@ -33,6 +34,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
   "ClientMandateController" should {
 
+    // create API tests ---- START
     "not return a 404" when {
 
       "POST /agent-client-mandate/mandate exists" in {
@@ -72,19 +74,55 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
       }
 
     }
+    // create API tests ---- END
+
+
+    // get API tests ---- START
+
+    "not return a 404" when {
+
+      "GET /agent-client-mandate/mandate/:mandateId exists" in {
+        val request = route(FakeRequest(GET, "/agent-client-mandate/mandate/12345678")).get
+        status(request) mustNot be(NOT_FOUND)
+      }
+
+    }
+
+    "return a success response" when {
+
+      "mandate id is found" in {
+
+        when(mockFetchClientMandateService.fetchClientMandate(Matchers.eq(manadateId))) thenReturn Future.successful(clientMandateFetched)
+
+        val reponse = TestClientMandateController.fetch(manadateId).apply(FakeRequest())
+        status(reponse) must be(OK)
+
+      }
+
+    }
+
+    // get API tests ---- START
 
   }
 
   override def beforeEach(): Unit = {
     reset(clientMandateServiceMock)
+    reset(mockFetchClientMandateService)
   }
+
+  val manadateId = "12345678"
+  val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
+
+  val clientMandateFetched = ClientMandateFetched(clientMandate)
 
   val requestJson = Json.toJson(ClientMandateDto(PartyDto("ARN123456", "Joe Bloggs", "Organisation"), ContactDetailsDto("test@test.com", "0123456789")))
 
   val clientMandateServiceMock = mock[ClientMandateService]
+  val mockFetchClientMandateService = mock[FetchClientMandateService]
 
   object TestClientMandateController extends ClientMandateController {
     override val clientMandateService = clientMandateServiceMock
+    override val fetchClientMandateService = mockFetchClientMandateService
   }
 
 }

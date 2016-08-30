@@ -17,10 +17,11 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.agentclientmandate.services.ClientMandateService
+import uk.gov.hmrc.agentclientmandate.services.{ClientMandateService, FetchClientMandateService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import play.api.mvc._
+
 import scala.concurrent.Future
 
 case class PartyDto(id: String, name: String, `type`: String)
@@ -44,6 +45,7 @@ object ClientMandateDto {
 
 object ClientMandateController extends ClientMandateController {
   val clientMandateService = ClientMandateService
+  val fetchClientMandateService = FetchClientMandateService
 }
 
 case class Resp(id: String)
@@ -55,6 +57,7 @@ object Resp {
 trait ClientMandateController extends BaseController {
 
   def clientMandateService: ClientMandateService
+  def fetchClientMandateService: FetchClientMandateService
 
   def create = Action.async(parse.json) { implicit request =>
     request.body.asOpt[ClientMandateDto] match {
@@ -64,6 +67,11 @@ trait ClientMandateController extends BaseController {
         }
       case None => Future.successful(BadRequest)
     }
+  }
+
+  def fetch(mandateId: String) = Action.async {
+    implicit request =>
+      fetchClientMandateService.fetchClientMandate(mandateId).map { clientMandate => Ok(Json.toJson(clientMandate))}
   }
 
 }

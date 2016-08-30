@@ -24,6 +24,7 @@ import uk.gov.hmrc.agentclientmandate.services.{ClientMandate, ContactDetails, P
 import uk.gov.hmrc.mongo.{DatabaseUpdate, ReactiveRepository, Repository, Saved}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import play.api.Play.current
+import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.models.Id
 import uk.gov.hmrc.play.http.NotFoundException
 
@@ -34,6 +35,9 @@ case class ClientMandateCreated(clientMandate: ClientMandate)
 
 case class ClientMandateFetched(clientMandate: ClientMandate)
 
+object ClientMandateFetched {
+  implicit val formats = Json.format[ClientMandateFetched]
+}
 
 trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
