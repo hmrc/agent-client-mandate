@@ -39,7 +39,7 @@ class FetchClientMandateServiceSpec extends PlaySpec with OneServerPerSuite with
       "a client mandate is found for a valid mandate id in MongoDB" in {
 
         when(mockClientMandateRepository.fetchMandate(Matchers.any())) thenReturn {
-          Future.successful(ClientMandateFetched(clientMandate))}
+          Future.successful(clientMandateFetched)}
 
         val reponse = TestFetchClientMandateService.fetchClientMandate(mandateId)
         await(reponse) must be(clientMandateFetched)
@@ -52,7 +52,7 @@ class FetchClientMandateServiceSpec extends PlaySpec with OneServerPerSuite with
 
   val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
 
-  val clientMandateFetched = ClientMandateFetched(clientMandate)
+  val clientMandateFetched = Some(ClientMandateFetched(clientMandate))
 
   val mockClientMandateRepository = mock[ClientMandateRepository]
 

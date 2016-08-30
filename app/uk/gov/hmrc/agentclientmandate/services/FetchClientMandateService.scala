@@ -24,7 +24,7 @@ trait FetchClientMandateService {
 
   def clientMandateRepository: ClientMandateRepository
 
-  def fetchClientMandate(mandateId: String): Future[ClientMandateFetched] = {
+  def fetchClientMandate(mandateId: String): Future[Option[ClientMandateFetched]] = {
     clientMandateRepository.fetchMandate(mandateId)
   }
 }

@@ -43,7 +43,7 @@ trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
   def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated]
 
-  def fetchMandate(mandateId: String): Future[ClientMandateFetched]
+  def fetchMandate(mandateId: String): Future[Option[ClientMandateFetched]]
 
 }
 
@@ -67,13 +67,13 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def fetchMandate(mandateId: String): Future[ClientMandateFetched] = {
+  def fetchMandate(mandateId: String): Future[Option[ClientMandateFetched]] = {
     val query = BSONDocument(
       "id" -> mandateId
     )
     collection.find(query).one[ClientMandate] map {
-      case Some(clientMandate) => ClientMandateFetched(clientMandate)
-      case _ => throw new NotFoundException(s"Client Mandate not found for id $mandateId")
+      case Some(clientMandate) => Some(ClientMandateFetched(clientMandate))
+      case _ => None
     }
   }
 

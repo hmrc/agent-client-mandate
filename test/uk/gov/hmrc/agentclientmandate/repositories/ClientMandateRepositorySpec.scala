@@ -61,7 +61,7 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
   def clientMandateRepository(implicit mongo: () => DB) = new ClientMandateMongoRepository
 
   val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
-  val clientMandateFetched = ClientMandateFetched(clientMandate)
+  val clientMandateFetched = Some(ClientMandateFetched(clientMandate))
   val mandateId = "123"
 
   override def beforeEach(): Unit = {

@@ -82,7 +82,8 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     "not return a 404" when {
 
       "GET /agent-client-mandate/mandate/:mandateId exists" in {
-        val request = route(FakeRequest(GET, "/agent-client-mandate/mandate/12345678")).get
+
+        val request = route(FakeRequest(GET, s"/agent-client-mandate/mandate/$mandateId")).get
         status(request) mustNot be(NOT_FOUND)
       }
 
@@ -92,9 +93,9 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
       "mandate id is found" in {
 
-        when(mockFetchClientMandateService.fetchClientMandate(Matchers.eq(manadateId))) thenReturn Future.successful(clientMandateFetched)
+        when(mockFetchClientMandateService.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(clientMandateFetched)
 
-        val reponse = TestClientMandateController.fetch(manadateId).apply(FakeRequest())
+        val reponse = TestClientMandateController.fetch(mandateId).apply(FakeRequest())
         status(reponse) must be(OK)
 
       }
@@ -110,10 +111,10 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     reset(mockFetchClientMandateService)
   }
 
-  val manadateId = "12345678"
+  val mandateId = "12345678"
   val clientMandate = ClientMandate("123", "credid", Party("JARN123456", "Joe Bloggs", "Organisation"), ContactDetails("test@test.com", "0123456789"))
 
-  val clientMandateFetched = ClientMandateFetched(clientMandate)
+  val clientMandateFetched = Some(ClientMandateFetched(clientMandate))
 
   val requestJson = Json.toJson(ClientMandateDto(PartyDto("ARN123456", "Joe Bloggs", "Organisation"), ContactDetailsDto("test@test.com", "0123456789")))
 

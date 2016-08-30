@@ -69,9 +69,11 @@ trait ClientMandateController extends BaseController {
     }
   }
 
-  def fetch(mandateId: String) = Action.async {
-    implicit request =>
-      fetchClientMandateService.fetchClientMandate(mandateId).map { clientMandate => Ok(Json.toJson(clientMandate))}
+  def fetch(mandateId: String) = Action.async { implicit request =>
+      for {
+        fetchData <- fetchClientMandateService.fetchClientMandate(mandateId)
+      } yield Ok(Json.toJson(fetchData))
+//      ???
   }
 
 }
