@@ -2,3 +2,5 @@
 
 POST    /mandate                uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.create
 GET     /mandate/:mandateId     uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetch(mandateId: String)
+
+GET     /mandate/service/:arn/:serviceName    uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetchAll(arn: String, serviceName: String)

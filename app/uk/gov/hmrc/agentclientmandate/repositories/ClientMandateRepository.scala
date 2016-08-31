@@ -41,6 +41,8 @@ trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
   def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus]
 
+  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[List[ClientMandate]]
+
 }
 
 object ClientMandateRepository extends MongoDbConnection {
@@ -77,6 +79,18 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
       case Some(clientMandate) => ClientMandateFetched(clientMandate)
       case _ => ClientMandateNotFound
     }
+  }
+
+  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[List[ClientMandate]] = {
+    val query = BSONDocument(
+      "party.id" -> arn,
+      "service.name" -> serviceName
+    )
+    collection.find(query).cursor[ClientMandate].collect[List]().map {
+      case mandateList => mandateList
+      case _ => List()
+    }
+
   }
 
 }

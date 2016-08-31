@@ -91,7 +91,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     // create API tests ---- END
 
 
-    // get API tests ---- START
+    // get by Id API tests ---- START
 
     "return a success response" when {
 
@@ -117,11 +117,47 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
     }
 
-    // get API tests ---- START
+    // get by Id API tests ---- START
+
+    //get by service API tests ---- START
+
+    "not return a 404" when {
+
+      "POST /agent-client-mandate/mandate/service exists" in {
+        val request = route(FakeRequest(GET, s"/agent-client-mandate/mandate/service/$arn/$serviceName")).get
+        status(request) mustNot be(NOT_FOUND)
+      }
+
+      "return a success response" when {
+
+        "service id is vaild" in {
+
+          when(mockFetchClientMandateService.getAllMandates(Matchers.eq(arn), Matchers.eq(serviceName))) thenReturn Future.successful(List(clientMandate))
+
+          val response = TestClientMandateController.fetchAll(arn, serviceName).apply(FakeRequest())
+
+          status(response) must be(OK)
+
+
+        }
+      }
+
+    }
+
+
+
+
+    //get by service API tests ---- END
+
+
 
   }
 
   val mandateId = "123"
+
+  val serviceName = "345"
+
+  val arn = "ARN123456"
 
   val clientMandateServiceMock = mock[ClientMandateCreateService]
 

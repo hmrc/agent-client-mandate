@@ -59,6 +59,19 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
     }
 
+    "get a list of client mandates from the repo" when {
+
+      "the arn and service name are correct" in {
+        await(testClientMandateRepository.insertMandate(clientMandate))
+
+        await(testClientMandateRepository.findAll()).head must be(clientMandate)
+        await(testClientMandateRepository.count) must be(1)
+
+        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
+
+      }
+    }
+
   }
 
   def testClientMandateRepository(implicit mongo: () => DB) = new ClientMandateMongoRepository
