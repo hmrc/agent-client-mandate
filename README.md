@@ -6,9 +6,10 @@
 
 Used to create a new Client Mandate
 
-| Status | Message
-| 200    | Ok
-| 400    | Bad Request
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 400    | Bad Request |
 
 **Example request with a valid body**
 
@@ -27,13 +28,13 @@ Used to create a new Client Mandate
   }
 ```
 
-** Response body **
+**Response body**
 
 ```json
-{
-  "mandateId": "AS12345678"
-}
-
+  {
+    "mandateId": "AS12345678"
+  }
+```
 
 
 ### License
