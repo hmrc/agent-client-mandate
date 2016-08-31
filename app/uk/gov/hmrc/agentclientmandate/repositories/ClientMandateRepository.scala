@@ -87,8 +87,8 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
       "service.name" -> serviceName
     )
     collection.find(query).cursor[ClientMandate].collect[List]().map {
-      case mandateList => mandateList
-      case _ => List()
+      case mandateList: List[ClientMandate] => mandateList
+      case Nil => Nil
     }
 
   }

@@ -65,6 +65,7 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
         await(testClientMandateRepository.count) must be(1)
 
         await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
+        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(clientMandate1))
 
       }
     }
@@ -76,6 +77,14 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
   def clientMandate: ClientMandate =
     ClientMandate("AS12345678", createdBy = "credid",
       party = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
+      statusHistory = None,
+      service = Service(None, "ATED")
+    )
+
+  def clientMandate1: ClientMandate =
+    ClientMandate("AS12345678", createdBy = "credid",
+      party = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
       service = Service(None, "ATED")
