@@ -21,7 +21,6 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import reactivemongo.api.DB
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.services.ClientMandateCreateService
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,8 +28,6 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPerSuite with BeforeAndAfterEach {
-
-  def await[A](future: Future[A]) = Await.result(future, 5 seconds)
 
   "ClientMandateRepository" should {
 
@@ -63,10 +60,10 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
   def testClientMandateRepository(implicit mongo: () => DB) = new ClientMandateMongoRepository
 
-  val clientMandate =
-    ClientMandate(ClientMandateCreateService.createMandateId, createdBy = "credid",
+  def clientMandate: ClientMandate =
+    ClientMandate("AS12345678", createdBy = "credid",
       party = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
-      currentStatus = MandateStatus(Status.Pending, DateTime.now(), "credidupdate"),
+      currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
       service = Service(None, "ATED")
     )
@@ -74,5 +71,7 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
   override def beforeEach(): Unit = {
     await(testClientMandateRepository.drop)
   }
+
+  def await[A](future: Future[A]): A = Await.result(future, 5 seconds)
 
 }
