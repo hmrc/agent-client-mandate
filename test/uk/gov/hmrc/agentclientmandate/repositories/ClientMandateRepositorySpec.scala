@@ -56,6 +56,20 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
     }
 
+    "get a list of client mandates from the repo" when {
+
+      "the arn and service name are correct" in {
+        await(testClientMandateRepository.insertMandate(clientMandate))
+
+        await(testClientMandateRepository.findAll()).head must be(clientMandate)
+        await(testClientMandateRepository.count) must be(1)
+
+        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
+        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(clientMandate1))
+
+      }
+    }
+
   }
 
   def testClientMandateRepository(implicit mongo: () => DB) = new ClientMandateMongoRepository
@@ -63,6 +77,14 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
   def clientMandate: ClientMandate =
     ClientMandate("AS12345678", createdBy = "credid",
       party = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
+      statusHistory = None,
+      service = Service(None, "ATED")
+    )
+
+  def clientMandate1: ClientMandate =
+    ClientMandate("AS12345678", createdBy = "credid",
+      party = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
       service = Service(None, "ATED")

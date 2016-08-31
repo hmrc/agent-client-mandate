@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import uk.gov.hmrc.agentclientmandate.models.ClientMandate
 import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetchStatus, ClientMandateRepository}
 
 import scala.concurrent.Future
@@ -28,6 +29,9 @@ trait ClientMandateFetchService {
     clientMandateRepository.fetchMandate(mandateId)
   }
 
+  def getAllMandates(arn: String, serviceName: String): Future[List[ClientMandate]] = {
+    clientMandateRepository.getAllMandatesByServiceName(arn, serviceName)
+  }
 }
 
 object ClientMandateFetchService extends ClientMandateFetchService {

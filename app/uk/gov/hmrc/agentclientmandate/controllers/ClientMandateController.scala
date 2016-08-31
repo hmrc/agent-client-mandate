@@ -60,4 +60,11 @@ trait ClientMandateController extends BaseController {
     }
   }
 
+  def fetchAll(arn: String, serviceName: String) = Action.async { implicit request =>
+    fetchClientMandateService.getAllMandates(arn, serviceName).map {
+      case Nil => NotFound
+      case mandateList => Ok(Json.toJson(mandateList))
+    }
+  }
+
 }

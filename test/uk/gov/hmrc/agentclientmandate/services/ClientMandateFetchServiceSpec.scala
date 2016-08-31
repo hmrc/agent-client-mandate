@@ -49,6 +49,11 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
 
     }
 
+    "list of client mandate is found for a valid arn and service name in MongoDB" in {
+
+      when(mockClientMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
+    }
+
   }
 
   val clientMandate =
