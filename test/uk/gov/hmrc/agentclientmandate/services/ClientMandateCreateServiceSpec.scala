@@ -31,15 +31,13 @@ import scala.concurrent.duration._
 
 class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  def await[A](future: Future[A]) = Await.result(future, 5 seconds)
-
   "ClientMandateService" should {
 
     "create a valid ClientMandate object" when {
 
       "passed a valid Dto from the create API" in {
 
-        val clientMandateFromDto = TestClientMandateService.generateClientMandate(mandateDto)
+        val clientMandateFromDto = TestClientMandateCreateService.generateClientMandate(mandateDto)
         clientMandateFromDto must be(clientMandate(clientMandateFromDto.id, clientMandateFromDto.currentStatus.timestamp))
 
       }
@@ -48,7 +46,7 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
 
     "create a client mandate status object with a status of pending for new client mandates" in {
 
-      val clientMandateStatus = TestClientMandateService.createPendingStatus("credid")
+      val clientMandateStatus = TestClientMandateCreateService.createPendingStatus("credid")
       clientMandateStatus must be(MandateStatus(Status.Pending, clientMandateStatus.timestamp, "credid"))
 
     }
@@ -57,13 +55,13 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
 
       "a ClientMandate is created" in {
 
-        val mandateId = ClientMandateCreateService.createMandateId
+        val mandateId = TestClientMandateCreateService.createMandateId
 
         when(clientMandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
           Future.successful(ClientMandateCreated(clientMandate(mandateId, DateTime.now())))
         }
 
-        val createdMandateId = TestClientMandateService.createMandate(mandateDto)
+        val createdMandateId = TestClientMandateCreateService.createMandate(mandateDto)
         await(createdMandateId) must be(mandateId)
 
       }
@@ -73,7 +71,7 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
     "generate a 10 character mandate id" when {
 
       "a client mandate is created" in {
-        val mandateId = TestClientMandateService.createMandateId
+        val mandateId = TestClientMandateCreateService.createMandateId
         mandateId.length must be(10)
         mandateId.take(2) must be("AS")
       }
@@ -83,7 +81,7 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
   }
 
   val mandateDto: ClientMandateDto =
-    ClientMandateDto("credid",
+    ClientMandateDto(
       PartyDto("JARN123456", "Joe Bloggs", "Organisation"),
       ContactDetailsDto("test@test.com", "0123456789"),
       ServiceDto("ATED")
@@ -101,12 +99,14 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
 
   val clientMandateRepositoryMock = mock[ClientMandateRepository]
 
-  object TestClientMandateService extends ClientMandateCreateService {
+  object TestClientMandateCreateService extends ClientMandateCreateService {
     override val clientMandateRepository = clientMandateRepositoryMock
   }
 
   override def beforeEach(): Unit = {
     reset(clientMandateRepositoryMock)
   }
+
+  def await[A](future: Future[A]): A = Await.result(future, 5 seconds)
 
 }

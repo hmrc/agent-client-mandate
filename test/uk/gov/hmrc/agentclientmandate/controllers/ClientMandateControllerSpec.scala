@@ -164,7 +164,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
   val mockFetchClientMandateService = mock[ClientMandateFetchService]
 
   val requestJson = Json.toJson(
-    ClientMandateDto("credid",
+    ClientMandateDto(
       PartyDto("ARN123456", "Joe Bloggs", "Organisation"),
       ContactDetailsDto("test@test.com", "0123456789"),
       ServiceDto("ATED")
