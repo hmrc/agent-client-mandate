@@ -83,7 +83,7 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
   }
 
   val mandateDto: ClientMandateDto =
-    ClientMandateDto("credid",
+    ClientMandateDto(
       PartyDto("JARN123456", "Joe Bloggs", "Organisation"),
       ContactDetailsDto("test@test.com", "0123456789"),
       ServiceDto("ATED")

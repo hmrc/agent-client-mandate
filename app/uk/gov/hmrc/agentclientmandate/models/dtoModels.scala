@@ -36,7 +36,7 @@ object ServiceDto {
   implicit val formats = Json.format[ServiceDto]
 }
 
-case class ClientMandateDto(createdBy: String, party: PartyDto, contactDetails: ContactDetailsDto, service: ServiceDto)
+case class ClientMandateDto(party: PartyDto, contactDetails: ContactDetailsDto, service: ServiceDto)
 
 object ClientMandateDto {
   implicit val formats = Json.format[ClientMandateDto]
