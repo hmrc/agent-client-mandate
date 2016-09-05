@@ -4,3 +4,7 @@ POST    /mandate                uk.gov.hmrc.agentclientmandate.controllers.Clien
 GET     /mandate/:mandateId     uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetch(mandateId: String)
 
 GET     /mandate/service/:arn/:serviceName    uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetchAll(arn: String, serviceName: String)
+
+# email-services
+POST    /sendMail               uk.gov.hmrc.agentclientmandate.controllers.NotificationEmailController.x
+
