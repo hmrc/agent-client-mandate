@@ -25,28 +25,28 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-  trait NotificationEmailService {
+trait NotificationEmailService {
 
-    def clientMandateFetchService: ClientMandateFetchService
+  def clientMandateFetchService: ClientMandateFetchService
 
-    def emailConnector: EmailConnector
+  def emailConnector: EmailConnector
 
-    def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-      fetchMandateDetails(mandateId) flatMap {
-        case ClientMandateFetched(clientMandate) =>
-          val email = clientMandate.party.contactDetails.email
-          emailConnector.sendTemplatedEmail(email)
-        case ClientMandateNotFound => Future.successful(HttpResponse(NOT_FOUND, None))
-      }
+  def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    fetchMandateDetails(mandateId) flatMap {
+      case ClientMandateFetched(clientMandate) =>
+        val email = clientMandate.party.contactDetails.email
+        emailConnector.sendTemplatedEmail(email)
+      case ClientMandateNotFound => Future.successful(HttpResponse(NOT_FOUND, None))
     }
-
-    private def fetchMandateDetails(mandateId: String): Future[ClientMandateFetchStatus] = {
-      clientMandateFetchService.fetchClientMandate(mandateId)
-    }
-
   }
 
-  object NotificationEmailService extends NotificationEmailService {
-    val emailConnector = EmailConnector
-    val clientMandateFetchService = ClientMandateFetchService
+  private def fetchMandateDetails(mandateId: String): Future[ClientMandateFetchStatus] = {
+    clientMandateFetchService.fetchClientMandate(mandateId)
   }
+
+}
+
+object NotificationEmailService extends NotificationEmailService {
+  val emailConnector = EmailConnector
+  val clientMandateFetchService = ClientMandateFetchService
+}
