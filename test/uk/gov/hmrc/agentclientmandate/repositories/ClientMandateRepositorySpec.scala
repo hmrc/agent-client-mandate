@@ -68,6 +68,20 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
         await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(clientMandate1))
 
       }
+
+    }
+
+    "return an empty list" when {
+
+      "the arn and service does not match" in {
+        await(testClientMandateRepository.insertMandate(clientMandate))
+
+        await(testClientMandateRepository.findAll()).head must be(clientMandate)
+        await(testClientMandateRepository.count) must be(1)
+
+        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
+        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123455", "ABCD")) must be(List())
+      }
     }
 
   }

@@ -138,14 +138,21 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
           status(response) must be(OK)
 
+        }
+
+        "service id is invaild" in {
+
+          when(mockFetchClientMandateService.getAllMandates(Matchers.eq(arn), Matchers.any())) thenReturn Future.successful(Nil)
+
+          val response = TestClientMandateController.fetchAll(arn, invalidServiceName).apply(FakeRequest())
+
+          status(response) must be(NOT_FOUND)
+
 
         }
       }
 
     }
-
-
-
 
     //get by service API tests ---- END
 
@@ -156,6 +163,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
   val mandateId = "123"
 
   val serviceName = "345"
+  val invalidServiceName = "349"
 
   val arn = "ARN123456"
 
