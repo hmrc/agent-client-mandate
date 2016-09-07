@@ -16,32 +16,37 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
-import play.api.http.Status._
-import uk.gov.hmrc.agentclientmandate.models.ValidEmail
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetchStatus, ClientMandateFetched, ClientMandateNotFound}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
 
   trait NotificationEmailService {
 
+    def clientMandateFetchService: ClientMandateFetchService
+
     def emailConnector: EmailConnector
 
-    def validateEmail(emailString: String)(implicit hc: HeaderCarrier): Future[Option[Boolean]] = {
-      emailConnector.validateEmailId(emailString) map {
-        response => response.status match {
-          case OK =>
-            val validEmail = response.json.as[ValidEmail]
-            Some(validEmail.valid)
-          case status => None
-        }
+    def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+      fetchMandateDetails(mandateId) flatMap {
+        case ClientMandateFetched(clientMandate) =>
+          val email = clientMandate.party.contactDetails.email
+          emailConnector.sendTemplatedEmail(email)
+        case ClientMandateNotFound => Future.successful(HttpResponse(NOT_FOUND, None))
       }
     }
+
+    private def fetchMandateDetails(mandateId: String): Future[ClientMandateFetchStatus] = {
+      clientMandateFetchService.fetchClientMandate(mandateId)
+    }
+
   }
 
   object NotificationEmailService extends NotificationEmailService {
     val emailConnector = EmailConnector
+    val clientMandateFetchService = ClientMandateFetchService
   }

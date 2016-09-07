@@ -18,30 +18,51 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 
 import play.api.Logger
+import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.WSHttp
+import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
 trait EmailConnector extends ServicesConfig{
 
-  def validateEmailUri: String
+  def sendEmailUri: String
 
   def serviceUrl: String
 
   def http: HttpGet with HttpPost with HttpPut
 
-  def validateEmailId(emailString: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    val getUrl = s"""$serviceUrl/$validateEmailUri?email=$emailString"""
-    Logger.info(s"[EmailConnector][validateEmailId] - GET ££££££££££££££££££££££ $getUrl")
-    http.GET[HttpResponse](getUrl)
+  def sendTemplatedEmail(emailString: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+
+    val templateId = "agentClinetNotification"
+    val params = Map("emailAddress" -> emailString)
+
+    val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, true)
+
+    val postUrl = s"$serviceUrl/$sendEmailUri"
+    val jsonData = Json.toJson(sendEmailReq)
+
+    Logger.info(s"[EmailConnector][sendTemplatedEmail] - POST - $postUrl and JSON Data - $jsonData" )
+
+    http.POST(postUrl, jsonData).map { response =>
+      response.status match {
+        case 202 => response
+        case status =>
+          Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: $status Error ${response.body}")
+          response
+      }
+    }
   }
+
 
 }
 
 object EmailConnector extends EmailConnector {
-  val validateEmailUri: String = "validate-email-address"
+  val sendEmailUri: String = "send-templated-email"
   val serviceUrl = baseUrl("email")
   val http: HttpGet with HttpPost with HttpPut = WSHttp
 }

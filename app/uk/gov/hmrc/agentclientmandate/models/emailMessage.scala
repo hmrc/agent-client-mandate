@@ -16,16 +16,22 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import play.api.libs.json.Json
 
-case class ValidEmail(valid: Boolean = false)
+import play.api.libs.functional.syntax.functionalCanBuildApplicative
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json._
 
-object ValidEmail {
-  implicit val formats = Json.format[ValidEmail]
-}
+case class SendEmailRequest(to: List[String], templateId: String, parameters: Map[String, String], force: Boolean)
 
-case class MessageDetails(emailId: String, name: String)
-
-object MessageDetails {
-  implicit val formats = Json.format[MessageDetails]
+object SendEmailRequest {
+  implicit val format = new Format[SendEmailRequest] {
+    // $COVERAGE-OFF$
+    def reads(json: JsValue): JsResult[SendEmailRequest] = (
+      (__ \ "to").read[List[String]] and
+        (__ \ "templateId").read[String] and
+        (__ \ "parameters").read[Map[String, String]] and
+        (__ \ "force").readNullable[Boolean].map(_.getOrElse(false)))(SendEmailRequest.apply _).reads(json)
+    // $COVERAGE-ON$
+    def writes(o: SendEmailRequest): JsValue = Json.writes[SendEmailRequest].writes(o)
+  }
 }
