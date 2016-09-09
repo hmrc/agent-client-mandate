@@ -76,7 +76,7 @@ trait ClientMandateController extends BaseController {
       case ClientMandateNotFound => NotFound
     }
   }
-
+  
   def fetchAll(arn: String, serviceName: String) = Action.async { implicit request =>
     fetchClientMandateService.getAllMandates(arn, serviceName).map {
       case Nil => NotFound

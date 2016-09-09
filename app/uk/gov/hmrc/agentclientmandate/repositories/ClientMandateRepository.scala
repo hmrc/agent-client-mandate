@@ -103,8 +103,8 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
 
   def getAllMandatesByServiceName(arn: String, serviceName: String): Future[List[ClientMandate]] = {
     val query = BSONDocument(
-      "party.id" -> arn,
-      "service.name" -> serviceName
+      "agentParty.id" -> arn,
+      "subscription.service.name" -> serviceName
     )
     collection.find(query).cursor[ClientMandate].collect[List]()
   }

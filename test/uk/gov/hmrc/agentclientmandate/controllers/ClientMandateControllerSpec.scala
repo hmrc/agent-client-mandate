@@ -150,7 +150,6 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
     }
 
-
     // update API ---- END
 
 
@@ -187,35 +186,35 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
     "not return a 404" when {
 
-      "POST /agent-client-mandate/mandate/service exists" in {
+      "GET /agent-client-mandate/mandate/service exists" in {
         val request = route(FakeRequest(GET, s"/agent-client-mandate/mandate/service/$arn/$serviceName")).get
-        status(request) mustNot be(NOT_FOUND)
+        status(request).toString mustNot be(NOT_FOUND)
       }
 
-      "return a success response" when {
+    }
 
-        "service id is vaild" in {
+    "return a success response" when {
 
-          when(mockFetchClientMandateService.getAllMandates(Matchers.eq(arn), Matchers.eq(serviceName))) thenReturn Future.successful(List(clientMandate))
+      "service id is valid" in {
 
-          val response = TestClientMandateController.fetchAll(arn, serviceName).apply(FakeRequest())
+        when(mockFetchClientMandateService.getAllMandates(Matchers.eq(arn), Matchers.eq(serviceName))) thenReturn Future.successful(List(clientMandate))
 
-          status(response) must be(OK)
+        val response = TestClientMandateController.fetchAll(arn, serviceName).apply(FakeRequest())
 
-        }
+        status(response) must be(OK)
 
-        "service id is invaild" in {
-
-          when(mockFetchClientMandateService.getAllMandates(Matchers.eq(arn), Matchers.any())) thenReturn Future.successful(Nil)
-
-          val response = TestClientMandateController.fetchAll(arn, invalidServiceName).apply(FakeRequest())
-
-          status(response) must be(NOT_FOUND)
-
-
-        }
       }
 
+      "service id is invalid" in {
+
+        when(mockFetchClientMandateService.getAllMandates(Matchers.eq(arn), Matchers.any())) thenReturn Future.successful(Nil)
+
+        val response = TestClientMandateController.fetchAll(arn, invalidServiceName).apply(FakeRequest())
+
+        status(response) must be(NOT_FOUND)
+
+
+      }
     }
 
     //get by service API tests ---- END

@@ -77,7 +77,6 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
         await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
         await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(clientMandate1))
-
       }
 
     }
@@ -106,7 +105,6 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
       Subscription(None, Service("ated", "ATED"))
-      //service = Service(None, "ATED")
     )
 
   def updatedClientMandate: ClientMandate =
@@ -116,15 +114,15 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Some(Seq(MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"))),
       Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
-      //service = Service(None, "ATED")
     )
 
   def clientMandate1: ClientMandate =
     ClientMandate("AS12345678", createdBy = "credid",
-      party = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
-      service = Service(None, "ATED")
+      subscription = Subscription(None, Service("ated", "ATED"))
     )
 
   override def beforeEach(): Unit = {
