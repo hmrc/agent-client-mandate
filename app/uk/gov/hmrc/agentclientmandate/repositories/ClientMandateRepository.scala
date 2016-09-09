@@ -18,16 +18,22 @@ package uk.gov.hmrc.agentclientmandate.repositories
 
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
-import reactivemongo.api.indexes.{IndexType, Index}
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.models.ClientMandate
-import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 case class ClientMandateCreated(clientMandate: ClientMandate)
+
+sealed trait ClientMandateUpdate
+
+case class ClientMandateUpdated(clientMandate: ClientMandate) extends ClientMandateUpdate
+
+case object ClientMandateUpdateError extends ClientMandateUpdate
 
 sealed trait ClientMandateFetchStatus
 
@@ -38,6 +44,8 @@ case object ClientMandateNotFound extends ClientMandateFetchStatus
 trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
   def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated]
+
+  def updateMandate(clientMandate: ClientMandate): Future[ClientMandateUpdate]
 
   def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus]
 
@@ -65,10 +73,15 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
   }
 
   def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated] = {
-    collection.insert[ClientMandate](clientMandate).map {
-      wr =>
-        ClientMandateCreated(clientMandate)
-    }
+    collection.insert[ClientMandate](clientMandate).map(writeResult => ClientMandateCreated(clientMandate))
+  }
+
+  def updateMandate(clientMandate: ClientMandate): Future[ClientMandateUpdate] = {
+    val query = BSONDocument(
+      "id" -> clientMandate.id
+    )
+    collection.update(query, clientMandate, upsert = false).map(writeResult => ClientMandateUpdated(clientMandate))
+
   }
 
   def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus] = {
@@ -83,8 +96,8 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
 
   def getAllMandatesByServiceName(arn: String, serviceName: String): Future[List[ClientMandate]] = {
     val query = BSONDocument(
-      "party.id" -> arn,
-      "service.name" -> serviceName
+      "agentParty.id" -> arn,
+      "subscription.service.name" -> serviceName
     )
     collection.find(query).cursor[ClientMandate].collect[List]()
   }

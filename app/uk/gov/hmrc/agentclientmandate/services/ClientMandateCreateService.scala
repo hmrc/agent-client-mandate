@@ -20,8 +20,9 @@ import org.joda.time.DateTime
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.ClientMandateRepository
 import uk.gov.hmrc.play.http.HeaderCarrier
-import scala.concurrent.Future
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait ClientMandateCreateService {
 
@@ -33,7 +34,7 @@ trait ClientMandateCreateService {
     ClientMandate(
       id = createMandateId,
       createdBy = credId,
-      party = Party(
+      agentParty = Party(
         clientMandateDto.party.id,
         clientMandateDto.party.name,
         clientMandateDto.party.`type`,
@@ -42,9 +43,10 @@ trait ClientMandateCreateService {
           clientMandateDto.contactDetails.phone
         )
       ),
+      clientParty = None,
       currentStatus = createPendingStatus(credId),
       statusHistory = None,
-      service = Service(None, clientMandateDto.service.name)
+      subscription = Subscription(None, service = Service(clientMandateDto.service.name.toLowerCase, clientMandateDto.service.name))
     )
   }
 
@@ -59,10 +61,7 @@ trait ClientMandateCreateService {
 
     val clientMandate = generateClientMandate(clientMandateDto)
 
-    clientMandateRepository.insertMandate(clientMandate).map {
-      a =>
-        a.clientMandate.id
-    }
+    clientMandateRepository.insertMandate(clientMandate).map(_.clientMandate.id)
   }
 
 }

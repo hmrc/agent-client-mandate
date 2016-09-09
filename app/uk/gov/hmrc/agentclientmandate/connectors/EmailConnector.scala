@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 
 import play.api.Logger
+import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
@@ -25,10 +26,9 @@ import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 
-trait EmailConnector extends ServicesConfig{
+trait EmailConnector extends ServicesConfig {
 
   def sendEmailUri: String
 
@@ -41,16 +41,16 @@ trait EmailConnector extends ServicesConfig{
     val templateId = "agentClinetNotification"
     val params = Map("emailAddress" -> emailString)
 
-    val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, true)
+    val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, force = true)
 
     val postUrl = s"$serviceUrl/$sendEmailUri"
     val jsonData = Json.toJson(sendEmailReq)
 
-    Logger.info(s"[EmailConnector][sendTemplatedEmail] - POST - $postUrl and JSON Data - $jsonData" )
+    Logger.info(s"[EmailConnector][sendTemplatedEmail] - POST - $postUrl and JSON Data - $jsonData")
 
     http.POST(postUrl, jsonData).map { response =>
       response.status match {
-        case 202 => response
+        case ACCEPTED => response
         case status =>
           Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: $status Error ${response.body}")
           response

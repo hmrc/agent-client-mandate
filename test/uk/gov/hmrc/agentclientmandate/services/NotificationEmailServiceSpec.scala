@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound, ClientMandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.duration._
@@ -57,7 +57,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
     "return 202" when {
 
-      "matching mandateId is found and email is sent succesfully" in {
+      "matching mandateId is found and email is sent successfully to agent" in {
 
         when(mockClientMandateFetchService.fetchClientMandate(Matchers.eq(validMandateId))) thenReturn Future.successful(ClientMandateFetched(clientMandate))
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("test@test.com"))(Matchers.any())) thenReturn Future.successful(HttpResponse(ACCEPTED, None))
@@ -66,6 +66,17 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
         await(response).status must be(ACCEPTED)
 
       }
+
+      "matching mandateId is found and email is sent successfully to client" in {
+
+        when(mockClientMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(ClientMandateFetched(clientMandate))
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(ACCEPTED, None))
+
+        val response = TestNotificationEmailService.sendMail(validMandateId, "client")
+        await(response).status must be(ACCEPTED)
+
+      }
+
     }
 
   }
@@ -75,15 +86,15 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
   val validResponse = Json.parse( """{"valid":"true"}""")
   val invalidResponse = Json.parse( """{"valid":"false"}""")
 
-
   val clientMandate =
     ClientMandate(
       id = "123",
       createdBy = "credid",
-      party = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      clientParty = Some(Party("XVAT00000123456", "Jon Snow", "Organisation", ContactDetails("client@test.com", "0123456789"))),
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
       statusHistory = None,
-      service = Service(None, "ATED")
+      subscription = Subscription(Some("XVAT00000123456"), Service("ated", "ATED"))
     )
 
   val invalidMandateId = "123456"

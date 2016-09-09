@@ -24,8 +24,8 @@ import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPerSuite with BeforeAndAfterEach {
 
@@ -42,6 +42,19 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
     }
 
+    "update a client mandate in the repo" when {
+
+      "a client mandate to update is passed" in {
+        await(testClientMandateRepository.insertMandate(clientMandate))
+
+        await(testClientMandateRepository.updateMandate(updatedClientMandate)) must be(ClientMandateUpdated(updatedClientMandate))
+        await(testClientMandateRepository.findAll()).head must be(updatedClientMandate)
+        await(testClientMandateRepository.count) must be(1)
+
+      }
+
+    }
+
     "get a client mandate from the repo" when {
 
       "the correct mandate id is passed" in {
@@ -49,9 +62,7 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
         await(testClientMandateRepository.findAll()).head must be(clientMandate)
         await(testClientMandateRepository.count) must be(1)
-
         await(testClientMandateRepository.fetchMandate(clientMandate.id)) must be(ClientMandateFetched(clientMandate))
-
       }
 
     }
@@ -66,7 +77,6 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
         await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
         await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(clientMandate1))
-
       }
 
     }
@@ -90,18 +100,29 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
 
   def clientMandate: ClientMandate =
     ClientMandate("AS12345678", createdBy = "credid",
-      party = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
-      service = Service(None, "ATED")
+      Subscription(None, Service("ated", "ATED"))
+    )
+
+  def updatedClientMandate: ClientMandate =
+    ClientMandate("AS12345678", createdBy = "credid",
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      clientParty = Some(Party("XBAT00000123456", "Joe Ated", "Organisation", contactDetails = ContactDetails("", ""))),
+      currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Some(Seq(MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"))),
+      Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
     )
 
   def clientMandate1: ClientMandate =
     ClientMandate("AS12345678", createdBy = "credid",
-      party = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
-      service = Service(None, "ATED")
+      subscription = Subscription(None, Service("ated", "ATED"))
     )
 
   override def beforeEach(): Unit = {

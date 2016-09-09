@@ -30,7 +30,7 @@ object ContactDetailsDto {
   implicit val formats = Json.format[ContactDetailsDto]
 }
 
-case class ServiceDto(name: String)
+case class ServiceDto(id: Option[String] = None, name: String)
 
 object ServiceDto {
   implicit val formats = Json.format[ServiceDto]

@@ -36,9 +36,14 @@ object Status extends Enumeration {
   type Status = Value
 
   val Pending = Value
+  val Approved = Value
+  val Active = Value
+  val Rejected = Value
+  val Expired = Value
 
   implicit val enumFormat = new Format[Status] {
     def reads(json: JsValue) = JsSuccess(Status.withName(json.as[String]))
+
     def writes(enum: Status) = JsString(enum.toString)
   }
 }
@@ -49,13 +54,25 @@ object MandateStatus {
   implicit val formats = Json.format[MandateStatus]
 }
 
-case class Service(id: Option[String], name: String)
+case class Service(id: String, name: String)
 
 object Service {
   implicit val formats = Json.format[Service]
 }
 
-case class ClientMandate(id: String, createdBy: String, party: Party, currentStatus: MandateStatus, statusHistory: Option[Seq[MandateStatus]], service: Service)
+case class Subscription(referenceNumber: Option[String], service: Service)
+
+object Subscription {
+  implicit val formats = Json.format[Subscription]
+}
+
+case class ClientMandate(id: String,
+                         createdBy: String,
+                         agentParty: Party,
+                         clientParty: Option[Party],
+                         currentStatus: MandateStatus,
+                         statusHistory: Option[Seq[MandateStatus]],
+                         subscription: Subscription)
 
 object ClientMandate {
   implicit val formats = Json.format[ClientMandate]
