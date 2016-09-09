@@ -17,15 +17,15 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import org.mockito.Matchers
-import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import org.specs2.specification.BeforeAfterEach
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
+import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 
 import scala.concurrent.Future
 
@@ -94,5 +94,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
 
   }
 
-  override def before: Any = {reset(mockWSHttp)}
+  override def before: Any = {
+    reset(mockWSHttp)
+  }
 }

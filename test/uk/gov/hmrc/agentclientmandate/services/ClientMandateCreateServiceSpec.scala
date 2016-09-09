@@ -23,11 +23,11 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateRepository, ClientMandateCreated}
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateCreated, ClientMandateRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -94,7 +94,6 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
       currentStatus = MandateStatus(Status.Pending, statusTime, "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
-      //service = Service(None, "ATED")
     )
 
   implicit val hc = HeaderCarrier()

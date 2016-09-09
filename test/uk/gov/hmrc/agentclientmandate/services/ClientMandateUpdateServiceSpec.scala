@@ -16,18 +16,18 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import org.joda.time.{DateTimeUtils, DateTime}
+import org.joda.time.{DateTime, DateTimeUtils}
 import org.mockito.Matchers
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
 import org.scalatestplus.play.{OneAppPerTest, PlaySpec}
-import uk.gov.hmrc.agentclientmandate.controllers.{SubscriptionDto, ClientMandateUpdatedDto}
+import uk.gov.hmrc.agentclientmandate.controllers.{ClientMandateUpdatedDto, SubscriptionDto}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
 class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with BeforeAndAfterEach with MockitoSugar {
@@ -139,7 +139,6 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
   }
 
   implicit val hc = HeaderCarrier()
-
 
 
   def clientMandate(id: String, time: DateTime): ClientMandate =

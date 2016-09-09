@@ -69,7 +69,6 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
-      //service = Service(None, "ATED")
     )
 
   val mockClientMandateRepository = mock[ClientMandateRepository]

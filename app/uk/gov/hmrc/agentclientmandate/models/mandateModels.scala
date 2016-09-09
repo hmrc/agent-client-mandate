@@ -43,6 +43,7 @@ object Status extends Enumeration {
 
   implicit val enumFormat = new Format[Status] {
     def reads(json: JsValue) = JsSuccess(Status.withName(json.as[String]))
+
     def writes(enum: Status) = JsString(enum.toString)
   }
 }

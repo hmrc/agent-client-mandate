@@ -17,19 +17,18 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import org.joda.time.DateTime
-import org.mockito.Mockito._
 import org.mockito.Matchers
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.http.HttpVerbs.PATCH
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateUpdateError, ClientMandateUpdated, ClientMandateNotFound, ClientMandateFetched}
-import uk.gov.hmrc.agentclientmandate.services._
 import play.api.test.{FakeApplication, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.services.ClientMandateCreateService
-import play.api.http.HttpVerbs.PATCH
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound, ClientMandateUpdateError, ClientMandateUpdated}
+import uk.gov.hmrc.agentclientmandate.services.{ClientMandateCreateService, _}
 
 import scala.concurrent.Future
 
@@ -220,7 +219,6 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     //get by service API tests ---- END
 
 
-
   }
 
   val mandateId = "123"
@@ -253,7 +251,6 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
-      //service = Service(None, "ATED")
     )
 
   def updatedClientMandate(time: DateTime): ClientMandate =
@@ -263,7 +260,6 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
       currentStatus = MandateStatus(Status.Active, time, "credid"),
       statusHistory = Some(Seq(MandateStatus(Status.Pending, time, "credid"))),
       subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
-      //service = Service(Some("XBAT00000123456"), "ATED")
     )
 
   object TestClientMandateController extends ClientMandateController {
@@ -277,7 +273,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     reset(mockFetchClientMandateService)
   }
 
-  implicit override lazy val app: FakeApplication = new FakeApplication(
+  implicit override lazy val app: FakeApplication = FakeApplication(
     additionalConfiguration = Map("auditing.enabled" -> "false")
   )
 

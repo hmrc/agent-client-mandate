@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound, ClientMandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.duration._

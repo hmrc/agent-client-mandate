@@ -16,17 +16,16 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import play.api.libs.json.{JsSuccess, Json}
-import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.agentclientmandate.models.{ServiceDto, PartyDto, Party, ClientMandateDto}
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateUpdateError, ClientMandateUpdated, ClientMandateNotFound, ClientMandateFetched}
-import uk.gov.hmrc.agentclientmandate.services.{ClientMandateUpdateService, ClientMandateFetchService, ClientMandateCreateService}
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.agentclientmandate.models.Status.Status
+import uk.gov.hmrc.agentclientmandate.models.{ClientMandateDto, PartyDto}
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound, ClientMandateUpdated}
+import uk.gov.hmrc.agentclientmandate.services.{ClientMandateCreateService, ClientMandateFetchService, ClientMandateUpdateService}
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
-import scala.util.Try
 
 case class CreateMandateResponse(mandateId: String)
 
@@ -63,8 +62,8 @@ trait ClientMandateController extends BaseController {
   def create = Action.async(parse.json) { implicit request =>
     request.body.asOpt[ClientMandateDto] match {
       case Some(x) =>
-        clientMandateCreateService.createMandate(x).map {
-          mandateId => Created(Json.toJson(CreateMandateResponse(mandateId)))
+        clientMandateCreateService.createMandate(x).map { mandateId =>
+          Created(Json.toJson(CreateMandateResponse(mandateId)))
         }
       case None => Future.successful(BadRequest)
     }
@@ -76,7 +75,7 @@ trait ClientMandateController extends BaseController {
       case ClientMandateNotFound => NotFound
     }
   }
-  
+
   def fetchAll(arn: String, serviceName: String) = Action.async { implicit request =>
     fetchClientMandateService.getAllMandates(arn, serviceName).map {
       case Nil => NotFound
