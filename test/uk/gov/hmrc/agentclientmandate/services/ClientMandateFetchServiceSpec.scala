@@ -64,10 +64,12 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
     ClientMandate(
       id = "123",
       createdBy = "credid",
-      party = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
       statusHistory = None,
-      service = Service(None, "ATED")
+      subscription = Subscription(None, Service("ated", "ATED"))
+      //service = Service(None, "ATED")
     )
 
   val mockClientMandateRepository = mock[ClientMandateRepository]

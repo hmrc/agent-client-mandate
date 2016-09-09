@@ -84,15 +84,17 @@ class ClientMandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with M
     ClientMandateDto(
       PartyDto("JARN123456", "Joe Bloggs", "Organisation"),
       ContactDetailsDto("test@test.com", "0123456789"),
-      ServiceDto("ATED")
+      ServiceDto(None, "ATED")
     )
 
   def clientMandate(id: String, statusTime: DateTime): ClientMandate =
-    ClientMandate(id, hc.gaUserId.getOrElse("credid"),
-      Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
-      MandateStatus(Status.Pending, statusTime, "credid"),
-      None,
-      Service(None, "ATED")
+    ClientMandate(id = id, createdBy = hc.gaUserId.getOrElse("credid"),
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Pending, statusTime, "credid"),
+      statusHistory = None,
+      subscription = Subscription(None, Service("ated", "ATED"))
+      //service = Service(None, "ATED")
     )
 
   implicit val hc = HeaderCarrier()

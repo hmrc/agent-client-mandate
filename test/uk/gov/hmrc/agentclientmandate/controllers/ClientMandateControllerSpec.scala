@@ -24,11 +24,12 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateNotFound, ClientMandateFetched}
+import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateUpdateError, ClientMandateUpdated, ClientMandateNotFound, ClientMandateFetched}
 import uk.gov.hmrc.agentclientmandate.services._
 import play.api.test.{FakeApplication, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.services.ClientMandateCreateService
+import play.api.http.HttpVerbs.PATCH
 
 import scala.concurrent.Future
 
@@ -90,6 +91,68 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     }
     // create API tests ---- END
 
+    // update API ---- START
+
+    "not return a 404" when {
+
+      "PATCH /agent-client-mandate/mandate exists" in {
+
+        val request = route(FakeRequest(PATCH, "/agent-client-mandate/mandate")).get
+        status(request) mustNot be(NOT_FOUND)
+
+      }
+
+    }
+
+
+    "return BAD_REQUEST" when {
+
+      "invalid json is sent" in {
+
+        val json = Json.toJson(PartyDto("XVAT00000123456", "Joe Bloggs", "Organisation"))
+        val request = TestClientMandateController.update().apply(FakeRequest().withBody(json))
+        status(request) must be(BAD_REQUEST)
+
+      }
+
+    }
+
+    "return ok" when {
+
+      "valid updated json is sent and an existing mandate is found" in {
+
+        when(mockClientMandateUpdateService.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn {
+          Future.successful(ClientMandateUpdated(updatedClientMandate(DateTime.now)))
+        }
+
+        val json = Json.toJson(ClientMandateUpdatedDto("AS12345678", Some(PartyDto("XVAT00000123456", "Joe Bloggs", "Organisation")), None, None))
+
+        val response = TestClientMandateController.update().apply(FakeRequest().withBody(json))
+        status(response) must be(OK)
+      }
+
+    }
+
+    "return NOT_FOUND" when {
+
+      "valid json is passed but no existing mandate is found" in {
+
+        when(mockClientMandateUpdateService.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn {
+          Future.successful(ClientMandateUpdateError)
+        }
+
+        val json = Json.toJson(ClientMandateUpdatedDto("AS12345678", Some(PartyDto("XVAT00000123456", "Joe Bloggs", "Organisation")), None, None))
+
+        val response = TestClientMandateController.update().apply(FakeRequest().withBody(json))
+        status(response) must be(NOT_FOUND)
+
+      }
+
+    }
+
+
+    // update API ---- END
+
 
     // get by Id API tests ---- START
 
@@ -109,6 +172,7 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     "return a not found" when {
 
       "mandate is not found" in {
+
         when(mockFetchClientMandateService.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(ClientMandateNotFound)
 
         val response = TestClientMandateController.fetch(mandateId).apply(FakeRequest())
@@ -171,11 +235,13 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
 
   val mockFetchClientMandateService = mock[ClientMandateFetchService]
 
+  val mockClientMandateUpdateService = mock[ClientMandateUpdateService]
+
   val requestJson = Json.toJson(
     ClientMandateDto(
       PartyDto("ARN123456", "Joe Bloggs", "Organisation"),
       ContactDetailsDto("test@test.com", "0123456789"),
-      ServiceDto("ATED")
+      ServiceDto(None, "ATED")
     )
   )
 
@@ -183,15 +249,28 @@ class ClientMandateControllerSpec extends PlaySpec with OneAppPerSuite with Mock
     ClientMandate(
       id = "123",
       createdBy = "credid",
-      party = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
       statusHistory = None,
-      service = Service(None, "ATED")
+      subscription = Subscription(None, Service("ated", "ATED"))
+      //service = Service(None, "ATED")
+    )
+
+  def updatedClientMandate(time: DateTime): ClientMandate =
+    ClientMandate("AS12345678", createdBy = "credid",
+      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+      clientParty = Some(Party("XBAT00000123456", "Joe Ated", "Organisation", contactDetails = ContactDetails("", ""))),
+      currentStatus = MandateStatus(Status.Active, time, "credid"),
+      statusHistory = Some(Seq(MandateStatus(Status.Pending, time, "credid"))),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
+      //service = Service(Some("XBAT00000123456"), "ATED")
     )
 
   object TestClientMandateController extends ClientMandateController {
-    override val clientMandateService = clientMandateServiceMock
+    override val clientMandateCreateService = clientMandateServiceMock
     override val fetchClientMandateService = mockFetchClientMandateService
+    override val clientMandateUpdateService = mockClientMandateUpdateService
   }
 
   override def beforeEach(): Unit = {

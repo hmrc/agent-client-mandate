@@ -20,6 +20,7 @@ import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.api.indexes.{IndexType, Index}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.agentclientmandate.models.ClientMandate
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -28,6 +29,12 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 case class ClientMandateCreated(clientMandate: ClientMandate)
+
+sealed trait ClientMandateUpdate
+
+case class ClientMandateUpdated(clientMandate: ClientMandate) extends ClientMandateUpdate
+
+case object ClientMandateUpdateError extends ClientMandateUpdate
 
 sealed trait ClientMandateFetchStatus
 
@@ -38,6 +45,8 @@ case object ClientMandateNotFound extends ClientMandateFetchStatus
 trait ClientMandateRepository extends Repository[ClientMandate, BSONObjectID] {
 
   def insertMandate(clientMandate: ClientMandate): Future[ClientMandateCreated]
+
+  def updateMandate(clientMandate: ClientMandate): Future[ClientMandateUpdate]
 
   def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus]
 
@@ -69,6 +78,17 @@ class ClientMandateMongoRepository(implicit mongo: () => DB)
       wr =>
         ClientMandateCreated(clientMandate)
     }
+  }
+
+  def updateMandate(clientMandate: ClientMandate): Future[ClientMandateUpdate] = {
+    val query = BSONDocument(
+      "id" -> clientMandate.id
+    )
+    collection.update(query, clientMandate, upsert = false).map {
+      wr =>
+        ClientMandateUpdated(clientMandate)
+    }
+
   }
 
   def fetchMandate(mandateId: String): Future[ClientMandateFetchStatus] = {
