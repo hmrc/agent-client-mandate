@@ -33,9 +33,9 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig {
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     http.POSTString(serviceUrl + "/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
-      .map({ r =>
-        logResponse(input.agentCode, input.serviceName, input.identifiers, r.body)
-        r
+      .map({ response =>
+        logResponse(input.agentCode, input.serviceName, input.identifiers, response.body)
+        response
       })
   }
 
