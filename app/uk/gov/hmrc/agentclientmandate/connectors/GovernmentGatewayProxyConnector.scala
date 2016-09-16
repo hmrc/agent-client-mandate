@@ -30,7 +30,7 @@ import scala.concurrent.Future
 
 trait GovernmentGatewayProxyConnector extends ServicesConfig {
 
-  def serviceUrl = baseUrl("government-gateway-proxy")
+  def serviceUrl:String = baseUrl("government-gateway-proxy")
   def http: HttpGet with HttpPost with HttpPut = WSHttp
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {

@@ -53,17 +53,6 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
       TestGovernmentGatewayProxyConnector.serviceUrl must be("http://localhost:9907")
     }
 
-    "return response with 500" in {
-
-      implicit val hc = new HeaderCarrier()
-
-      when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(HttpResponse(500)))
-
-      val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
-      result.status must be(500)
-    }
-
     "return response with 502" in {
 
       implicit val hc = new HeaderCarrier()
