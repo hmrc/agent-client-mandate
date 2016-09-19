@@ -66,14 +66,20 @@ object Subscription {
   implicit val formats = Json.format[Subscription]
 }
 
-case class ClientMandate(id: String,
-                         createdBy: String,
-                         agentParty: Party,
-                         clientParty: Option[Party],
-                         currentStatus: MandateStatus,
-                         statusHistory: Option[Seq[MandateStatus]],
-                         subscription: Subscription)
+case class User(name: String, authData: Option[String])
 
-object ClientMandate {
-  implicit val formats = Json.format[ClientMandate]
+object User {
+  implicit val formats = Json.format[User]
+}
+
+case class Mandate(id: String,
+                   createdBy: User,
+                   agentParty: Party,
+                   clientParty: Option[Party],
+                   currentStatus: MandateStatus,
+                   statusHistory: Option[Seq[MandateStatus]],
+                   subscription: Subscription)
+
+object Mandate {
+  implicit val formats = Json.format[Mandate]
 }

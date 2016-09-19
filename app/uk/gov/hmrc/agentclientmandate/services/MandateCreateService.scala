@@ -18,22 +18,21 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.ClientMandateRepository
+import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.play.http.HeaderCarrier
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait ClientMandateCreateService {
+trait MandateCreateService {
 
-  def clientMandateRepository: ClientMandateRepository
+  def mandateRepository: MandateRepository
 
-  def generateClientMandate(clientMandateDto: ClientMandateDto)(implicit hc: HeaderCarrier): ClientMandate = {
+  def generateClientMandate(clientMandateDto: MandateDto)(implicit hc: HeaderCarrier): Mandate = {
     val credId = hc.gaUserId.getOrElse("credid")
 
-    ClientMandate(
+    Mandate(
       id = createMandateId,
-      createdBy = credId,
+      createdBy = User(credId,None),
       agentParty = Party(
         clientMandateDto.party.id,
         clientMandateDto.party.name,
@@ -57,15 +56,15 @@ trait ClientMandateCreateService {
 
   def createPendingStatus(credId: String): MandateStatus = MandateStatus(Status.Pending, DateTime.now(), credId)
 
-  def createMandate(clientMandateDto: ClientMandateDto)(implicit hc: HeaderCarrier): Future[String] = {
+  def createMandate(clientMandateDto: MandateDto)(implicit hc: HeaderCarrier): Future[String] = {
 
     val clientMandate = generateClientMandate(clientMandateDto)
 
-    clientMandateRepository.insertMandate(clientMandate).map(_.clientMandate.id)
+    mandateRepository.insertMandate(clientMandate).map(_.mandate.id)
   }
 
 }
 
-object ClientMandateCreateService extends ClientMandateCreateService {
-  val clientMandateRepository = ClientMandateRepository()
+object MandateCreateService extends MandateCreateService {
+  val mandateRepository = MandateRepository()
 }

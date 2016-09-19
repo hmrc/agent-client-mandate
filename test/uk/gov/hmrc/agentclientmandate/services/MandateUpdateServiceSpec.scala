@@ -22,15 +22,14 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerTest, PlaySpec}
-import uk.gov.hmrc.agentclientmandate.controllers.{ClientMandateUpdatedDto, SubscriptionDto}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdateError, MandateUpdated}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with BeforeAndAfterEach with MockitoSugar {
+class MandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with BeforeAndAfterEach with MockitoSugar {
 
   "ClientMandateUpdateService" should {
 
@@ -41,8 +40,8 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
         DateTimeUtils.setCurrentMillisFixed(12345678912323L)
 
         val time = DateTime.now
-        val updatedMandate = TestClientMandateUpdateService.generateUpdatedMandate(clientMandate("AS12345678", time), clientMandateUpdatedDto)
-        updatedMandate must be(updatedClientMandate(updatedMandate.currentStatus.timestamp.toDateTime))
+        val updatedMandateLocal = TestMandateUpdateService.generateUpdatedMandate(mandate("AS12345678", time), mandateUpdatedDto)
+        updatedMandateLocal must be(updatedMandate(updatedMandateLocal.currentStatus.timestamp.toDateTime))
 
       }
 
@@ -57,18 +56,18 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
         val time = DateTime.now
 
         val mandateWithHistory =
-          clientMandate("AS12345678", time)
+          mandate("AS12345678", time)
             .copy(currentStatus = MandateStatus(Status.Approved, time, "credid"))
             .copy(statusHistory = Some(Seq(MandateStatus(Status.Pending, time, "credid"))))
 
         val upm = {
-          val a = updatedClientMandate(time)
+          val a = updatedMandate(time)
           a.copy(statusHistory = a.statusHistory.map(MandateStatus(Status.Approved, time, "credid") +: _))
         }
 
-        val updatedMandate = TestClientMandateUpdateService.generateUpdatedMandate(mandateWithHistory, clientMandateUpdatedDto)
+        val updatedMandateLocal = TestMandateUpdateService.generateUpdatedMandate(mandateWithHistory, mandateUpdatedDto)
 
-        updatedMandate must be(upm)
+        updatedMandateLocal must be(upm)
 
       }
 
@@ -82,56 +81,30 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
 
         val time = DateTime.now
 
-        when(mockClientMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn {
-          Future.successful(ClientMandateFetched(clientMandate("AS12345678", time)))
+        when(mockMandateRepository.updateMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateUpdated(updatedMandate(time)))
         }
 
-        when(mockClientMandateRepository.updateMandate(Matchers.any())) thenReturn {
-          Future.successful(ClientMandateUpdated(updatedClientMandate(time)))
-        }
+        val updateMandateDto = MandateUpdatedDto(mandateId = "AS12345678", None, None, None)
 
-        val updateMandateDto = ClientMandateUpdatedDto(mandateId = "AS12345678", None, None, None)
+        val updatedRecord = await(TestMandateUpdateService.updateMandate(mandate("AS12345678", time), updateMandateDto))
 
-        val updatedRecord = await(TestClientMandateUpdateService.updateMandate("AS12345678", updateMandateDto))
+        val dateTime = updatedRecord.asInstanceOf[MandateUpdated].mandate.currentStatus.timestamp
 
-        val dateTime = updatedRecord.asInstanceOf[ClientMandateUpdated].clientMandate.currentStatus.timestamp
-
-        verify(mockClientMandateFetchService, times(1)).fetchClientMandate(Matchers.any())
-
-        updatedRecord must be(ClientMandateUpdated(updatedClientMandate(time)))
+        updatedRecord must be(MandateUpdated(updatedMandate(time)))
 
       }
-
     }
-
-    "return an error" when {
-
-      "there is not a matching mandate found" in {
-
-        when(mockClientMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(ClientMandateNotFound)
-
-        val result = await(TestClientMandateUpdateService.updateMandate("AS12345678", ClientMandateUpdatedDto(mandateId = "AS12345678", None, None, None)))
-
-        result must be(ClientMandateUpdateError)
-
-      }
-
-    }
-
   }
 
-  val mockClientMandateFetchService = mock[ClientMandateFetchService]
+  val mockMandateRepository = mock[MandateRepository]
 
-  val mockClientMandateRepository = mock[ClientMandateRepository]
-
-  object TestClientMandateUpdateService extends ClientMandateUpdateService {
-    override val clientMandateFetchService = mockClientMandateFetchService
-    override val clientMandateRepository = mockClientMandateRepository
+  object TestMandateUpdateService extends MandateUpdateService {
+    override val mandateRepository = mockMandateRepository
   }
 
   override def beforeEach: Unit = {
-    reset(mockClientMandateFetchService)
-    reset(mockClientMandateRepository)
+    reset(mockMandateRepository)
   }
 
   override def afterEach: Unit = {
@@ -141,8 +114,8 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
   implicit val hc = HeaderCarrier()
 
 
-  def clientMandate(id: String, time: DateTime): ClientMandate =
-    ClientMandate(id = id, createdBy = hc.gaUserId.getOrElse("credid"),
+  def mandate(id: String, time: DateTime): Mandate =
+    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), None),
       agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
       currentStatus = MandateStatus(Status.Pending, time, "credid"),
@@ -150,8 +123,8 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 
-  def updatedClientMandate(time: DateTime): ClientMandate =
-    ClientMandate("AS12345678", createdBy = "credid",
+  def updatedMandate(time: DateTime): Mandate =
+    Mandate("AS12345678", createdBy = User("credid",None),
       agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
       clientParty = Some(Party("XBAT00000123456", "Joe Ated", "Organisation", contactDetails = ContactDetails("", ""))),
       currentStatus = MandateStatus(Status.Active, time, "credid"),
@@ -159,8 +132,8 @@ class ClientMandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with Be
       subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
     )
 
-  def clientMandateUpdatedDto: ClientMandateUpdatedDto =
-    ClientMandateUpdatedDto(
+  def mandateUpdatedDto: MandateUpdatedDto =
+    MandateUpdatedDto(
       mandateId = "AS12345678",
       party = Some(PartyDto("XBAT00000123456", "Joe Ated", "Organisation")),
       subscription = Some(SubscriptionDto("XBAT00000123456")),

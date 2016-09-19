@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.models
 
 import play.api.libs.json.Json
+import uk.gov.hmrc.agentclientmandate.models.Status.Status
 
 case class PartyDto(id: String, name: String, `type`: String)
 
@@ -36,8 +37,32 @@ object ServiceDto {
   implicit val formats = Json.format[ServiceDto]
 }
 
-case class ClientMandateDto(party: PartyDto, contactDetails: ContactDetailsDto, service: ServiceDto)
+case class MandateDto(party: PartyDto, contactDetails: ContactDetailsDto, service: ServiceDto)
 
-object ClientMandateDto {
-  implicit val formats = Json.format[ClientMandateDto]
+object MandateDto {
+  implicit val formats = Json.format[MandateDto]
+}
+
+case class CreateMandateResponse(mandateId: String)
+
+object CreateMandateResponse {
+  implicit val formats = Json.format[CreateMandateResponse]
+}
+
+case class StatusDto(status: Status)
+
+object StatusDto {
+  implicit val formats = Json.format[StatusDto]
+}
+
+case class SubscriptionDto(referenceNumber: String)
+
+object SubscriptionDto {
+  implicit val formats = Json.format[SubscriptionDto]
+}
+
+case class MandateUpdatedDto(mandateId: String, party: Option[PartyDto], subscription: Option[SubscriptionDto], status: Option[Status])
+
+object MandateUpdatedDto {
+  implicit val formats = Json.format[MandateUpdatedDto]
 }

@@ -18,40 +18,39 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
-import uk.gov.hmrc.agentclientmandate.models.ClientMandate
+import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetchStatus, ClientMandateFetched, ClientMandateNotFound}
-
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateNotFound}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
 trait NotificationEmailService {
 
-  def clientMandateFetchService: ClientMandateFetchService
+  def mandateFetchService: MandateFetchService
 
   def emailConnector: EmailConnector
 
   def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    def emailAddress(userType: String, mandate: ClientMandate): String = {
+    def emailAddress(userType: String, mandate: Mandate): String = {
       if (userType == "client") mandate.clientParty.map(_.contactDetails.email).getOrElse("")
       else mandate.agentParty.contactDetails.email
     }
 
     fetchMandateDetails(mandateId) flatMap {
-      case ClientMandateFetched(clientMandate) =>
+      case MandateFetched(clientMandate) =>
         emailConnector.sendTemplatedEmail(emailAddress(userType, clientMandate))
-      case ClientMandateNotFound => Future.successful(HttpResponse(NOT_FOUND, None))
+      case MandateNotFound => Future.successful(HttpResponse(NOT_FOUND, None))
     }
   }
 
-  private def fetchMandateDetails(mandateId: String): Future[ClientMandateFetchStatus] = {
-    clientMandateFetchService.fetchClientMandate(mandateId)
+  private def fetchMandateDetails(mandateId: String): Future[MandateFetchStatus] = {
+    mandateFetchService.fetchClientMandate(mandateId)
   }
 
 }
 
 object NotificationEmailService extends NotificationEmailService {
   val emailConnector = EmailConnector
-  val clientMandateFetchService = ClientMandateFetchService
+  val mandateFetchService = MandateFetchService
 }

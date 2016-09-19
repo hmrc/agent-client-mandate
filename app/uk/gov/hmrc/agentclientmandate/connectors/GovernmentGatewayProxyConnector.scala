@@ -23,7 +23,6 @@ import uk.gov.hmrc.agentclientmandate.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -31,7 +30,7 @@ import scala.concurrent.Future
 trait GovernmentGatewayProxyConnector extends ServicesConfig {
 
   def serviceUrl:String = baseUrl("government-gateway-proxy")
-  def http: HttpGet with HttpPost with HttpPut = WSHttp
+  def http: HttpGet with HttpPost with HttpPut
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     http.POSTString(serviceUrl + "/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
@@ -42,11 +41,15 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig {
   }
 
   def logResponse(agentCode: String, serviceName: String, identifiers: List[Identifier], body: String)(implicit hc: HeaderCarrier): Unit = {
-    Logger.debug("agentCode: " + agentCode)
+    Logger.debug("agentCode: " + agentCode + "\n" +
+                 "response:" + body)
   }
 
 }
 
 
 object GovernmentGatewayProxyConnector extends GovernmentGatewayProxyConnector {
+  // $COVERAGE-OFF$
+  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  // $COVERAGE-ON$
 }

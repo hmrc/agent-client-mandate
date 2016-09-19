@@ -1,6 +1,7 @@
 # microservice specific routes
 
-POST    /mandate                              uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.create
-GET     /mandate/:mandateId                   uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetch(mandateId: String)
-GET     /mandate/service/:arn/:serviceName    uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetchAll(arn: String, serviceName: String)
-PATCH   /mandate                              uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.update
+POST    /mandate                                          uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.create
+GET     /mandate/:mandateId                               uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetch(mandateId: String)
+GET     /mandate/service/:arn/:serviceName                uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetchAll(arn: String, serviceName: String)
+PATCH   /mandate                                          uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.update
+POST    /agent/:agentCode/mandate/allocate/:mandateId     uk.gov.hmrc.agentclientmandate.controllers.MandateController.allocate(agentCode: String, mandateId: String)

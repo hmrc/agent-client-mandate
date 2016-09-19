@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.agentclientmandate.controllers.ClientMandateUpdatedDto
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.utils.DateTimeUtils
@@ -25,13 +24,11 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait ClientMandateUpdateService {
+trait MandateUpdateService {
 
-  def clientMandateRepository: ClientMandateRepository
+  def mandateRepository: MandateRepository
 
-  def clientMandateFetchService: ClientMandateFetchService
-
-  def generateUpdatedMandate(currentMandate: ClientMandate, mandateUpdate: ClientMandateUpdatedDto)(implicit hc: HeaderCarrier): ClientMandate = {
+  def generateUpdatedMandate(currentMandate: Mandate, mandateUpdate: MandateUpdatedDto)(implicit hc: HeaderCarrier): Mandate = {
     val credId = hc.gaUserId.getOrElse("credid")
 
     val clientParty = mandateUpdate.party map {
@@ -62,18 +59,14 @@ trait ClientMandateUpdateService {
     )
   }
 
-  def updateMandate(mandateId: String, mandateUpdate: ClientMandateUpdatedDto)(implicit hc: HeaderCarrier): Future[ClientMandateUpdate] = {
-    clientMandateFetchService.fetchClientMandate(mandateId) flatMap {
-      case ClientMandateFetched(x) =>
-        val updatedMandate = generateUpdatedMandate(x, mandateUpdate)
-        clientMandateRepository.updateMandate(updatedMandate)
-      case _ => Future.successful(ClientMandateUpdateError)
-    }
+  def updateMandate(originalMandate: Mandate, mandateUpdate: MandateUpdatedDto)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+      val updatedMandate = generateUpdatedMandate(originalMandate, mandateUpdate)
+      mandateRepository.updateMandate(updatedMandate)
   }
 
 }
 
-object ClientMandateUpdateService extends ClientMandateUpdateService {
-  val clientMandateRepository = ClientMandateRepository()
-  val clientMandateFetchService = ClientMandateFetchService
+object MandateUpdateService extends MandateUpdateService {
+  val mandateRepository = MandateRepository()
+  val mandateFetchService = MandateFetchService
 }

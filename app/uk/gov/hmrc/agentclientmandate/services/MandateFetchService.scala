@@ -16,24 +16,24 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import uk.gov.hmrc.agentclientmandate.models.ClientMandate
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetchStatus, ClientMandateRepository}
+import uk.gov.hmrc.agentclientmandate.models.Mandate
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepository}
 
 import scala.concurrent.Future
 
-trait ClientMandateFetchService {
+trait MandateFetchService {
 
-  def clientMandateRepository: ClientMandateRepository
+  def mandateRepository: MandateRepository
 
-  def fetchClientMandate(mandateId: String): Future[ClientMandateFetchStatus] = {
-    clientMandateRepository.fetchMandate(mandateId)
+  def fetchClientMandate(mandateId: String): Future[MandateFetchStatus] = {
+    mandateRepository.fetchMandate(mandateId)
   }
 
-  def getAllMandates(arn: String, serviceName: String): Future[List[ClientMandate]] = {
-    clientMandateRepository.getAllMandatesByServiceName(arn, serviceName)
+  def getAllMandates(arn: String, serviceName: String): Future[List[Mandate]] = {
+    mandateRepository.getAllMandatesByServiceName(arn, serviceName)
   }
 }
 
-object ClientMandateFetchService extends ClientMandateFetchService {
-  val clientMandateRepository: ClientMandateRepository = ClientMandateRepository()
+object MandateFetchService extends MandateFetchService {
+  val mandateRepository: MandateRepository = MandateRepository()
 }

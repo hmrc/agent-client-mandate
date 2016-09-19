@@ -23,12 +23,12 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateRepository}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   def await[A](future: Future[A]) = Await.result(future, 5 seconds)
 
@@ -40,10 +40,10 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
 
       "a client mandate is found for a valid mandate id in MongoDB" in {
 
-        when(mockClientMandateRepository.fetchMandate(Matchers.any())) thenReturn Future.successful(ClientMandateFetched(clientMandate))
+        when(mockMandateRepository.fetchMandate(Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
-        val response = TestFetchClientMandateService.fetchClientMandate(mandateId)
-        await(response) must be(ClientMandateFetched(clientMandate))
+        val response = TestFetchMandateService.fetchClientMandate(mandateId)
+        await(response) must be(MandateFetched(clientMandate))
 
       }
 
@@ -51,9 +51,9 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
 
     "list of client mandate is found for a valid arn and service name in MongoDB" in {
 
-      when(mockClientMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
 
-      val response = TestFetchClientMandateService.getAllMandates("JARN123456", "ATED")
+      val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED")
       await(response) must be(List(clientMandate))
 
     }
@@ -61,9 +61,9 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
   }
 
   val clientMandate =
-    ClientMandate(
+    Mandate(
       id = "123",
-      createdBy = "credid",
+      createdBy = User("credid", None),
       agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
@@ -71,14 +71,14 @@ class ClientMandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 
-  val mockClientMandateRepository = mock[ClientMandateRepository]
+  val mockMandateRepository = mock[MandateRepository]
 
-  object TestFetchClientMandateService extends ClientMandateFetchService {
-    override val clientMandateRepository = mockClientMandateRepository
+  object TestFetchMandateService extends MandateFetchService {
+    override val mandateRepository = mockMandateRepository
   }
 
   override def beforeEach(): Unit = {
-    reset(mockClientMandateRepository)
+    reset(mockMandateRepository)
   }
 
 }
