@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.GovernmentGatewayProxyConnector
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier, Mandate}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
@@ -28,8 +29,9 @@ trait AllocateAgentService {
 
   def allocateAgent(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier):Future[HttpResponse] = {
 
-    //TODO replace ATED value with config lookup
-    connector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(Identifier("ATEDRefNumber", mandate.clientParty.get.id)), agentCode, mandate.subscription.service.name))
+    val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
+
+    connector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(Identifier(identifier, mandate.clientParty.get.id)), agentCode, mandate.subscription.service.name))
   }
 }
 

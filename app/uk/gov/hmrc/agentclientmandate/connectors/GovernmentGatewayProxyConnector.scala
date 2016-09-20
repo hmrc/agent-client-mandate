@@ -19,10 +19,11 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.Logger
 import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.http.ContentTypes.XML
-import uk.gov.hmrc.agentclientmandate.WSHttp
+import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
