@@ -18,51 +18,27 @@ package uk.gov.hmrc.agentclientmandate.controllers
 
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.agentclientmandate.models.{ClientMandateDto, PartyDto}
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound, ClientMandateUpdated}
-import uk.gov.hmrc.agentclientmandate.services.{ClientMandateCreateService, ClientMandateFetchService, ClientMandateUpdateService}
+import uk.gov.hmrc.agentclientmandate.models.{CreateMandateResponse, MandateDto, MandateUpdatedDto}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.Future
 
-case class CreateMandateResponse(mandateId: String)
-
-object CreateMandateResponse {
-  implicit val formats = Json.format[CreateMandateResponse]
-}
-
-case class StatusDto(status: Status)
-
-object StatusDto {
-  implicit val formats = Json.format[StatusDto]
-}
-
-case class SubscriptionDto(referenceNumber: String)
-
-object SubscriptionDto {
-  implicit val formats = Json.format[SubscriptionDto]
-}
-
-case class ClientMandateUpdatedDto(mandateId: String, party: Option[PartyDto], subscription: Option[SubscriptionDto], status: Option[Status])
-
-object ClientMandateUpdatedDto {
-  implicit val formats = Json.format[ClientMandateUpdatedDto]
-}
 
 trait ClientMandateController extends BaseController {
 
-  def clientMandateCreateService: ClientMandateCreateService
+  def createService: MandateCreateService
 
-  def fetchClientMandateService: ClientMandateFetchService
+  def fetchService: MandateFetchService
 
-  def clientMandateUpdateService: ClientMandateUpdateService
+  def updateService: MandateUpdateService
 
   def create = Action.async(parse.json) { implicit request =>
-    request.body.asOpt[ClientMandateDto] match {
+    request.body.asOpt[MandateDto] match {
       case Some(x) =>
-        clientMandateCreateService.createMandate(x).map { mandateId =>
+        createService.createMandate(x).map { mandateId =>
           Created(Json.toJson(CreateMandateResponse(mandateId)))
         }
       case None => Future.successful(BadRequest)
@@ -70,34 +46,36 @@ trait ClientMandateController extends BaseController {
   }
 
   def fetch(mandateId: String) = Action.async { implicit request =>
-    fetchClientMandateService.fetchClientMandate(mandateId).map {
-      case ClientMandateFetched(x) => Ok(Json.toJson(x))
-      case ClientMandateNotFound => NotFound
+    fetchService.fetchClientMandate(mandateId).map {
+      case MandateFetched(x) => Ok(Json.toJson(x))
+      case MandateNotFound => NotFound
     }
   }
 
   def fetchAll(arn: String, serviceName: String) = Action.async { implicit request =>
-    fetchClientMandateService.getAllMandates(arn, serviceName).map {
+    fetchService.getAllMandates(arn, serviceName).map {
       case Nil => NotFound
       case mandateList => Ok(Json.toJson(mandateList))
     }
   }
 
   def update = Action.async(parse.json) { implicit request =>
-    request.body.asOpt[ClientMandateUpdatedDto] match {
-      case Some(x) =>
-        clientMandateUpdateService.updateMandate(x.mandateId, x) map {
-          case ClientMandateUpdated(y) => Ok(Json.toJson(y))
-          case _ => NotFound
+    request.body.asOpt[MandateUpdatedDto] match {
+      case Some(newMandate) =>
+        fetchService.fetchClientMandate(newMandate.mandateId).flatMap {
+          case MandateFetched(mandate) => updateService.updateMandate(mandate, newMandate) map {
+            case MandateUpdated(y) => Ok(Json.toJson(y))
+          }
+          case MandateNotFound => Future.successful(NotFound)
         }
       case None => Future.successful(BadRequest)
     }
   }
-
 }
 
+
 object ClientMandateController extends ClientMandateController {
-  val clientMandateCreateService = ClientMandateCreateService
-  val fetchClientMandateService = ClientMandateFetchService
-  val clientMandateUpdateService = ClientMandateUpdateService
+  val createService = MandateCreateService
+  val fetchService = MandateFetchService
+  val updateService = MandateUpdateService
 }

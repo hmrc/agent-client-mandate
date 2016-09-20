@@ -20,7 +20,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.Logger
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
-import uk.gov.hmrc.agentclientmandate.WSHttp
+import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._

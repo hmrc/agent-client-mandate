@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate
+package uk.gov.hmrc.agentclientmandate.config
 
 import com.typesafe.config.Config
+import net.ceedubs.ficus.Ficus._
 import play.api.{Application, Configuration, Play}
+import uk.gov.hmrc.agentclientmandate.config.MicroserviceAuthConnector
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
+import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
-import net.ceedubs.ficus.Ficus._
 
 
 object ControllerConfiguration extends ControllerConfig {

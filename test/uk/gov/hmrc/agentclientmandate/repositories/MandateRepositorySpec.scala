@@ -27,17 +27,17 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPerSuite with BeforeAndAfterEach {
+class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPerSuite with BeforeAndAfterEach {
 
-  "ClientMandateRepository" should {
+  "MandateRepository" should {
 
     "save a client mandate to the repo" when {
 
       "a new client mandate object is passed" in {
-        await(testClientMandateRepository.insertMandate(clientMandate))
+        await(testMandateRepository.insertMandate(mandate))
 
-        await(testClientMandateRepository.findAll()).head must be(clientMandate)
-        await(testClientMandateRepository.count) must be(1)
+        await(testMandateRepository.findAll()).head must be(mandate)
+        await(testMandateRepository.count) must be(1)
       }
 
     }
@@ -45,11 +45,11 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
     "update a client mandate in the repo" when {
 
       "a client mandate to update is passed" in {
-        await(testClientMandateRepository.insertMandate(clientMandate))
+        await(testMandateRepository.insertMandate(mandate))
 
-        await(testClientMandateRepository.updateMandate(updatedClientMandate)) must be(ClientMandateUpdated(updatedClientMandate))
-        await(testClientMandateRepository.findAll()).head must be(updatedClientMandate)
-        await(testClientMandateRepository.count) must be(1)
+        await(testMandateRepository.updateMandate(updatedMandate)) must be(MandateUpdated(updatedMandate))
+        await(testMandateRepository.findAll()).head must be(updatedMandate)
+        await(testMandateRepository.count) must be(1)
 
       }
 
@@ -58,11 +58,11 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
     "get a client mandate from the repo" when {
 
       "the correct mandate id is passed" in {
-        await(testClientMandateRepository.insertMandate(clientMandate))
+        await(testMandateRepository.insertMandate(mandate))
 
-        await(testClientMandateRepository.findAll()).head must be(clientMandate)
-        await(testClientMandateRepository.count) must be(1)
-        await(testClientMandateRepository.fetchMandate(clientMandate.id)) must be(ClientMandateFetched(clientMandate))
+        await(testMandateRepository.findAll()).head must be(mandate)
+        await(testMandateRepository.count) must be(1)
+        await(testMandateRepository.fetchMandate(mandate.id)) must be(MandateFetched(mandate))
       }
 
     }
@@ -70,13 +70,13 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
     "get a list of client mandates from the repo" when {
 
       "the arn and service name are correct" in {
-        await(testClientMandateRepository.insertMandate(clientMandate))
+        await(testMandateRepository.insertMandate(mandate))
 
-        await(testClientMandateRepository.findAll()).head must be(clientMandate)
-        await(testClientMandateRepository.count) must be(1)
+        await(testMandateRepository.findAll()).head must be(mandate)
+        await(testMandateRepository.count) must be(1)
 
-        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
-        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(clientMandate1))
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(mandate))
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(mandate1))
       }
 
     }
@@ -84,22 +84,22 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
     "return an empty list" when {
 
       "the arn and service does not match" in {
-        await(testClientMandateRepository.insertMandate(clientMandate))
+        await(testMandateRepository.insertMandate(mandate))
 
-        await(testClientMandateRepository.findAll()).head must be(clientMandate)
-        await(testClientMandateRepository.count) must be(1)
+        await(testMandateRepository.findAll()).head must be(mandate)
+        await(testMandateRepository.count) must be(1)
 
-        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(clientMandate))
-        await(testClientMandateRepository.getAllMandatesByServiceName("JARN123455", "ABCD")) must be(List())
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(mandate))
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123455", "ABCD")) must be(List())
       }
     }
 
   }
 
-  def testClientMandateRepository(implicit mongo: () => DB) = new ClientMandateMongoRepository
+  def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
 
-  def clientMandate: ClientMandate =
-    ClientMandate("AS12345678", createdBy = "credid",
+  def mandate: Mandate =
+    Mandate("AS12345678", createdBy = User("credid",None),
       agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
@@ -107,8 +107,8 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
       Subscription(None, Service("ated", "ATED"))
     )
 
-  def updatedClientMandate: ClientMandate =
-    ClientMandate("AS12345678", createdBy = "credid",
+  def updatedMandate: Mandate =
+    Mandate("AS12345678", createdBy = User("credid", None),
       agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
       clientParty = Some(Party("XBAT00000123456", "Joe Ated", "Organisation", contactDetails = ContactDetails("", ""))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
@@ -116,8 +116,8 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
       Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
     )
 
-  def clientMandate1: ClientMandate =
-    ClientMandate("AS12345678", createdBy = "credid",
+  def mandate1: Mandate =
+    Mandate("AS12345678", createdBy = User("credid", None),
       agentParty = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
       currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
@@ -126,7 +126,7 @@ class ClientMandateRepositorySpec extends PlaySpec with MongoSpecSupport with On
     )
 
   override def beforeEach(): Unit = {
-    await(testClientMandateRepository.drop)
+    await(testMandateRepository.drop)
   }
 
   def await[A](future: Future[A]): A = Await.result(future, 5 seconds)

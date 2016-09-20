@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{ClientMandateFetched, ClientMandateNotFound}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateNotFound, MandateFetched}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.duration._
@@ -46,7 +46,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       "no matching mandate is found" in {
 
-        when(mockClientMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(ClientMandateNotFound)
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(MandateNotFound)
 
         val response = TestNotificationEmailService.sendMail(invalidMandateId, "client")
         await(response).status must be(NOT_FOUND)
@@ -59,7 +59,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       "matching mandateId is found and email is sent successfully to agent" in {
 
-        when(mockClientMandateFetchService.fetchClientMandate(Matchers.eq(validMandateId))) thenReturn Future.successful(ClientMandateFetched(clientMandate))
+        when(mockMandateFetchService.fetchClientMandate(Matchers.eq(validMandateId))) thenReturn Future.successful(MandateFetched(clientMandate))
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("test@test.com"))(Matchers.any())) thenReturn Future.successful(HttpResponse(ACCEPTED, None))
 
         val response = TestNotificationEmailService.sendMail(validMandateId, "agent")
@@ -69,7 +69,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       "matching mandateId is found and email is sent successfully to client" in {
 
-        when(mockClientMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(ClientMandateFetched(clientMandate))
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
         when(mockEmailConnector.sendTemplatedEmail(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(ACCEPTED, None))
 
         val response = TestNotificationEmailService.sendMail(validMandateId, "client")
@@ -87,9 +87,9 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
   val invalidResponse = Json.parse( """{"valid":"false"}""")
 
   val clientMandate =
-    ClientMandate(
+    Mandate(
       id = "123",
-      createdBy = "credid",
+      createdBy = User("credid", None),
       agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
       clientParty = Some(Party("XVAT00000123456", "Jon Snow", "Organisation", ContactDetails("client@test.com", "0123456789"))),
       currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
@@ -102,16 +102,16 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
   val invalidEmail = "aa bb cc"
 
-  val mockClientMandateFetchService = mock[ClientMandateFetchService]
+  val mockMandateFetchService = mock[MandateFetchService]
   val mockEmailConnector = mock[EmailConnector]
 
   object TestNotificationEmailService extends NotificationEmailService {
-    override val clientMandateFetchService = mockClientMandateFetchService
+    override val mandateFetchService = mockMandateFetchService
     override val emailConnector = mockEmailConnector
   }
 
   override def beforeEach(): Unit = {
-    reset(mockClientMandateFetchService)
+    reset(mockMandateFetchService)
   }
 
 }
