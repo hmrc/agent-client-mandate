@@ -28,6 +28,10 @@ import uk.gov.hmrc.play.http._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+sealed trait EmailStatus
+case object EmailSent extends EmailStatus
+case object EmailNotSent extends EmailStatus
+
 trait EmailConnector extends ServicesConfig {
 
   def sendEmailUri: String
@@ -36,9 +40,9 @@ trait EmailConnector extends ServicesConfig {
 
   def http: HttpGet with HttpPost with HttpPut
 
-  def sendTemplatedEmail(emailString: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def sendTemplatedEmail(emailString: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
 
-    val templateId = "agentClinetNotification"
+    val templateId = "agentClientNotification"
     val params = Map("emailAddress" -> emailString)
 
     val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, force = true)
@@ -50,10 +54,10 @@ trait EmailConnector extends ServicesConfig {
 
     http.POST(postUrl, jsonData).map { response =>
       response.status match {
-        case ACCEPTED => response
+        case ACCEPTED => EmailSent
         case status =>
           Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: $status Error ${response.body}")
-          response
+          EmailNotSent
       }
     }
   }
