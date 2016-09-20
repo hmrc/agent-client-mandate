@@ -22,6 +22,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerTest, PlaySpec}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailNotSent, EmailSent}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdateError, MandateUpdated}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -95,16 +96,79 @@ class MandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with BeforeAn
 
       }
     }
+
+    "send a notification email" when {
+
+      "updated status is Approved" in {
+
+        DateTimeUtils.setCurrentMillisFixed(12345678912323L)
+
+        val time = DateTime.now
+
+        when(mockEmailService.sendMail(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn {
+          Future.successful(EmailSent)
+        }
+
+        val result = TestMandateUpdateService.sendNotificationEmail(updatedMandate(time).copy(currentStatus = MandateStatus(Status.Approved, time, "credidupdate")))
+
+        verify(TestMandateUpdateService.emailNotificationService, times(1)).sendMail(Matchers.any(), Matchers.any())(Matchers.any())
+
+        await(result) must be(EmailSent)
+
+      }
+
+      "when client removes an agent before or after the client has accepted" in {
+
+        DateTimeUtils.setCurrentMillisFixed(12345678912323L)
+
+        val time = DateTime.now
+
+        when(mockEmailService.sendMail(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn {
+          Future.successful(EmailSent)
+        }
+
+        val result = TestMandateUpdateService.sendNotificationEmail(updatedMandate(time).copy(currentStatus = MandateStatus(Status.PendingCancellation, time, "credidupdate")))
+
+        verify(TestMandateUpdateService.emailNotificationService, times(1)).sendMail(Matchers.any(), Matchers.any())(Matchers.any())
+
+        await(result) must be(EmailSent)
+
+      }
+
+    }
+
+    "not send a notification email" when {
+
+      "updated status is Active" in {
+
+        DateTimeUtils.setCurrentMillisFixed(12345678912323L)
+
+        val time = DateTime.now
+
+        val result = TestMandateUpdateService.sendNotificationEmail(updatedMandate(time))
+
+        verify(TestMandateUpdateService.emailNotificationService, times(0)).sendMail(Matchers.any(), Matchers.any())(Matchers.any())
+
+        await(result) must be(EmailNotSent)
+
+      }
+
+    }
+
   }
 
   val mockMandateRepository = mock[MandateRepository]
 
+  val mockEmailService = mock[NotificationEmailService]
+
   object TestMandateUpdateService extends MandateUpdateService {
     override val mandateRepository = mockMandateRepository
+    override val emailNotificationService = mockEmailService
   }
 
   override def beforeEach: Unit = {
     reset(mockMandateRepository)
+    reset(mockEmailService)
   }
 
   override def afterEach: Unit = {

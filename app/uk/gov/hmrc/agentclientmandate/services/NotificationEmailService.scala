@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import play.api.http.Status._
-import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailStatus, EmailNotSent, EmailConnector}
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateNotFound}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -31,7 +30,7 @@ trait NotificationEmailService {
 
   def emailConnector: EmailConnector
 
-  def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
     def emailAddress(userType: String, mandate: Mandate): String = {
       if (userType == "client") mandate.clientParty.map(_.contactDetails.email).getOrElse("")
       else mandate.agentParty.contactDetails.email
@@ -40,7 +39,7 @@ trait NotificationEmailService {
     fetchMandateDetails(mandateId) flatMap {
       case MandateFetched(clientMandate) =>
         emailConnector.sendTemplatedEmail(emailAddress(userType, clientMandate))
-      case MandateNotFound => Future.successful(HttpResponse(NOT_FOUND, None))
+      case MandateNotFound => Future.successful(EmailNotSent)
     }
   }
 

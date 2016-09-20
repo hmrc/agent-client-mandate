@@ -56,7 +56,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
       "correct emailId Id is passed" in {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val emailString = "test@test.com"
-        val templateId = "agentClinetNotification"
+        val templateId = "agentClientNotification"
         val params = Map("emailAddress" -> emailString)
 
         val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, true)
@@ -65,7 +65,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
           .thenReturn(Future.successful(HttpResponse(202, responseJson = None)))
 
         val response = TestEmailConnector.sendTemplatedEmail(emailString)
-        await(response).status must be(202)
+        await(response) must be(EmailSent)
 
       }
 
@@ -76,7 +76,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
       "incorrect email Id are passed" in {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val invalidEmailString = "test@test1.com"
-        val templateId = "agentClinetNotification"
+        val templateId = "agentClientNotification"
         val params = Map("emailAddress" -> invalidEmailString)
 
         val sendEmailReq = SendEmailRequest(List(invalidEmailString), templateId, params, true)
@@ -86,7 +86,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
           .thenReturn(Future.successful(HttpResponse(404, responseJson = None)))
 
         val response = TestEmailConnector.sendTemplatedEmail(invalidEmailString)
-        await(response).status must be(404)
+        await(response) must be(EmailNotSent)
 
       }
 

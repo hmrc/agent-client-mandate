@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailStatus, EmailSent, EmailNotSent}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.utils.DateTimeUtils
@@ -27,6 +28,8 @@ import scala.concurrent.Future
 trait MandateUpdateService {
 
   def mandateRepository: MandateRepository
+
+  def emailNotificationService: NotificationEmailService
 
   def generateUpdatedMandate(currentMandate: Mandate, mandateUpdate: MandateUpdatedDto)(implicit hc: HeaderCarrier): Mandate = {
     val credId = hc.gaUserId.getOrElse("credid")
@@ -61,7 +64,19 @@ trait MandateUpdateService {
 
   def updateMandate(originalMandate: Mandate, mandateUpdate: MandateUpdatedDto)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
       val updatedMandate = generateUpdatedMandate(originalMandate, mandateUpdate)
-      mandateRepository.updateMandate(updatedMandate)
+      for {
+        update <- mandateRepository.updateMandate(updatedMandate)
+        _ <- sendNotificationEmail(updatedMandate)
+      } yield update
+  }
+
+  def sendNotificationEmail(mandate: Mandate)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    import uk.gov.hmrc.agentclientmandate.models.Status._
+
+    val statusesToNotify = Seq(Approved -> "agent", PendingCancellation -> "client")
+
+    statusesToNotify.toStream.find(_._1 == mandate.currentStatus.status).map(a => emailNotificationService.sendMail(mandate.id, a._2))
+      .getOrElse(Future.successful(EmailNotSent))
   }
 
 }
@@ -69,4 +84,5 @@ trait MandateUpdateService {
 object MandateUpdateService extends MandateUpdateService {
   val mandateRepository = MandateRepository()
   val mandateFetchService = MandateFetchService
+  val emailNotificationService = NotificationEmailService
 }
