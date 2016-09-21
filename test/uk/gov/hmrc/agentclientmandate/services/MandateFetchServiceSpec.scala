@@ -22,15 +22,13 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateRepository}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
-
-  def await[A](future: Future[A]) = Await.result(future, 5 seconds)
 
   val mandateId = "123"
 
@@ -63,10 +61,10 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   val clientMandate =
     Mandate(
       id = "123",
-      createdBy = User("credid", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+      createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
     )

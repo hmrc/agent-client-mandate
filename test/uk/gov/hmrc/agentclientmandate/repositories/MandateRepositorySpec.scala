@@ -99,28 +99,28 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPe
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
 
   def mandate: Mandate =
-    Mandate("AS12345678", createdBy = User("credid",None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+    Mandate("AS12345678", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
+      currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
-      Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED"))
     )
 
   def updatedMandate: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
-      clientParty = Some(Party("XBAT00000123456", "Joe Ated", "Organisation", contactDetails = ContactDetails("", ""))),
+    Mandate("AS12345678", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", "0123456789")),
+      clientParty = Some(Party("XBAT00000123456", "Joe Ated", PartyType.Organisation, contactDetails = ContactDetails("", ""))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
-      statusHistory = Some(Seq(MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"))),
-      Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
+      statusHistory = Some(Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"))),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
     )
 
   def mandate1: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", None),
-      agentParty = Party("JARN123457", "John Snow", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
+    Mandate("AS12345678", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Pending, new DateTime(1472631804869L), "credidupdate"),
+      currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
     )

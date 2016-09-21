@@ -20,6 +20,7 @@ import org.joda.time.DateTime
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.play.http.HeaderCarrier
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -27,25 +28,26 @@ trait MandateCreateService {
 
   def mandateRepository: MandateRepository
 
-  def generateClientMandate(clientMandateDto: MandateDto)(implicit hc: HeaderCarrier): Mandate = {
+  def generateMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Mandate = {
+
     val credId = hc.gaUserId.getOrElse("credid")
 
     Mandate(
       id = createMandateId,
-      createdBy = User(credId,None),
+      createdBy = User(credId, createMandateDto.agentParty.name, Some(agentCode)),
       agentParty = Party(
-        clientMandateDto.party.id,
-        clientMandateDto.party.name,
-        clientMandateDto.party.`type`,
+        createMandateDto.agentParty.id,
+        createMandateDto.agentParty.name,
+        createMandateDto.agentParty.`type`,
         ContactDetails(
-          clientMandateDto.contactDetails.email,
-          clientMandateDto.contactDetails.phone
+          createMandateDto.agentParty.contactDetails.email,
+          createMandateDto.agentParty.contactDetails.phone
         )
       ),
       clientParty = None,
-      currentStatus = createPendingStatus(credId),
+      currentStatus = createNewStatus(credId),
       statusHistory = None,
-      subscription = Subscription(None, service = Service(clientMandateDto.service.name.toLowerCase, clientMandateDto.service.name))
+      subscription = Subscription(None, service = Service(createMandateDto.service.name.toLowerCase, createMandateDto.service.name))
     )
   }
 
@@ -54,11 +56,11 @@ trait MandateCreateService {
     s"AS$tsRef"
   }
 
-  def createPendingStatus(credId: String): MandateStatus = MandateStatus(Status.Pending, DateTime.now(), credId)
+  def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
 
-  def createMandate(clientMandateDto: MandateDto)(implicit hc: HeaderCarrier): Future[String] = {
+  def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Future[String] = {
 
-    val clientMandate = generateClientMandate(clientMandateDto)
+    val clientMandate = generateMandate(agentCode, createMandateDto)
 
     mandateRepository.insertMandate(clientMandate).map(_.mandate.id)
   }
@@ -66,5 +68,7 @@ trait MandateCreateService {
 }
 
 object MandateCreateService extends MandateCreateService {
+  // $COVERAGE-OFF$
   val mandateRepository = MandateRepository()
+  // $COVERAGE-ON$
 }

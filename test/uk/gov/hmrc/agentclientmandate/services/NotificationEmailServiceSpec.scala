@@ -26,15 +26,12 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EmailNotSent, EmailConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateNotFound, MandateFetched}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
-
-  def await[A](future: Future[A]) = Await.result(future, 5 seconds)
 
   "NotificationEmailService" should {
 
@@ -89,10 +86,10 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
   val clientMandate =
     Mandate(
       id = "123",
-      createdBy = User("credid", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
-      clientParty = Some(Party("XVAT00000123456", "Jon Snow", "Organisation", ContactDetails("client@test.com", "0123456789"))),
-      currentStatus = MandateStatus(Status.Pending, new DateTime(), "credid"),
+      createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
+      clientParty = Some(Party("XVAT00000123456", "Jon Snow", PartyType.Organisation, ContactDetails("client@test.com", "0123456789"))),
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = None,
       subscription = Subscription(Some("XVAT00000123456"), Service("ated", "ATED"))
     )
@@ -112,6 +109,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
   override def beforeEach(): Unit = {
     reset(mockMandateFetchService)
+    reset(mockEmailConnector)
   }
 
 }

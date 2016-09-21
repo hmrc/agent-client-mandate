@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.utils
+package uk.gov.hmrc.agentclientmandate.models
 
-import org.joda.time.DateTime
+import play.api.libs.json.Json
 
-object DateTimeUtils {
+case class CreateMandateDto(agentParty: Party, service: Service)
 
-  def currentDateTime: DateTime = DateTime.now
-
+object CreateMandateDto {
+  implicit val formats = Json.format[CreateMandateDto]
 }

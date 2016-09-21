@@ -16,21 +16,66 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
+import play.api.libs.json.Json
 import play.api.mvc.Action
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound}
-import uk.gov.hmrc.agentclientmandate.services.{AllocateAgentService, MandateFetchService}
+import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.services.{AllocateAgentService, MandateCreateService, MandateFetchService, MandateUpdateService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+//scalastyle:off public.methods.have.type
 trait MandateController extends BaseController {
 
-  def fetchService: MandateFetchService
+  def createService: MandateCreateService
+
   def allocateAgentService: AllocateAgentService
 
-  def allocate(agentCode: String, mandateId: String) = Action.async { implicit request =>
+  def fetchService: MandateFetchService
+
+  def updateService: MandateUpdateService
+
+  def create(agentCode: String) = Action.async(parse.json) { implicit request =>
+    request.body.asOpt[CreateMandateDto] match {
+      case Some(x) =>
+        createService.createMandate(agentCode, x).map { mandateId =>
+          Created(Json.parse(s"""{"mandateId": $mandateId}"""))
+        }
+      case None => Future.successful(BadRequest)
+    }
+  }
+
+
+  def fetch(authId: String, mandateId: String) = Action.async { implicit request =>
+    fetchService.fetchClientMandate(mandateId).map {
+      case MandateFetched(x) => Ok(Json.toJson(x))
+      case MandateNotFound => NotFound
+    }
+  }
+
+  def fetchAll(agentCode: String, arn: String, serviceName: String) = Action.async { implicit request =>
+    fetchService.getAllMandates(arn, serviceName).map {
+      case Nil => NotFound
+      case mandateList => Ok(Json.toJson(mandateList))
+    }
+  }
+
+  def update(org: String) = Action.async(parse.json) { implicit request =>
+    request.body.asOpt[Mandate] match {
+      case Some(newMandate) =>
+        updateService.updateMandate(newMandate) map {
+          case MandateUpdated(y) => Ok(Json.toJson(y))
+          case MandateUpdateError => InternalServerError
+        }
+      case None => Future.successful(BadRequest)
+    }
+  }
+
+  def activate(agentCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) => {
+      case MandateFetched(mandate) =>
         allocateAgentService.allocateAgent(mandate, agentCode).map { response =>
           response.status match {
             case OK => Ok
@@ -38,15 +83,26 @@ trait MandateController extends BaseController {
             case INTERNAL_SERVER_ERROR | _ => InternalServerError
           }
         }
-      }
       case MandateNotFound => Future.successful(NotFound)
     }
   }
+
 }
 
-object MandateController extends MandateController {
+object MandateAgentController extends MandateController {
   // $COVERAGE-OFF$
+  val createService = MandateCreateService
   val fetchService = MandateFetchService
+  val updateService = MandateUpdateService
+  val allocateAgentService = AllocateAgentService
+  // $COVERAGE-ON$
+}
+
+object MandateClientController extends MandateController {
+  // $COVERAGE-OFF$
+  val createService = MandateCreateService
+  val fetchService = MandateFetchService
+  val updateService = MandateUpdateService
   val allocateAgentService = AllocateAgentService
   // $COVERAGE-ON$
 }

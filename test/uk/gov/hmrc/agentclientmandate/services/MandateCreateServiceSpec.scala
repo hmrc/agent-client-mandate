@@ -22,12 +22,12 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreated, MandateRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -37,8 +37,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
 
       "passed a valid Dto from the create API" in {
 
-        val clientMandateFromDto = TestClientMandateCreateService.generateClientMandate(mandateDto)
-        clientMandateFromDto must be(mandate(clientMandateFromDto.id, clientMandateFromDto.currentStatus.timestamp))
+        val mandateFromDto = TestClientMandateCreateService.generateMandate(agentCode, mandateDto)
+        mandateFromDto must be(mandate(mandateFromDto.id, mandateFromDto.currentStatus.timestamp))
 
       }
 
@@ -46,8 +46,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
 
     "create a client mandate status object with a status of pending for new client mandates" in {
 
-      val clientMandateStatus = TestClientMandateCreateService.createPendingStatus("credid")
-      clientMandateStatus must be(MandateStatus(Status.Pending, clientMandateStatus.timestamp, "credid"))
+      val mandateStatus = TestClientMandateCreateService.createNewStatus("credid")
+      mandateStatus must be(MandateStatus(Status.New, mandateStatus.timestamp, "credid"))
 
     }
 
@@ -61,7 +61,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
           Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
         }
 
-        val createdMandateId = TestClientMandateCreateService.createMandate(mandateDto)
+        val createdMandateId = TestClientMandateCreateService.createMandate(agentCode, mandateDto)
         await(createdMandateId) must be(mandateId)
 
       }
@@ -80,23 +80,23 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
 
   }
 
-  val mandateDto: MandateDto =
-    MandateDto(
-      PartyDto("JARN123456", "Joe Bloggs", "Organisation"),
-      ContactDetailsDto("test@test.com", "0123456789"),
-      ServiceDto(None, "ATED")
+  val mandateDto: CreateMandateDto =
+    CreateMandateDto(
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
+      service = Service("ated", "ATED")
     )
 
   def mandate(id: String, statusTime: DateTime): Mandate =
-    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
+    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Pending, statusTime, "credid"),
+      currentStatus = MandateStatus(Status.New, statusTime, "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 
   implicit val hc = HeaderCarrier()
+  val agentCode = "ac"
 
   val mandateRepositoryMock = mock[MandateRepository]
 
@@ -107,7 +107,5 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
   override def beforeEach(): Unit = {
     reset(mandateRepositoryMock)
   }
-
-  def await[A](future: Future[A]): A = Await.result(future, 5 seconds)
 
 }

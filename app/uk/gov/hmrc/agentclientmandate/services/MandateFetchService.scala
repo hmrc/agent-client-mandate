@@ -29,11 +29,13 @@ trait MandateFetchService {
     mandateRepository.fetchMandate(mandateId)
   }
 
-  def getAllMandates(arn: String, serviceName: String): Future[List[Mandate]] = {
+  def getAllMandates(arn: String, serviceName: String): Future[Seq[Mandate]] = {
     mandateRepository.getAllMandatesByServiceName(arn, serviceName)
   }
 }
 
 object MandateFetchService extends MandateFetchService {
+  // $COVERAGE-OFF$
   val mandateRepository: MandateRepository = MandateRepository()
+  // $COVERAGE-ON$
 }

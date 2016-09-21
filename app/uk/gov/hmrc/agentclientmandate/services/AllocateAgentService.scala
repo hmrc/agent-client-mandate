@@ -27,7 +27,7 @@ trait AllocateAgentService {
 
   def connector: GovernmentGatewayProxyConnector
 
-  def allocateAgent(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier):Future[HttpResponse] = {
+  def allocateAgent(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
 
