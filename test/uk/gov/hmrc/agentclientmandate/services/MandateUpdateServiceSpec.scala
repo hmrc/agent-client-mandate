@@ -23,6 +23,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdated}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -40,6 +41,17 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       }
     }
 
+    "send a notification email" when {
+
+      "Status is approved" in {
+        val mandateToUse = mandate.copy(currentStatus = MandateStatus(Status.Approved, mandate.currentStatus.timestamp, mandate.currentStatus.updatedBy))
+        when(mockEmailService.sendMail(Matchers.eq(mandateToUse.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockMandateRepository.updateMandate(Matchers.eq(mandateToUse))).thenReturn(Future.successful(MandateUpdated(mandateToUse)))
+        await(TestMandateUpdateService.updateMandate(mandateToUse)) must be(MandateUpdated(mandateToUse))
+      }
+
+    }
+
   }
 
   val timeToUse = DateTime.now()
@@ -52,13 +64,16 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
   )
 
   val mockMandateRepository = mock[MandateRepository]
+  val mockEmailService = mock[NotificationEmailService]
 
   object TestMandateUpdateService extends MandateUpdateService {
     override val mandateRepository = mockMandateRepository
+    override val emailNotificationService = mockEmailService
   }
 
   override def beforeEach: Unit = {
     reset(mockMandateRepository)
+    reset(mockEmailService)
   }
 
   implicit val hc = HeaderCarrier()

@@ -54,6 +54,7 @@ object Status extends Enumeration {
   val Active = Value
   val Rejected = Value
   val Expired = Value
+  val PendingCancellation = Value
 
   implicit val enumFormat = new Format[Status] {
     def reads(json: JsValue) = JsSuccess(Status.withName(json.as[String]))

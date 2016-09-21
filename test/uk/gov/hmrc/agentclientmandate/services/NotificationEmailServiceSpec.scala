@@ -24,7 +24,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.EmailConnector
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EmailNotSent, EmailConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound}
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
@@ -46,7 +46,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(MandateNotFound)
 
         val response = TestNotificationEmailService.sendMail(invalidMandateId, "client")
-        await(response).status must be(NOT_FOUND)
+        await(response) must be(EmailNotSent)
 
       }
 
@@ -57,20 +57,20 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
       "matching mandateId is found and email is sent successfully to agent" in {
 
         when(mockMandateFetchService.fetchClientMandate(Matchers.eq(validMandateId))) thenReturn Future.successful(MandateFetched(clientMandate))
-        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("test@test.com"))(Matchers.any())) thenReturn Future.successful(HttpResponse(ACCEPTED, None))
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("test@test.com"))(Matchers.any())) thenReturn Future.successful(EmailSent)
 
         val response = TestNotificationEmailService.sendMail(validMandateId, "agent")
-        await(response).status must be(ACCEPTED)
+        await(response) must be(EmailSent)
 
       }
 
       "matching mandateId is found and email is sent successfully to client" in {
 
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
-        when(mockEmailConnector.sendTemplatedEmail(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(ACCEPTED, None))
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
 
         val response = TestNotificationEmailService.sendMail(validMandateId, "client")
-        await(response).status must be(ACCEPTED)
+        await(response) must be(EmailSent)
 
       }
 
