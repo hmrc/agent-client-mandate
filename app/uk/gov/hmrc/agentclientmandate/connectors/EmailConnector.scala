@@ -62,7 +62,9 @@ trait EmailConnector extends ServicesConfig {
 }
 
 object EmailConnector extends EmailConnector {
+  // $COVERAGE-OFF$
   val sendEmailUri: String = "send-templated-email"
   val serviceUrl = baseUrl("email")
   val http: HttpGet with HttpPost with HttpPut = WSHttp
+  // $COVERAGE-OFF$
 }

@@ -1,7 +1,18 @@
 # microservice specific routes
 
-POST    /mandate                                          uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.create
-GET     /mandate/:mandateId                               uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetch(mandateId: String)
-GET     /mandate/service/:arn/:serviceName                uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.fetchAll(arn: String, serviceName: String)
-PATCH   /mandate                                          uk.gov.hmrc.agentclientmandate.controllers.ClientMandateController.update
-POST    /agent/:agentCode/mandate/allocate/:mandateId     uk.gov.hmrc.agentclientmandate.controllers.MandateController.allocate(agentCode: String, mandateId: String)
+#create mandate
+POST   /agent/:ac/mandate                        uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.create(ac: String)
+
+# fetch mandate
+GET    /agent/:ac/mandate/:mandateId             uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetch(ac: String, mandateId: String)
+
+GET    /org/:org/mandate/:mandateId              uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetch(org: String, mandateId: String)
+
+# fetch mandate for service
+GET    /agent/:ac/mandate/service/:arn/:service  uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetchAll(ac: String, arn: String, service: String)
+
+# update mandate as client approves it
+PUT    /org/:org/mandate                         uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.update(org: String)
+
+# agent accepts approved request
+POST   /agent/:ac/mandate/activate/:mandateId    uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.activate(ac: String, mandateId: String)

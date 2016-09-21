@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.models
 
 import org.joda.time.DateTime
 import play.api.libs.json._
+import uk.gov.hmrc.agentclientmandate.models.PartyType.PartyType
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 
 case class ContactDetails(email: String, phone: String)
@@ -26,7 +27,20 @@ object ContactDetails {
   implicit val formats = Json.format[ContactDetails]
 }
 
-case class Party(id: String, name: String, `type`: String, contactDetails: ContactDetails)
+object PartyType extends Enumeration {
+  type PartyType = Value
+
+  val Person = Value
+  val Organisation = Value
+
+  implicit val enumFormat = new Format[PartyType] {
+    def reads(json: JsValue) = JsSuccess(PartyType.withName(json.as[String]))
+
+    def writes(enum: PartyType) = JsString(enum.toString)
+  }
+}
+
+case class Party(id: String, name: String, `type`: PartyType, contactDetails: ContactDetails)
 
 object Party {
   implicit val formats = Json.format[Party]
@@ -35,7 +49,7 @@ object Party {
 object Status extends Enumeration {
   type Status = Value
 
-  val Pending = Value
+  val New = Value
   val Approved = Value
   val Active = Value
   val Rejected = Value
@@ -60,13 +74,13 @@ object Service {
   implicit val formats = Json.format[Service]
 }
 
-case class Subscription(referenceNumber: Option[String], service: Service)
+case class Subscription(referenceNumber: Option[String] = None, service: Service)
 
 object Subscription {
   implicit val formats = Json.format[Subscription]
 }
 
-case class User(name: String, authData: Option[String])
+case class User(credId: String, name: String, groupId: Option[String] = None)
 
 object User {
   implicit val formats = Json.format[User]
@@ -74,10 +88,12 @@ object User {
 
 case class Mandate(id: String,
                    createdBy: User,
+                   approvedBy: Option[User] = None,
+                   assignedTo: Option[User] = None,
                    agentParty: Party,
-                   clientParty: Option[Party],
+                   clientParty: Option[Party] = None,
                    currentStatus: MandateStatus,
-                   statusHistory: Option[Seq[MandateStatus]],
+                   statusHistory: Option[Seq[MandateStatus]] = None,
                    subscription: Subscription)
 
 object Mandate {

@@ -51,6 +51,8 @@ trait NotificationEmailService {
 }
 
 object NotificationEmailService extends NotificationEmailService {
+  // $COVERAGE-OFF$
   val emailConnector = EmailConnector
   val mandateFetchService = MandateFetchService
+  // $COVERAGE-ON$
 }

@@ -16,86 +16,40 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import org.joda.time.{DateTime, DateTimeUtils}
+import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneAppPerTest, PlaySpec}
+import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdateError, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdated}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
-class MandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with BeforeAndAfterEach with MockitoSugar {
+class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
-  "ClientMandateUpdateService" should {
+  "MandateUpdateService" should {
 
-    "create a valid update mandate object" when {
-
-      "valid update data is passed from the update API" in {
-
-        DateTimeUtils.setCurrentMillisFixed(12345678912323L)
-
-        val time = DateTime.now
-        val updatedMandateLocal = TestMandateUpdateService.generateUpdatedMandate(mandate("AS12345678", time), mandateUpdatedDto)
-        updatedMandateLocal must be(updatedMandate(updatedMandateLocal.currentStatus.timestamp.toDateTime))
-
-      }
-
-    }
-
-    "add the current status to the status history" when {
-
-      "the status history is already populated" in {
-
-        DateTimeUtils.setCurrentMillisFixed(12345678912323L)
-
-        val time = DateTime.now
-
-        val mandateWithHistory =
-          mandate("AS12345678", time)
-            .copy(currentStatus = MandateStatus(Status.Approved, time, "credid"))
-            .copy(statusHistory = Some(Seq(MandateStatus(Status.Pending, time, "credid"))))
-
-        val upm = {
-          val a = updatedMandate(time)
-          a.copy(statusHistory = a.statusHistory.map(MandateStatus(Status.Approved, time, "credid") +: _))
-        }
-
-        val updatedMandateLocal = TestMandateUpdateService.generateUpdatedMandate(mandateWithHistory, mandateUpdatedDto)
-
-        updatedMandateLocal must be(upm)
-
-      }
-
-    }
-
-    "update and save the updated mandate" when {
-
-      "an existing mandate is found to update" in {
-
-        DateTimeUtils.setCurrentMillisFixed(12345678912323L)
-
-        val time = DateTime.now
-
-        when(mockMandateRepository.updateMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateUpdated(updatedMandate(time)))
-        }
-
-        val updateMandateDto = MandateUpdatedDto(mandateId = "AS12345678", None, None, None)
-
-        val updatedRecord = await(TestMandateUpdateService.updateMandate(mandate("AS12345678", time), updateMandateDto))
-
-        val dateTime = updatedRecord.asInstanceOf[MandateUpdated].mandate.currentStatus.timestamp
-
-        updatedRecord must be(MandateUpdated(updatedMandate(time)))
-
+    "update data in mongo with given data provided" when {
+      "requested to do so - updateMandate" in {
+        when(mockMandateRepository.updateMandate(Matchers.eq(mandate))).thenReturn(Future.successful(MandateUpdated(mandate)))
+        await(TestMandateUpdateService.updateMandate(mandate)) must be(MandateUpdated(mandate))
       }
     }
+
   }
+
+  val timeToUse = DateTime.now()
+
+  val mandate = Mandate("AS12345678",
+    User("credid", "Joe Bloggs", None),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", "")),
+    currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
+    subscription = Subscription(None, Service("ated", "ATED"))
+  )
 
   val mockMandateRepository = mock[MandateRepository]
 
@@ -107,39 +61,6 @@ class MandateUpdateServiceSpec extends PlaySpec with OneAppPerTest with BeforeAn
     reset(mockMandateRepository)
   }
 
-  override def afterEach: Unit = {
-    DateTimeUtils.setCurrentMillisFixed(DateTime.now.getMillis)
-  }
-
   implicit val hc = HeaderCarrier()
-
-
-  def mandate(id: String, time: DateTime): Mandate =
-    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", ContactDetails("test@test.com", "0123456789")),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.Pending, time, "credid"),
-      statusHistory = None,
-      subscription = Subscription(None, Service("ated", "ATED"))
-    )
-
-  def updatedMandate(time: DateTime): Mandate =
-    Mandate("AS12345678", createdBy = User("credid",None),
-      agentParty = Party("JARN123456", "Joe Bloggs", "Organisation", contactDetails = ContactDetails("test@test.com", "0123456789")),
-      clientParty = Some(Party("XBAT00000123456", "Joe Ated", "Organisation", contactDetails = ContactDetails("", ""))),
-      currentStatus = MandateStatus(Status.Active, time, "credid"),
-      statusHistory = Some(Seq(MandateStatus(Status.Pending, time, "credid"))),
-      subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
-    )
-
-  def mandateUpdatedDto: MandateUpdatedDto =
-    MandateUpdatedDto(
-      mandateId = "AS12345678",
-      party = Some(PartyDto("XBAT00000123456", "Joe Ated", "Organisation")),
-      subscription = Some(SubscriptionDto("XBAT00000123456")),
-      status = Some(Status.Active)
-    )
-
-  def await[A](future: Future[A]): A = Await.result(future, 5 seconds)
 
 }

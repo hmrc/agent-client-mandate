@@ -49,7 +49,7 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def fetchMandate(mandateId: String): Future[MandateFetchStatus]
 
-  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[List[Mandate]]
+  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]]
 
 }
 
@@ -94,12 +94,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[List[Mandate]] = {
+  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]] = {
     val query = BSONDocument(
       "agentParty.id" -> arn,
       "subscription.service.name" -> serviceName
     )
-    collection.find(query).cursor[Mandate].collect[List]()
+    collection.find(query).cursor[Mandate].collect[Seq]()
   }
 
 }
