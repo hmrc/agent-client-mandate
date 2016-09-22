@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import org.specs2.specification.BeforeAfterEach
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models.GsoAdminAllocateAgentXmlInput
 import uk.gov.hmrc.play.http._
@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 import scala.concurrent.Future
 
 
-class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAfterEach {
+class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   class MockHttp extends WSGet with WSPost with WSPut {
     override val hooks = NoneRequired
@@ -37,7 +37,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
   val mockWSHttp = mock[MockHttp]
 
-  override def before: Any = {
+  override def beforeEach = {
     reset(mockWSHttp)
   }
 

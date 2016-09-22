@@ -17,10 +17,12 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
+import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.play.http.HeaderCarrier
-
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -28,28 +30,9 @@ trait MandateCreateService {
 
   def mandateRepository: MandateRepository
 
-  def generateMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Mandate = {
+  def authConnector: AuthConnector
 
-    val credId = hc.gaUserId.getOrElse("credid")
-
-    Mandate(
-      id = createMandateId,
-      createdBy = User(credId, createMandateDto.agentParty.name, Some(agentCode)),
-      agentParty = Party(
-        createMandateDto.agentParty.id,
-        createMandateDto.agentParty.name,
-        createMandateDto.agentParty.`type`,
-        ContactDetails(
-          createMandateDto.agentParty.contactDetails.email,
-          createMandateDto.agentParty.contactDetails.phone
-        )
-      ),
-      clientParty = None,
-      currentStatus = createNewStatus(credId),
-      statusHistory = None,
-      subscription = Subscription(None, service = Service(createMandateDto.service.name.toLowerCase, createMandateDto.service.name))
-    )
-  }
+  def etmpConnector: EtmpConnector
 
   def createMandateId: String = {
     val tsRef = new DateTime().getMillis.toString.takeRight(8)
@@ -60,9 +43,37 @@ trait MandateCreateService {
 
   def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Future[String] = {
 
-    val clientMandate = generateMandate(agentCode, createMandateDto)
+    Logger.debug(s"[MandateController][createMandate][agentCode] ${agentCode}")
 
-    mandateRepository.insertMandate(clientMandate).map(_.mandate.id)
+    authConnector.getAuthority().flatMap { authority =>
+
+      val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
+      val credId = (authority \ "credentials" \ "gatewayId").as[String]
+
+      etmpConnector.getDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
+        val partyType = if ((etmpDetails \ "isAnIndividual").as[Boolean]) PartyType.Individual
+                        else PartyType.Organisation
+
+        val serviceName = createMandateDto.serviceName.toLowerCase
+
+        val mandate = Mandate(
+          id = createMandateId,
+          createdBy = User(credId, agentPartyId, Some(agentCode)),
+          agentParty = Party(
+            agentPartyId,
+            agentPartyId,
+            partyType,
+            ContactDetails(createMandateDto.email, None)
+          ),
+          clientParty = None,
+          currentStatus = createNewStatus(credId),
+          statusHistory = None,
+          subscription = Subscription(None, Service(identifiers.getString(s"${serviceName}.serviceId"), serviceName))
+        )
+
+        mandateRepository.insertMandate(mandate).map(_.mandate.id)
+      }
+    }
   }
 
 }
@@ -70,5 +81,7 @@ trait MandateCreateService {
 object MandateCreateService extends MandateCreateService {
   // $COVERAGE-OFF$
   val mandateRepository = MandateRepository()
+  val authConnector = AuthConnector
+  val etmpConnector = EtmpConnector
   // $COVERAGE-ON$
 }

@@ -100,7 +100,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPe
 
   def mandate: Mandate =
     Mandate("AS12345678", createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,
@@ -109,8 +109,8 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPe
 
   def updatedMandate: Mandate =
     Mandate("AS12345678", createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", "0123456789")),
-      clientParty = Some(Party("XBAT00000123456", "Joe Ated", PartyType.Organisation, contactDetails = ContactDetails("", ""))),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123456", "Joe Ated", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Some(Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"))),
       subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
@@ -118,7 +118,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPe
 
   def mandate1: Mandate =
     Mandate("AS12345678", createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = None,

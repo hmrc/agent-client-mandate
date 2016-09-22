@@ -58,7 +58,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
   val mandate = Mandate("AS12345678",
     User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", "")),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
     currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
     subscription = Subscription(None, Service("ated", "ATED"))
   )
