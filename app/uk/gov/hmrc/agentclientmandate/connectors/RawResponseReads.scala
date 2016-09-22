@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.models
+package uk.gov.hmrc.agentclientmandate.connectors
 
-import play.api.libs.json.Json
+import uk.gov.hmrc.play.http.{HttpReads, HttpResponse}
 
-case class CreateMandateDto(email: String, serviceName: String)
+trait RawResponseReads {
 
-object CreateMandateDto {
-  implicit val formats = Json.format[CreateMandateDto]
+  implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
+    override def read(method: String, url: String, response: HttpResponse) = response
+  }
 }

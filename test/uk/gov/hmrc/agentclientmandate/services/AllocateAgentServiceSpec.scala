@@ -37,8 +37,8 @@ class AllocateAgentServiceSpec extends PlaySpec with OneServerPerSuite with Mock
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
-      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", "98765433210"))),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))

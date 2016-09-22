@@ -21,7 +21,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.agentclientmandate.models.PartyType.PartyType
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 
-case class ContactDetails(email: String, phone: String)
+case class ContactDetails(email: String, phone: Option[String] = None)
 
 object ContactDetails {
   implicit val formats = Json.format[ContactDetails]
@@ -30,7 +30,7 @@ object ContactDetails {
 object PartyType extends Enumeration {
   type PartyType = Value
 
-  val Person = Value
+  val Individual = Value
   val Organisation = Value
 
   implicit val enumFormat = new Format[PartyType] {

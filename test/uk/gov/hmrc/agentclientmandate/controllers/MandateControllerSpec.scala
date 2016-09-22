@@ -190,16 +190,13 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = None,
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 
-  val createMandateDto = CreateMandateDto(
-    agentParty = Party(id = "JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", "0123456789")),
-    service = Service("ated", "ATED")
-  )
+  val createMandateDto = CreateMandateDto("test@test.com", "ated")
 
 }
