@@ -19,13 +19,12 @@ package uk.gov.hmrc.agentclientmandate.repositories
 import org.joda.time.DateTime
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.test.Helpers._
 import reactivemongo.api.DB
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPerSuite with BeforeAndAfterEach {
 
@@ -128,7 +127,5 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneAppPe
   override def beforeEach(): Unit = {
     await(testMandateRepository.drop)
   }
-
-  def await[A](future: Future[A]): A = Await.result(future, 5 seconds)
 
 }

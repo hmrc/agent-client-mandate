@@ -39,7 +39,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
     implicit val hc = createHeaderCarrier
 
     http.GET[HttpResponse](s"$serviceUrl/registration/details?arn=$arn") map { response =>
-      Logger.debug(s"[EtmpConnector][getDetailsFromEtmp][response] ${response}")
+      Logger.debug(s"[EtmpConnector][getDetailsFromEtmp] - response.status = ${response.status} && response.body = ${response.body}")
       response.status match {
         case OK => response.json
         case status => throw new RuntimeException("No ETMP details found")

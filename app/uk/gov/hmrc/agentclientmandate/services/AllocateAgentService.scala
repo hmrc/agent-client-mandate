@@ -31,7 +31,13 @@ trait AllocateAgentService {
 
     val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
 
-    connector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(Identifier(identifier, mandate.clientParty.get.id)), agentCode, mandate.subscription.service.name))
+    connector.allocateAgent(
+      GsoAdminAllocateAgentXmlInput(
+        List(Identifier(identifier, mandate.clientParty.get.id)),
+        agentCode,
+        mandate.subscription.service.name
+      )
+    )
   }
 }
 

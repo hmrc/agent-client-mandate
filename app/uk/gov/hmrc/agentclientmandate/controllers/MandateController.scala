@@ -41,7 +41,7 @@ trait MandateController extends BaseController {
     request.body.asOpt[CreateMandateDto] match {
       case Some(x) =>
         createService.createMandate(agentCode, x).map { mandateId =>
-          Created(Json.parse(s"""{"mandateId": $mandateId}"""))
+          Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
         }
       case None => Future.successful(BadRequest)
     }

@@ -17,12 +17,13 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
+import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.play.http.HeaderCarrier
-import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -35,15 +36,14 @@ trait MandateCreateService {
   def etmpConnector: EtmpConnector
 
   def createMandateId: String = {
-    val tsRef = new DateTime().getMillis.toString.takeRight(8)
+    val Eight = 8
+    val tsRef = new DateTime().getMillis.toString.takeRight(Eight)
     s"AS$tsRef"
   }
 
   def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
 
   def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Future[String] = {
-
-    Logger.debug(s"[MandateController][createMandate][agentCode] ${agentCode}")
 
     authConnector.getAuthority().flatMap { authority =>
 
@@ -52,7 +52,7 @@ trait MandateCreateService {
 
       etmpConnector.getDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
         val partyType = if ((etmpDetails \ "isAnIndividual").as[Boolean]) PartyType.Individual
-                        else PartyType.Organisation
+        else PartyType.Organisation
 
         val serviceName = createMandateDto.serviceName.toLowerCase
 
@@ -68,10 +68,11 @@ trait MandateCreateService {
           clientParty = None,
           currentStatus = createNewStatus(credId),
           statusHistory = None,
-          subscription = Subscription(None, Service(identifiers.getString(s"${serviceName}.serviceId"), serviceName))
+          subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
-
-        mandateRepository.insertMandate(mandate).map(_.mandate.id)
+        Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
+        val x = mandateRepository.insertMandate(mandate).map(_.mandate.id)
+        x
       }
     }
   }
