@@ -36,7 +36,8 @@ trait MandateCreateService {
   def etmpConnector: EtmpConnector
 
   def createMandateId: String = {
-    val tsRef = new DateTime().getMillis.toString.takeRight(8)
+    val Eight = 8
+    val tsRef = new DateTime().getMillis.toString.takeRight(Eight)
     s"AS$tsRef"
   }
 

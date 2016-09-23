@@ -82,7 +82,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(createMandateDto))
         val result = TestMandateController.create(agentCode).apply(fakeRequest)
         status(result) must be(CREATED)
-        contentAsJson(result) must be(Json.parse("""{"mandateId":123}"""))
+        contentAsJson(result) must be(Json.parse("""{"mandateId":"123"}"""))
       }
 
     }

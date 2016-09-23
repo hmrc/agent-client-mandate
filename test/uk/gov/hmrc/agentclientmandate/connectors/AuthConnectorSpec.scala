@@ -36,7 +36,7 @@ class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
 
   val mockWSHttp = mock[MockHttp]
 
-  override def beforeEach = {
+  override def beforeEach: Unit = {
     reset(mockWSHttp)
   }
 
