@@ -17,12 +17,13 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
+import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.play.http.HeaderCarrier
-import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -43,8 +44,6 @@ trait MandateCreateService {
 
   def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Future[String] = {
 
-    Logger.debug(s"[MandateController][createMandate][agentCode] ${agentCode}")
-
     authConnector.getAuthority().flatMap { authority =>
 
       val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
@@ -52,7 +51,7 @@ trait MandateCreateService {
 
       etmpConnector.getDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
         val partyType = if ((etmpDetails \ "isAnIndividual").as[Boolean]) PartyType.Individual
-                        else PartyType.Organisation
+        else PartyType.Organisation
 
         val serviceName = createMandateDto.serviceName.toLowerCase
 
@@ -68,10 +67,11 @@ trait MandateCreateService {
           clientParty = None,
           currentStatus = createNewStatus(credId),
           statusHistory = None,
-          subscription = Subscription(None, Service(identifiers.getString(s"${serviceName}.serviceId"), serviceName))
+          subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
-
-        mandateRepository.insertMandate(mandate).map(_.mandate.id)
+        Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
+        val x = mandateRepository.insertMandate(mandate).map(_.mandate.id)
+        x
       }
     }
   }
