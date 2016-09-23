@@ -99,7 +99,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
       "agentParty.id" -> arn,
       "subscription.service.name" -> serviceName
     )
-    collection.find(query).cursor[Mandate].collect[Seq]()
+    collection.find(query).cursor[Mandate]().collect[Seq]()
   }
 
 }
