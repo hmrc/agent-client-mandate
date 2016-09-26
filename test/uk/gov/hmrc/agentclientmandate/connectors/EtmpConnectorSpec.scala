@@ -16,15 +16,20 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
+import java.util.UUID
+
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.libs.json.Json
-import uk.gov.hmrc.play.http.{HttpGet, HttpPost, HttpPut, HttpResponse}
+import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.models.{EtmpAgentClientRelationship, EtmpRelationship}
+import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
+import uk.gov.hmrc.play.http.logging.SessionId
 
 import scala.concurrent.Future
 
@@ -42,20 +47,61 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   }
 
   "EtmpConnector" must {
-    "return response" in {
-      when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
+    "getDetailsFromEtmp" must {
+      "return valid response" in {
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
-      val result = await(TestEtmpConnector.getDetailsFromEtmp("ABC"))
-      (result \ "isAnIndividual").as[Boolean] must be(false)
+        val result = await(TestEtmpConnector.getDetailsFromEtmp("ABC"))
+        (result \ "isAnIndividual").as[Boolean] must be(false)
+      }
+
+      "throw exception when response is not OK" in {
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
+
+        val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getDetailsFromEtmp("ABC"))
+        thrown.getMessage must include("No ETMP details found")
+      }
     }
 
-    "throw exception when response is not OK" in {
-      when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
+    "submitPendingClient" must {
+      "return valid response" in {
+        val successResponse = Json.parse( """{"processingDate" :  "2014-12-17T09:30:47Z"}""")
+        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
-      val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getDetailsFromEtmp("ABC"))
-      thrown.getMessage must include("No ETMP details found")
+        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = true)
+        val agentClientRelationship = EtmpAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123",etmpRelationship)
+        val result = TestEtmpConnector.submitPendingClient(Some(agentClientRelationship), "ated")
+        val response = await(result)
+        response.status must be(OK)
+        response.json must be(successResponse)
+      }
+
+      "Check the response when we try to submit no pending client" in {
+        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+
+        val result = TestEtmpConnector.submitPendingClient(None, "ated")
+        val response = await(result)
+        response.status must be(NOT_FOUND)
+
+      }
+
+      "Check for a failure response when we try to submit pending clients" in {
+        val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
+        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
+
+        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = true)
+        val agentClientRelationship = EtmpAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123",etmpRelationship)
+        val result = TestEtmpConnector.submitPendingClient(Some(agentClientRelationship), "ated")
+        val response = await(result)
+        response.status must be(SERVICE_UNAVAILABLE)
+        response.json must be(failureResponse)
+      }
     }
   }
 

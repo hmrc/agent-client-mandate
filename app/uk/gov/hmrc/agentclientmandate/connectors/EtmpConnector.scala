@@ -18,27 +18,57 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.Logger
 import play.api.http.Status._
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
+import uk.gov.hmrc.agentclientmandate.models.EtmpAgentClientRelationship
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.Authorization
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait EtmpConnector extends ServicesConfig with RawResponseReads {
 
-  val serviceUrl: String = baseUrl("etmp-hod")
+  val submitClientRelationship = "relationship"
+  val etmpUrl: String = baseUrl("etmp-hod")
   def urlHeaderEnvironment: String
   def urlHeaderAuthorization: String
   def http: HttpGet with HttpPost with HttpPut
 
 
+  def submitPendingClient(agentClientRelationship: Option[EtmpAgentClientRelationship], serviceName: String): Future[HttpResponse] = {
+
+    implicit val headerCarrier = createHeaderCarrier
+
+    agentClientRelationship match {
+      case Some(agentClientRel) =>
+        val service = identifiers.getString(s"${serviceName}.identifier")
+        val jsonData = Json.toJson(agentClientRel)
+        val postUrl = s"""$etmpUrl/$service/$submitClientRelationship"""
+        Logger.debug(s"[EtmpConnector][submitPendingClient] - POST $postUrl & payload = $jsonData")
+        http.POST(postUrl, jsonData) map { response =>
+          response.status match {
+            case OK | NO_CONTENT =>
+              response
+            case status =>
+              Logger.warn(s"[EtmpConnector][submitPendingClient] - status: $status Error ${response.body}")
+              response
+          }
+        }
+      case None =>
+        Logger.debug(s"[EtmpConnector][submitPendingClient] - No Data to Post, so Not Found")
+        val notFound = Json.parse( """{"reason" : "No Pending Client found"}""")
+        Future.successful(HttpResponse(NOT_FOUND, Some(notFound)))
+    }
+  }
+
   def getDetailsFromEtmp(arn: String): Future[JsValue] = {
 
     implicit val hc = createHeaderCarrier
 
-    http.GET[HttpResponse](s"$serviceUrl/registration/details?arn=$arn") map { response =>
+    http.GET[HttpResponse](s"$etmpUrl/registration/details?arn=$arn") map { response =>
       Logger.debug(s"[EtmpConnector][getDetailsFromEtmp] - response.status = ${response.status} && response.body = ${response.body}")
       response.status match {
         case OK => response.json

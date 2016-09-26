@@ -23,7 +23,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.GovernmentGatewayProxyConnector
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
@@ -46,25 +46,34 @@ class AllocateAgentServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
   override def beforeEach(): Unit = {
     reset(ggProxyMock)
+    reset(etmpMock)
   }
 
   val ggProxyMock = mock[GovernmentGatewayProxyConnector]
+  val etmpMock = mock[EtmpConnector]
 
   object TestAllocateAgentService extends AllocateAgentService {
-    override val connector = ggProxyMock
+    override val ggProxyConnector = ggProxyMock
+    override val etmpConnector = etmpMock
   }
 
   val hc = new HeaderCarrier()
 
   "AllocateAgentService" should {
-    "return a successful response" when {
-      "given valid input" in {
+    "return a successful response given valid input" in {
 
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+      when(etmpMock.submitPendingClient(Matchers.any(), Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+      when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
 
-        val result = await(TestAllocateAgentService.allocateAgent(mandate, agentCode)(hc))
-        result.status must be(OK)
-      }
+      val result = await(TestAllocateAgentService.allocateAgent(mandate, agentCode)(hc))
+      result.status must be(OK)
+    }
+
+    "return etmpResponse when etmp call fails" in {
+      when(etmpMock.submitPendingClient(Matchers.any(), Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+      val result = await(TestAllocateAgentService.allocateAgent(mandate, agentCode)(hc))
+      result.status must be(INTERNAL_SERVER_ERROR)
     }
   }
 

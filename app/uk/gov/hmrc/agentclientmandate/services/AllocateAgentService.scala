@@ -17,32 +17,47 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
-import uk.gov.hmrc.agentclientmandate.connectors.GovernmentGatewayProxyConnector
-import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier, Mandate}
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
-
+import play.api.http.Status._
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait AllocateAgentService {
 
-  def connector: GovernmentGatewayProxyConnector
+  def ggProxyConnector: GovernmentGatewayProxyConnector
+  def etmpConnector: EtmpConnector
 
   def allocateAgent(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
+    val clientId = mandate.clientParty.get.id
 
-    connector.allocateAgent(
-      GsoAdminAllocateAgentXmlInput(
-        List(Identifier(identifier, mandate.clientParty.get.id)),
-        agentCode,
-        mandate.subscription.service.name
-      )
-    )
+    etmpConnector.submitPendingClient(createEtmpRelationship(clientId, mandate.agentParty.id), mandate.subscription.service.name).flatMap { etmpResponse =>
+      etmpResponse.status match {
+        case OK => ggProxyConnector.allocateAgent(
+                      GsoAdminAllocateAgentXmlInput(
+                        List(Identifier(identifier, clientId)),
+                        agentCode,
+                        mandate.subscription.service.name
+                      )
+                    )
+        case _ => Future.successful(etmpResponse)
+      }
+    }
+  }
+
+  private def createEtmpRelationship(clientId: String, agentId: String) = {
+    val etmpRelationship = EtmpRelationship(action = "Authorise", isExclusiveAgent = true)
+    Some(EtmpAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, etmpRelationship))
   }
 }
 
 object AllocateAgentService extends AllocateAgentService {
   // $COVERAGE-OFF$
-  val connector = GovernmentGatewayProxyConnector
+  val ggProxyConnector = GovernmentGatewayProxyConnector
+  val etmpConnector = EtmpConnector
   // $COVERAGE-ON$
 }
