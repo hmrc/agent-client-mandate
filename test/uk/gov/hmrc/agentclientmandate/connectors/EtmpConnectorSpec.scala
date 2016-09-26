@@ -27,7 +27,7 @@ import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.models.{EtmpAgentClientRelationship, EtmpRelationship}
+import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.play.http.logging.SessionId
 
@@ -73,20 +73,10 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
           .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = true)
-        val agentClientRelationship = EtmpAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123",etmpRelationship)
-        val result = TestEtmpConnector.submitPendingClient(Some(agentClientRelationship), "ated")
-        val response = await(result)
+        val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123",etmpRelationship)
+        val response = await(TestEtmpConnector.maintainAtedRelationship(agentClientRelationship))
         response.status must be(OK)
         response.json must be(successResponse)
-      }
-
-      "Check the response when we try to submit no pending client" in {
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-
-        val result = TestEtmpConnector.submitPendingClient(None, "ated")
-        val response = await(result)
-        response.status must be(NOT_FOUND)
-
       }
 
       "Check for a failure response when we try to submit pending clients" in {
@@ -96,11 +86,10 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
           .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = true)
-        val agentClientRelationship = EtmpAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123",etmpRelationship)
-        val result = TestEtmpConnector.submitPendingClient(Some(agentClientRelationship), "ated")
-        val response = await(result)
-        response.status must be(SERVICE_UNAVAILABLE)
-        response.json must be(failureResponse)
+        val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123",etmpRelationship)
+        val result = TestEtmpConnector.maintainAtedRelationship(agentClientRelationship)
+        val response = the[RuntimeException] thrownBy await(result)
+        response.getMessage must be("ETMP call failed")
       }
     }
   }

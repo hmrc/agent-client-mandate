@@ -20,7 +20,7 @@ import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate}
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
-import uk.gov.hmrc.agentclientmandate.services.{AllocateAgentService, MandateCreateService, MandateFetchService, MandateUpdateService}
+import uk.gov.hmrc.agentclientmandate.services.{RelationshipService, MandateCreateService, MandateFetchService, MandateUpdateService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,7 +31,7 @@ trait MandateController extends BaseController {
 
   def createService: MandateCreateService
 
-  def allocateAgentService: AllocateAgentService
+  def relationshipService: RelationshipService
 
   def fetchService: MandateFetchService
 
@@ -76,7 +76,7 @@ trait MandateController extends BaseController {
   def activate(agentCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) =>
-        allocateAgentService.allocateAgent(mandate, agentCode).map { response =>
+        relationshipService.maintainRelationship(mandate, agentCode).map { response =>
           response.status match {
             case OK => Ok
             case BAD_REQUEST => BadRequest
@@ -94,7 +94,7 @@ object MandateAgentController extends MandateController {
   val createService = MandateCreateService
   val fetchService = MandateFetchService
   val updateService = MandateUpdateService
-  val allocateAgentService = AllocateAgentService
+  val relationshipService = RelationshipService
   // $COVERAGE-ON$
 }
 
@@ -103,6 +103,6 @@ object MandateClientController extends MandateController {
   val createService = MandateCreateService
   val fetchService = MandateFetchService
   val updateService = MandateUpdateService
-  val allocateAgentService = AllocateAgentService
+  val relationshipService = RelationshipService
   // $COVERAGE-ON$
 }

@@ -19,9 +19,8 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
-import uk.gov.hmrc.agentclientmandate.models.EtmpAgentClientRelationship
+import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.Authorization
@@ -31,36 +30,27 @@ import scala.concurrent.Future
 
 trait EtmpConnector extends ServicesConfig with RawResponseReads {
 
-  val submitClientRelationship = "relationship"
   val etmpUrl: String = baseUrl("etmp-hod")
   def urlHeaderEnvironment: String
   def urlHeaderAuthorization: String
   def http: HttpGet with HttpPost with HttpPut
 
 
-  def submitPendingClient(agentClientRelationship: Option[EtmpAgentClientRelationship], serviceName: String): Future[HttpResponse] = {
+  def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
 
     implicit val headerCarrier = createHeaderCarrier
 
-    agentClientRelationship match {
-      case Some(agentClientRel) =>
-        val service = identifiers.getString(s"${serviceName}.identifier")
-        val jsonData = Json.toJson(agentClientRel)
-        val postUrl = s"""$etmpUrl/$service/$submitClientRelationship"""
-        Logger.debug(s"[EtmpConnector][submitPendingClient] - POST $postUrl & payload = $jsonData")
-        http.POST(postUrl, jsonData) map { response =>
-          response.status match {
-            case OK | NO_CONTENT =>
-              response
-            case status =>
-              Logger.warn(s"[EtmpConnector][submitPendingClient] - status: $status Error ${response.body}")
-              response
-          }
-        }
-      case None =>
-        Logger.debug(s"[EtmpConnector][submitPendingClient] - No Data to Post, so Not Found")
-        val notFound = Json.parse( """{"reason" : "No Pending Client found"}""")
-        Future.successful(HttpResponse(NOT_FOUND, Some(notFound)))
+    val jsonData = Json.toJson(agentClientRelationship)
+    val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
+    Logger.debug(s"[EtmpConnector][maintainAtedRelationship] - POST $postUrl & payload = $jsonData")
+    http.POST(postUrl, jsonData) map { response =>
+      response.status match {
+        case OK | NO_CONTENT =>
+          response
+        case status =>
+          Logger.warn(s"[EtmpConnector][maintainAtedRelationship] - status: $status Error ${response.body}")
+          throw new RuntimeException("ETMP call failed")
+      }
     }
   }
 

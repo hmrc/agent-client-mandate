@@ -27,7 +27,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
-import uk.gov.hmrc.agentclientmandate.services.{AllocateAgentService, MandateCreateService, MandateFetchService, MandateUpdateService}
+import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.http.HttpResponse
 
 import scala.concurrent.Future
@@ -40,7 +40,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "when client mandate found try to allocate the agent" when {
       "request is valid" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
-        when(allocateAgentServiceMock.allocateAgent(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(relationshipServiceMock.maintainRelationship(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -49,7 +49,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "bad request" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
-        when(allocateAgentServiceMock.allocateAgent(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(400, None))
+        when(relationshipServiceMock.maintainRelationship(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(400, None))
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -58,7 +58,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "server error" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
-        when(allocateAgentServiceMock.allocateAgent(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+        when(relationshipServiceMock.maintainRelationship(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -160,12 +160,12 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
   val fetchServiceMock = mock[MandateFetchService]
   val createServiceMock = mock[MandateCreateService]
   val updateServiceMock = mock[MandateUpdateService]
-  val allocateAgentServiceMock = mock[AllocateAgentService]
+  val relationshipServiceMock = mock[RelationshipService]
 
   object TestMandateController extends MandateController {
     override val fetchService = fetchServiceMock
     override val createService = createServiceMock
-    override val allocateAgentService = allocateAgentServiceMock
+    override val relationshipService = relationshipServiceMock
     override val updateService = updateServiceMock
   }
 
@@ -173,7 +173,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     reset(fetchServiceMock)
     reset(createServiceMock)
     reset(updateServiceMock)
-    reset(allocateAgentServiceMock)
+    reset(relationshipServiceMock)
   }
 
   implicit override lazy val app: FakeApplication = FakeApplication(

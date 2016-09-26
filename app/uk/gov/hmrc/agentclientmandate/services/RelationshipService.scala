@@ -20,42 +20,48 @@ import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import play.api.http.Status._
+
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait AllocateAgentService {
+trait RelationshipService {
 
   def ggProxyConnector: GovernmentGatewayProxyConnector
   def etmpConnector: EtmpConnector
 
-  def allocateAgent(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def maintainRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
-    val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
-    val clientId = mandate.clientParty.get.id
+    if (mandate.subscription.service.name.toUpperCase == "ATED") {
+      val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
+      val clientId = mandate.clientParty.get.id
 
-    etmpConnector.submitPendingClient(createEtmpRelationship(clientId, mandate.agentParty.id), mandate.subscription.service.name).flatMap { etmpResponse =>
-      etmpResponse.status match {
-        case OK => ggProxyConnector.allocateAgent(
-                      GsoAdminAllocateAgentXmlInput(
-                        List(Identifier(identifier, clientId)),
-                        agentCode,
-                        mandate.subscription.service.name
-                      )
-                    )
-        case _ => Future.successful(etmpResponse)
+      etmpConnector.maintainAtedRelationship(createEtmpRelationship(clientId, mandate.agentParty.id)).flatMap { etmpResponse =>
+        etmpResponse.status match {
+          case OK => ggProxyConnector.allocateAgent(
+            GsoAdminAllocateAgentXmlInput(
+              List(Identifier(identifier, clientId)),
+              agentCode,
+              mandate.subscription.service.name
+            )
+          )
+          case _ => throw new RuntimeException("ETMP call failed")
+        }
       }
+    }
+    else {
+      throw new BadRequestException("This is only defined for ATED")
     }
   }
 
   private def createEtmpRelationship(clientId: String, agentId: String) = {
     val etmpRelationship = EtmpRelationship(action = "Authorise", isExclusiveAgent = true)
-    Some(EtmpAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, etmpRelationship))
+    EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, etmpRelationship)
   }
 }
 
-object AllocateAgentService extends AllocateAgentService {
+object RelationshipService extends RelationshipService {
   // $COVERAGE-OFF$
   val ggProxyConnector = GovernmentGatewayProxyConnector
   val etmpConnector = EtmpConnector
