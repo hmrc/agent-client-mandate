@@ -51,8 +51,16 @@ trait MandateCreateService {
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
 
       etmpConnector.getDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
-        val partyType = if ((etmpDetails \ "isAnIndividual").as[Boolean]) PartyType.Individual
-        else PartyType.Organisation
+
+        val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
+
+        val agentPartyName = if (isAnIndividual) {
+          s"""${(etmpDetails \ "individual" \ "firstName").as[String]} ${(etmpDetails \ "individual" \ "lastName").as[String]}"""
+        } else {
+          s"""${(etmpDetails \ "organisation" \ "organisationName").as[String]}"""
+        }
+
+        val partyType = if (isAnIndividual) PartyType.Individual else PartyType.Organisation
 
         val serviceName = createMandateDto.serviceName.toLowerCase
 
@@ -61,7 +69,7 @@ trait MandateCreateService {
           createdBy = User(credId, agentPartyId, Some(agentCode)),
           agentParty = Party(
             agentPartyId,
-            agentPartyId,
+            agentPartyName,
             partyType,
             ContactDetails(createMandateDto.email, None)
           ),
