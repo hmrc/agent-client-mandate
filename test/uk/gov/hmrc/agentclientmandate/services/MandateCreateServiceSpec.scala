@@ -48,12 +48,18 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
 
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
-          """{
-            "sapNumber":"1234567890",
-            "safeId": "EX0012345678909",
-            "agentReferenceNumber": "AARN1234567",
-            "isAnIndividual": false
-            }""".stripMargin)
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
+            |  }
+            |}
+          """.stripMargin
+        )
         val successResponseJsonAuth = Json.parse(
           """{
                "credentials": {
@@ -88,12 +94,19 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
 
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
-          """{
-            "sapNumber":"1234567890",
-            "safeId": "EX0012345678909",
-            "agentReferenceNumber": "AARN1234567",
-            "isAnIndividual": true
-            }""".stripMargin)
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": true,
+            |  "individual" : {
+            |    "firstName": "firstName",
+            |    "lastName": "lastName"
+            |  }
+            |}
+          """.stripMargin
+        )
         val successResponseJsonAuth = Json.parse(
           """{
                "credentials": {
