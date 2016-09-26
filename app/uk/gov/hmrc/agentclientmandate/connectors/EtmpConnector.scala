@@ -18,27 +18,47 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.Logger
 import play.api.http.Status._
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
+import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.logging.Authorization
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait EtmpConnector extends ServicesConfig with RawResponseReads {
 
-  val serviceUrl: String = baseUrl("etmp-hod")
+  val etmpUrl: String = baseUrl("etmp-hod")
   def urlHeaderEnvironment: String
   def urlHeaderAuthorization: String
   def http: HttpGet with HttpPost with HttpPut
 
 
+  def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
+
+    implicit val headerCarrier = createHeaderCarrier
+
+    val jsonData = Json.toJson(agentClientRelationship)
+    val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
+    Logger.debug(s"[EtmpConnector][maintainAtedRelationship] - POST $postUrl & payload = $jsonData")
+    http.POST(postUrl, jsonData) map { response =>
+      response.status match {
+        case OK | NO_CONTENT =>
+          response
+        case status =>
+          Logger.warn(s"[EtmpConnector][maintainAtedRelationship] - status: $status Error ${response.body}")
+          throw new RuntimeException("ETMP call failed")
+      }
+    }
+  }
+
   def getDetailsFromEtmp(arn: String): Future[JsValue] = {
 
     implicit val hc = createHeaderCarrier
 
-    http.GET[HttpResponse](s"$serviceUrl/registration/details?arn=$arn") map { response =>
+    http.GET[HttpResponse](s"$etmpUrl/registration/details?arn=$arn") map { response =>
       Logger.debug(s"[EtmpConnector][getDetailsFromEtmp] - response.status = ${response.status} && response.body = ${response.body}")
       response.status match {
         case OK => response.json

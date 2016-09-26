@@ -37,7 +37,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "update data in mongo with given data provided" when {
       "requested to do so - updateMandate" in {
         when(mockMandateRepository.updateMandate(Matchers.eq(mandate))).thenReturn(Future.successful(MandateUpdated(mandate)))
-        await(TestMandateUpdateService.updateMandate(mandate)) must be(MandateUpdated(mandate))
+        await(TestMandateUpdateService.updateMandate(mandate)(new HeaderCarrier())) must be(MandateUpdated(mandate))
       }
     }
 
@@ -47,7 +47,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
         val mandateToUse = mandate.copy(currentStatus = MandateStatus(Status.Approved, mandate.currentStatus.timestamp, mandate.currentStatus.updatedBy))
         when(mockEmailService.sendMail(Matchers.eq(mandateToUse.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
         when(mockMandateRepository.updateMandate(Matchers.eq(mandateToUse))).thenReturn(Future.successful(MandateUpdated(mandateToUse)))
-        await(TestMandateUpdateService.updateMandate(mandateToUse)) must be(MandateUpdated(mandateToUse))
+        await(TestMandateUpdateService.updateMandate(mandateToUse)(new HeaderCarrier())) must be(MandateUpdated(mandateToUse))
       }
 
     }

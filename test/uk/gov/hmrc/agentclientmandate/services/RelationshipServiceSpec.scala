@@ -23,13 +23,13 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.GovernmentGatewayProxyConnector
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
 
-class AllocateAgentServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   val agentCode = "ABC"
 
@@ -46,25 +46,40 @@ class AllocateAgentServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
   override def beforeEach(): Unit = {
     reset(ggProxyMock)
+    reset(etmpMock)
   }
 
   val ggProxyMock = mock[GovernmentGatewayProxyConnector]
+  val etmpMock = mock[EtmpConnector]
 
-  object TestAllocateAgentService extends AllocateAgentService {
-    override val connector = ggProxyMock
+  object TestRelationshipService extends RelationshipService {
+    override val ggProxyConnector = ggProxyMock
+    override val etmpConnector = etmpMock
   }
 
   val hc = new HeaderCarrier()
 
-  "AllocateAgentService" should {
-    "return a successful response" when {
-      "given valid input" in {
+  "RelationshipService" should {
+    "return a successful response given valid input" in {
 
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+      when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+      when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
 
-        val result = await(TestAllocateAgentService.allocateAgent(mandate, agentCode)(hc))
-        result.status must be(OK)
-      }
+      val result = await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
+      result.status must be(OK)
+    }
+
+    "return etmpResponse when etmp call fails" in {
+      when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+      val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
+      response.getMessage must be("ETMP call failed")
+    }
+
+    "if service not ATED, throw bad request exception" in {
+      val sub = Subscription(None, Service("XYZ", "XYZ"))
+      val response = the[BadRequestException] thrownBy await(TestRelationshipService.maintainRelationship(mandate.copy(subscription = sub), agentCode)(hc))
+      response.getMessage must be("This is only defined for ATED")
     }
   }
 
