@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailStatus, EmailNotSent}
+import org.joda.time.DateTime
+import play.api.Logger
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailNotSent, EmailStatus, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -28,6 +31,43 @@ trait MandateUpdateService {
   def mandateRepository: MandateRepository
 
   def emailNotificationService: NotificationEmailService
+
+  def etmpConnector: EtmpConnector
+
+  def authConnector: AuthConnector
+
+  def approveMandate(approvedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+    val service = approvedMandate.subscription.service.id.toLowerCase
+    service match {
+      case "ated" =>
+        authConnector.getAuthority() flatMap { authority =>
+          val subscriptionId = (authority \ "accounts" \ "ated" \ "utr").as[String]
+          val credId = (authority \ "credentials" \ "gatewayId").as[String]
+          etmpConnector.getAtedSubscriptionDetails(subscriptionId) flatMap { subscriptionJson =>
+            val clientPartyId = (subscriptionJson \ "safeId").as[String]
+            val clientPartyName = (subscriptionJson \ "organisationName").as[String]
+            val approvedBy = User(credId, clientPartyName)
+            val clientParty = approvedMandate.clientParty.getOrElse(throw new RuntimeException("Client party not found"))
+            val clientPartyUpdated = clientParty.copy(id = clientPartyId, name = clientPartyName)
+            val currentStatus = createApprovedStatus(credId)
+            val subscription = approvedMandate.subscription.copy(referenceNumber = Some(subscriptionId))
+            val updatedMandate = approvedMandate.copy(
+              approvedBy = Some(approvedBy),
+              clientParty = Some(clientPartyUpdated),
+              currentStatus = currentStatus,
+              statusHistory = Seq(approvedMandate.currentStatus),
+              subscription = subscription
+            )
+            updateMandate(updatedMandate)
+          }
+        }
+      case any =>
+        Logger.warn(s"[MandateUpdateService][approveMandate] - $any service not supported yet")
+        throw new RuntimeException("currently supported only for ATED")
+    }
+  }
+
+  def createApprovedStatus(credId: String): MandateStatus = MandateStatus(Status.Approved, DateTime.now(), credId)
 
   def updateMandate(updatedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     for {
@@ -52,5 +92,7 @@ object MandateUpdateService extends MandateUpdateService {
   val mandateRepository = MandateRepository()
   val mandateFetchService = MandateFetchService
   val emailNotificationService = NotificationEmailService
+  val etmpConnector: EtmpConnector = EtmpConnector
+  val authConnector: AuthConnector = AuthConnector
   // $COVERAGE-ON$
 }

@@ -50,7 +50,7 @@ trait MandateCreateService {
       val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
 
-      etmpConnector.getDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
+      etmpConnector.getAgentDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
 
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
 
@@ -64,9 +64,11 @@ trait MandateCreateService {
 
         val serviceName = createMandateDto.serviceName.toLowerCase
 
+        val currentStatus = createNewStatus(credId)
+
         val mandate = Mandate(
           id = createMandateId,
-          createdBy = User(credId, agentPartyId, Some(agentCode)),
+          createdBy = User(credId, agentPartyName, Some(agentCode)),
           agentParty = Party(
             agentPartyId,
             agentPartyName,
@@ -74,8 +76,8 @@ trait MandateCreateService {
             ContactDetails(createMandateDto.email, None)
           ),
           clientParty = None,
-          currentStatus = createNewStatus(credId),
-          statusHistory = None,
+          currentStatus = currentStatus,
+          statusHistory = Nil,
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")

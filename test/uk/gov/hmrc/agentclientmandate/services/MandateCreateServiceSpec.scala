@@ -21,7 +21,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
+class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   "MandateCreateService" should {
 
@@ -81,7 +81,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -128,7 +128,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -159,7 +159,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneAppPerSuite with Mockito
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, statusTime, "credid"),
-      statusHistory = None,
+      statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 
