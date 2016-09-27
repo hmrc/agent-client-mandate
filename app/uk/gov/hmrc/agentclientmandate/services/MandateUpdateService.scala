@@ -55,7 +55,7 @@ trait MandateUpdateService {
               approvedBy = Some(approvedBy),
               clientParty = Some(clientPartyUpdated),
               currentStatus = currentStatus,
-              statusHistory = approvedMandate.statusHistory :+ currentStatus,
+              statusHistory = Seq(approvedMandate.currentStatus),
               subscription = subscription
             )
             updateMandate(updatedMandate)

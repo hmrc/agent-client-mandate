@@ -77,7 +77,7 @@ trait MandateCreateService {
           ),
           clientParty = None,
           currentStatus = currentStatus,
-          statusHistory = Seq(currentStatus),
+          statusHistory = Nil,
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
