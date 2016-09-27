@@ -40,7 +40,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = None,
+      statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 

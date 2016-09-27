@@ -90,7 +90,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XVAT00000123456", "Jon Snow", PartyType.Organisation, ContactDetails("client@test.com", Some("0123456789")))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = None,
+      statusHistory = Nil,
       subscription = Subscription(Some("XVAT00000123456"), Service("ated", "ATED"))
     )
 

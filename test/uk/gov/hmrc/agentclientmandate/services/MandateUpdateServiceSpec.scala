@@ -16,14 +16,15 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeUtils}
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailSent, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdated}
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -52,9 +53,38 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
     }
 
+    "approveMandate" must {
+      "change status of mandate to approve, if all calls are successful and service name is ated" in {
+        DateTimeUtils.setCurrentMillisFixed(currentMillis)
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
+        when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        val result = await(TestMandateUpdateService.approveMandate(clientApprovedMandate))
+        result must be(MandateUpdated(updatedMandate))
+      }
+
+      "throw exception, if post was made without client party in it" in {
+        DateTimeUtils.setCurrentMillisFixed(currentMillis)
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
+        when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandate))
+        thrown.getMessage must be("Client party not found")
+      }
+
+      "throw exception, if used for any other service" in {
+        val mandateToUse = clientApprovedMandate.copy(subscription = clientApprovedMandate.subscription.copy(service = Service("other", "other")))
+        val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandateToUse))
+        thrown.getMessage must be("currently supported only for ATED")
+      }
+    }
+
   }
 
   val timeToUse = DateTime.now()
+  val currentMillis = timeToUse.getMillis
 
   val mandate = Mandate("AS12345678",
     User("credid", "Joe Bloggs", None),
@@ -63,17 +93,64 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     subscription = Subscription(None, Service("ated", "ATED"))
   )
 
+  val clientApprovedMandate = Mandate("AS12345678",
+    User("credid", "Joe Bloggs", None),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails("client@mail.com"))),
+    currentStatus = MandateStatus(Status.Approved, timeToUse, ""),
+    subscription = Subscription(None, Service("ated", "ATED"))
+  )
+
+  val updatedMandate = Mandate("AS12345678",
+    User("credid", "Joe Bloggs", None),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+    currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
+    subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED"))
+  )
+
+  val authJson = Json.parse(
+    """
+      |{
+      |  "credentials": {
+      |    "gatewayId": "cred-id-1234567890"
+      |  },
+      |  "accounts": {
+      |    "ated": {
+      |      "utr": "ated-ref-num",
+      |      "link": "/link"
+      |    }
+      |  }
+      |}
+    """.stripMargin
+  )
+
+  val etmpSubscriptionJson = Json.parse(
+    """
+      |{
+      |  "safeId": "cred-id-1234567890",
+      |  "organisationName": "client-name"
+      |}
+    """.stripMargin
+  )
+
   val mockMandateRepository = mock[MandateRepository]
   val mockEmailService = mock[NotificationEmailService]
+  val mockEtmpConnector = mock[EtmpConnector]
+  val mockAuthConnector = mock[AuthConnector]
 
   object TestMandateUpdateService extends MandateUpdateService {
     override val mandateRepository = mockMandateRepository
     override val emailNotificationService = mockEmailService
+    override val etmpConnector = mockEtmpConnector
+    override val authConnector = mockAuthConnector
   }
 
   override def beforeEach: Unit = {
     reset(mockMandateRepository)
     reset(mockEmailService)
+    reset(mockEtmpConnector)
+    reset(mockAuthConnector)
   }
 
   implicit val hc = HeaderCarrier()

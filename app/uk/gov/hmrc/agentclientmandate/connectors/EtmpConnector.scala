@@ -28,11 +28,22 @@ import uk.gov.hmrc.play.http.logging.Authorization
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+object EtmpConnector extends EtmpConnector {
+  // $COVERAGE-OFF$
+  val urlHeaderEnvironment: String = config("etmp-hod").getString("environment").fold("")(x => x)
+  val urlHeaderAuthorization: String = s"Bearer ${config("etmp-hod").getString("authorization-token").fold("")(x => x)}"
+  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  // $COVERAGE-ON$
+}
+
 trait EtmpConnector extends ServicesConfig with RawResponseReads {
 
   val etmpUrl: String = baseUrl("etmp-hod")
+
   def urlHeaderEnvironment: String
+
   def urlHeaderAuthorization: String
+
   def http: HttpGet with HttpPost with HttpPut
 
 
@@ -42,7 +53,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
 
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
-    Logger.debug(s"[EtmpConnector][maintainAtedRelationship] - POST $postUrl & payload = $jsonData")
+    Logger.info(s"[EtmpConnector][maintainAtedRelationship] - POST $postUrl & payload = $jsonData")
     http.POST(postUrl, jsonData) map { response =>
       response.status match {
         case OK | NO_CONTENT =>
@@ -54,15 +65,27 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
     }
   }
 
-  def getDetailsFromEtmp(arn: String): Future[JsValue] = {
+  def getAgentDetailsFromEtmp(arn: String): Future[JsValue] = {
 
     implicit val hc = createHeaderCarrier
 
     http.GET[HttpResponse](s"$etmpUrl/registration/details?arn=$arn") map { response =>
-      Logger.debug(s"[EtmpConnector][getDetailsFromEtmp] - response.status = ${response.status} && response.body = ${response.body}")
+      Logger.info(s"[EtmpConnector][getDetailsFromEtmp] - response.status = ${response.status} && response.body = ${response.body}")
       response.status match {
         case OK => response.json
         case status => throw new RuntimeException("No ETMP details found")
+      }
+    }
+  }
+
+  def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
+    implicit val headerCarrier = createHeaderCarrier
+    val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
+    http.GET[HttpResponse](s"$getUrl") map { response =>
+      Logger.info(s"[EtmpConnector][getAtedSubscriptionDetails] - response.status = ${response.status} && response.body = ${response.body}")
+      response.status match {
+        case OK => response.json
+        case status => throw new RuntimeException("Error in getting ATED subscription details from ETMP")
       }
     }
   }
@@ -71,12 +94,6 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
     HeaderCarrier(extraHeaders = Seq("Environment" -> urlHeaderEnvironment),
       authorization = Some(Authorization(urlHeaderAuthorization)))
   }
+
 }
 
-object EtmpConnector extends EtmpConnector {
-  // $COVERAGE-OFF$
-  val urlHeaderEnvironment: String = config("etmp-hod").getString("environment").fold("")(x => x)
-  val urlHeaderAuthorization: String = s"Bearer ${config("etmp-hod").getString("authorization-token").fold("")(x => x)}"
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
-  // $COVERAGE-ON$
-}

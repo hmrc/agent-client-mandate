@@ -24,7 +24,12 @@ object EtmpRelationship {
   implicit val formats = Json.format[EtmpRelationship]
 }
 
-case class EtmpAtedAgentClientRelationship(acknowledgmentReference: String, atedRefNumber: String, agentReferenceNumber: String, authorisation: EtmpRelationship)
+case class EtmpAtedAgentClientRelationship(
+                                            acknowledgmentReference: String,
+                                            atedRefNumber: String,
+                                            agentReferenceNumber: String,
+                                            authorisation: EtmpRelationship
+                                          )
 
 object EtmpAtedAgentClientRelationship {
   implicit val formats = Json.format[EtmpAtedAgentClientRelationship]

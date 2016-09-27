@@ -65,7 +65,7 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = None,
+      statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 

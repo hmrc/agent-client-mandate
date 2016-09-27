@@ -94,7 +94,7 @@ case class Mandate(id: String,
                    agentParty: Party,
                    clientParty: Option[Party] = None,
                    currentStatus: MandateStatus,
-                   statusHistory: Option[Seq[MandateStatus]] = None,
+                   statusHistory: Seq[MandateStatus] = Nil,
                    subscription: Subscription)
 
 object Mandate {
