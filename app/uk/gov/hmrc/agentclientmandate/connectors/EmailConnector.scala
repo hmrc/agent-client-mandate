@@ -32,7 +32,7 @@ sealed trait EmailStatus
 case object EmailSent extends EmailStatus
 case object EmailNotSent extends EmailStatus
 
-trait EmailConnector extends ServicesConfig {
+trait EmailConnector extends ServicesConfig with RawResponseReads {
 
   def sendEmailUri: String
 
