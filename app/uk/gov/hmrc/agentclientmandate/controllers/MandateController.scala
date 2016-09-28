@@ -65,7 +65,7 @@ trait MandateController extends BaseController {
   def approve(org: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[Mandate] match {
       case Some(newMandate) =>
-        updateService.updateMandate(newMandate) map {
+        updateService.approveMandate(newMandate) map {
           case MandateUpdated(y) => Ok(Json.toJson(y))
           case MandateUpdateError => InternalServerError
         }

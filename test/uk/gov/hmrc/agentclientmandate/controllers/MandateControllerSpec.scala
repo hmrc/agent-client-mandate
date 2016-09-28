@@ -131,7 +131,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "update mandate for a client" when {
       "client provided valid payload and mandate has been successfully updated in mongo" in {
-        when(updateServiceMock.updateMandate(Matchers.eq(mandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
+        when(updateServiceMock.approveMandate(Matchers.eq(mandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(OK)
@@ -140,7 +140,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "throw error while trying to update mandate for a client" when {
       "client provided valid payload but mandate wasn't successfully updated in mongo" in {
-        when(updateServiceMock.updateMandate(Matchers.eq(mandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.approveMandate(Matchers.eq(mandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
