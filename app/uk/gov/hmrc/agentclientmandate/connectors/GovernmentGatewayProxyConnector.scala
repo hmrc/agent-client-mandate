@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-trait GovernmentGatewayProxyConnector extends ServicesConfig {
+trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseReads {
 
   def serviceUrl:String = baseUrl("government-gateway-proxy")
   def http: HttpGet with HttpPost with HttpPut
