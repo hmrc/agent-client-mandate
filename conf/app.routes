@@ -16,3 +16,5 @@ POST   /org/:org/mandate/approve                 uk.gov.hmrc.agentclientmandate.
 
 # agent accepts approved request
 POST   /agent/:ac/mandate/activate/:mandateId    uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.activate(ac: String, mandateId: String)
+
+POST   /agent/:ac/mamndate/rejectClient/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.agentRejectsClient(ac: String, mandateId: String)

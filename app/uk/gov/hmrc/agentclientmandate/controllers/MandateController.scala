@@ -16,15 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
+import org.joda.time.DateTime
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate}
+import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate, MandateStatus}
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
-import uk.gov.hmrc.agentclientmandate.services.{RelationshipService, MandateCreateService, MandateFetchService, MandateUpdateService}
+import uk.gov.hmrc.agentclientmandate.services.{MandateCreateService, MandateFetchService, MandateUpdateService, RelationshipService}
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.agentclientmandate._
 
 //scalastyle:off public.methods.have.type
 trait MandateController extends BaseController {
@@ -83,6 +85,16 @@ trait MandateController extends BaseController {
             case INTERNAL_SERVER_ERROR | _ => InternalServerError
           }
         }
+      case MandateNotFound => Future.successful(NotFound)
+    }
+  }
+
+  def agentRejectsClient(ac: String, mandateId: String) = Action.async { implicit request =>
+    fetchService.fetchClientMandate(mandateId).flatMap {
+      case MandateFetched(mandate) => updateService.updateStatus(mandate, models.Status.PendingCancellation).map {
+        case MandateUpdated(y) => Ok
+        case MandateUpdateError => InternalServerError
+      }
       case MandateNotFound => Future.successful(NotFound)
     }
   }

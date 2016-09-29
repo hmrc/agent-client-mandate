@@ -19,6 +19,8 @@ package uk.gov.hmrc.agentclientmandate.services
 import org.joda.time.DateTime
 import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailNotSent, EmailStatus, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.models
+import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -67,7 +69,7 @@ trait MandateUpdateService {
     }
   }
 
-  def createApprovedStatus(credId: String): MandateStatus = MandateStatus(Status.Approved, DateTime.now(), credId)
+  private def createApprovedStatus(credId: String): MandateStatus = MandateStatus(Status.Approved, DateTime.now(), credId)
 
   def updateMandate(updatedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     for {
@@ -83,6 +85,17 @@ trait MandateUpdateService {
 
     statusesToNotify.toStream.find(_._1 == mandate.currentStatus.status).map(a => emailNotificationService.sendMail(mandate.id, a._2))
       .getOrElse(Future.successful(EmailNotSent))
+  }
+
+  def updateStatus(mandate: Mandate, status: Status)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+
+    authConnector.getAuthority() flatMap { authority =>
+
+      val credId = (authority \ "credentials" \ "gatewayId").as[String]
+      val updatedMandate = mandate.updateStatus(MandateStatus(models.Status.PendingCancellation, DateTime.now, credId))
+
+      updateMandate(updatedMandate)
+    }
   }
 
 }

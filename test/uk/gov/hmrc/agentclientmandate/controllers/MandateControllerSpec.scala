@@ -28,7 +28,7 @@ import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
 import uk.gov.hmrc.agentclientmandate.services._
-import uk.gov.hmrc.play.http.HttpResponse
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
 
@@ -152,6 +152,28 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse("""{}"""))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(BAD_REQUEST)
+      }
+    }
+
+    "update mandate with pending cancellation status" when {
+      "agent has rejected client and status returned ok" in {
+        when(updateServiceMock.updateStatus(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
+        val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
+        status(result) must be(OK)
+      }
+
+      "agent has rejected client and status returned not ok" in {
+        when(updateServiceMock.updateStatus(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
+        val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
+        status(result) must be(INTERNAL_SERVER_ERROR)
+      }
+
+      "agent has rejected client and status returned not found" in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
+        status(result) must be(NOT_FOUND)
       }
     }
 
