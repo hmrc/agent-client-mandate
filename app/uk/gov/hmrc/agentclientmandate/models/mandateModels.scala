@@ -96,7 +96,12 @@ case class Mandate(id: String,
                    clientParty: Option[Party] = None,
                    currentStatus: MandateStatus,
                    statusHistory: Seq[MandateStatus] = Nil,
-                   subscription: Subscription)
+                   subscription: Subscription) {
+
+  def updateStatus(newStatus: MandateStatus):Mandate = {
+    new Mandate(id, createdBy, approvedBy, assignedTo, agentParty, clientParty, newStatus, statusHistory :+ currentStatus, subscription)
+  }
+}
 
 object Mandate {
   implicit val formats = Json.format[Mandate]

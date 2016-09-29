@@ -81,6 +81,17 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       }
     }
 
+    "updateStatus" must {
+      "change madate status and send email" in {
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+
+        val result = await(TestMandateUpdateService.updateStatus(updatedMandate, Status.PendingCancellation))
+        result must be(MandateUpdated(updatedMandate))
+      }
+    }
+
   }
 
   val timeToUse = DateTime.now()
