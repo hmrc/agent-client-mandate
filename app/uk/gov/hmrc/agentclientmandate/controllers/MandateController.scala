@@ -21,7 +21,7 @@ import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate, MandateStatus}
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
-import uk.gov.hmrc.agentclientmandate.services.{MandateCreateService, MandateFetchService, MandateUpdateService, RelationshipService}
+import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -38,6 +38,8 @@ trait MandateController extends BaseController {
   def fetchService: MandateFetchService
 
   def updateService: MandateUpdateService
+
+  def agentDetailsService: AgentDetailsService
 
   def create(agentCode: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[CreateMandateDto] match {
@@ -82,7 +84,7 @@ trait MandateController extends BaseController {
           response.status match {
             case OK => Ok
             case BAD_REQUEST => BadRequest
-            case INTERNAL_SERVER_ERROR | _ => InternalServerError
+            case _ => InternalServerError
           }
         }
       case MandateNotFound => Future.successful(NotFound)
@@ -99,6 +101,12 @@ trait MandateController extends BaseController {
     }
   }
 
+  def getAgentDetails(agentCode: String) = Action.async { implicit request =>
+    agentDetailsService.getAgentDetails(agentCode).map { agentDetails =>
+      Ok(Json.toJson(agentDetails))
+    }
+  }
+
 }
 
 object MandateAgentController extends MandateController {
@@ -107,6 +115,7 @@ object MandateAgentController extends MandateController {
   val fetchService = MandateFetchService
   val updateService = MandateUpdateService
   val relationshipService = RelationshipService
+  val agentDetailsService = AgentDetailsService
   // $COVERAGE-ON$
 }
 
@@ -116,5 +125,6 @@ object MandateClientController extends MandateController {
   val fetchService = MandateFetchService
   val updateService = MandateUpdateService
   val relationshipService = RelationshipService
+  val agentDetailsService = AgentDetailsService
   // $COVERAGE-ON$
 }

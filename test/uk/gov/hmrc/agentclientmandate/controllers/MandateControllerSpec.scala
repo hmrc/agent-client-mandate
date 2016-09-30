@@ -177,18 +177,28 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
     }
 
+    "get agent details" when {
+      "agent requests details" in {
+        when(agentDetailsServiceMock.getAgentDetails(Matchers.any())(Matchers.any())).thenReturn(Future.successful(agentDetails))
+        val result = TestMandateController.getAgentDetails(agentCode).apply(FakeRequest())
+        status(result) must be (OK)
+      }
+    }
+
   }
 
   val fetchServiceMock = mock[MandateFetchService]
   val createServiceMock = mock[MandateCreateService]
   val updateServiceMock = mock[MandateUpdateService]
   val relationshipServiceMock = mock[RelationshipService]
+  val agentDetailsServiceMock = mock[AgentDetailsService]
 
   object TestMandateController extends MandateController {
     override val fetchService = fetchServiceMock
     override val createService = createServiceMock
     override val relationshipService = relationshipServiceMock
     override val updateService = updateServiceMock
+    override val agentDetailsService = agentDetailsServiceMock
   }
 
   override def beforeEach(): Unit = {
@@ -220,5 +230,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     )
 
   val createMandateDto = CreateMandateDto("test@test.com", "ated")
+
+  val registeredAddressDetails = RegisteredAddressDetails("123 Fake Street", "Somewhere", None, None, None, "GB")
+  val agentDetails = AgentDetails("Agent Ltd.", registeredAddressDetails)
 
 }

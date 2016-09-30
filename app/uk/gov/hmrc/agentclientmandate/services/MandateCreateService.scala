@@ -81,8 +81,7 @@ trait MandateCreateService {
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
-        val x = mandateRepository.insertMandate(mandate).map(_.mandate.id)
-        x
+        mandateRepository.insertMandate(mandate).map(_.mandate.id)
       }
     }
   }
