@@ -1,5 +1,8 @@
 # microservice specific routes
 
+# get agent details
+GET    /agent/:ac/mandate/agentDetails          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getAgentDetails(ac: String)
+
 #create mandate
 POST   /agent/:ac/mandate                        uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.create(ac: String)
 
@@ -19,6 +22,3 @@ POST   /agent/:ac/mandate/activate/:mandateId    uk.gov.hmrc.agentclientmandate.
 
 # agent rejects client
 POST   /agent/:ac/mandate/rejectClient/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.agentRejectsClient(ac: String, mandateId: String)
-
-# get agent details
-GET    /agent/:ac/mandate/agentDetails          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getAgentDetails(ac: String)
