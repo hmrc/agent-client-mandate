@@ -25,7 +25,7 @@ object EtmpRelationship {
 }
 
 case class EtmpAtedAgentClientRelationship(
-                                            acknowledgmentReference: String,
+                                            acknowledgementReference: String,
                                             atedRefNumber: String,
                                             agentReferenceNumber: String,
                                             authorisation: EtmpRelationship
