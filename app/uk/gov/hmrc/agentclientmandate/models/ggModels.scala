@@ -45,3 +45,22 @@ case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCod
     <Identifier IdentifierType={identifier.`type`}>{identifier.value}</Identifier>
   }
 }
+
+case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String) {
+
+  val toXml = {
+    <GsoAdminDeallocateAgentXmlInput xmlns="urn:GSO-System-Services:external:1.65:GsoAdminDeallocateAgentXmlInput">
+      <ServiceName>{serviceName}</ServiceName>
+      <Identifiers>
+        {
+        for (identifier <- identifiers) yield getIdentifier(identifier)
+        }
+      </Identifiers>
+      <AgentCode>{agentCode}</AgentCode>
+    </GsoAdminDeallocateAgentXmlInput>
+  }
+
+  private def getIdentifier(identifier : Identifier):Elem = {
+    <Identifier IdentifierType={identifier.`type`}>{identifier.value}</Identifier>
+  }
+}
