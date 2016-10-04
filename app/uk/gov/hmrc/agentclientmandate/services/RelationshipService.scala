@@ -34,18 +34,25 @@ trait RelationshipService {
   def maintainRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     if (mandate.subscription.service.name.toUpperCase == "ATED") {
-      val identifier = identifiers.getString(s"${mandate.subscription.service.id}.identifier")
+      val serviceId = mandate.subscription.service.id
+      val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.clientParty.get.id
 
       etmpConnector.maintainAtedRelationship(createEtmpRelationship(clientId, mandate.agentParty.id)).flatMap { etmpResponse =>
         etmpResponse.status match {
-          case OK => ggProxyConnector.allocateAgent(
+          case OK =>
+            ggProxyConnector.allocateAgent(
             GsoAdminAllocateAgentXmlInput(
               List(Identifier(identifier, clientId)),
               agentCode,
-              mandate.subscription.service.name
+              mandate.subscription.service.name.toUpperCase
             )
-          )
+          ).map { resp =>
+              resp.status match {
+                case OK => resp
+                case _ => throw new RuntimeException("GG Proxy call failed")
+              }
+            }
           case _ => throw new RuntimeException("ETMP call failed")
         }
       }

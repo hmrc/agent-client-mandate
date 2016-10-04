@@ -81,7 +81,7 @@ trait MandateUpdateService {
   def sendNotificationEmail(mandate: Mandate)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
     import uk.gov.hmrc.agentclientmandate.models.Status._
 
-    val statusesToNotify = Seq(Approved -> "agent", PendingCancellation -> "client")
+    val statusesToNotify = Seq(Approved -> "agent", PendingCancellation -> "client", Active -> "client")
 
     statusesToNotify.toStream.find(_._1 == mandate.currentStatus.status).map(a => emailNotificationService.sendMail(mandate.id, a._2))
       .getOrElse(Future.successful(EmailNotSent))
@@ -92,7 +92,7 @@ trait MandateUpdateService {
     authConnector.getAuthority() flatMap { authority =>
 
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
-      val updatedMandate = mandate.updateStatus(MandateStatus(models.Status.PendingCancellation, DateTime.now, credId))
+      val updatedMandate = mandate.updateStatus(MandateStatus(status, DateTime.now, credId))
 
       updateMandate(updatedMandate)
     }

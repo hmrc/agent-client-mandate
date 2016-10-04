@@ -97,7 +97,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
   def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]] = {
     val query = BSONDocument(
       "agentParty.id" -> arn,
-      "subscription.service.name" -> serviceName
+      "subscription.service.name" -> serviceName.toLowerCase
     )
     collection.find(query).cursor[Mandate]().collect[Seq]()
   }

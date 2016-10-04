@@ -21,6 +21,8 @@ import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateR
 
 import scala.concurrent.Future
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 trait MandateFetchService {
 
   def mandateRepository: MandateRepository

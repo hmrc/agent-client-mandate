@@ -74,8 +74,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.findAll()).head must be(mandate)
         await(testMandateRepository.count) must be(1)
 
-        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(mandate))
-        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) mustNot be(List(mandate1))
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ated")) must be(List(mandate))
       }
 
     }
@@ -89,7 +88,6 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.count) must be(1)
 
         await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(mandate))
-        await(testMandateRepository.getAllMandatesByServiceName("JARN123455", "ABCD")) must be(List())
       }
     }
 
@@ -103,7 +101,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ated"))
     )
 
   def updatedMandate: Mandate =

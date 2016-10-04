@@ -31,11 +31,11 @@ class GsoAdminAllocateAgentXmlInputSpec extends PlaySpec {
 
       val identsXml = idents.toXml
 
-      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \ "ServiceName").text.toString must be("ATED")
+      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \"DirectEnrolment" \ "ServiceName").text.toString must be("ATED")
       (identsXml \\ "GsoAdminAllocateAgentXmlInput" \ "AgentCode").text.toString must be("ABCDEFGHIJKL")
-      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.size must be(2)
-      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.head.text.toString must be("value1")
-      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.tail.text.toString must be("value2")
+      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \"DirectEnrolment" \ "Identifiers" \ "Identifier").toList.size must be(2)
+      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \"DirectEnrolment" \ "Identifiers" \ "Identifier").toList.head.text.toString must be("value1")
+      (identsXml \\ "GsoAdminAllocateAgentXmlInput" \"DirectEnrolment" \ "Identifiers" \ "Identifier").toList.tail.text.toString must be("value2")
     }
 
   }

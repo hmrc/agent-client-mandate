@@ -60,6 +60,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   val hc = new HeaderCarrier()
 
   "RelationshipService" should {
+
     "return a successful response given valid input" in {
 
       when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
@@ -69,11 +70,19 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       result.status must be(OK)
     }
 
-    "return etmpResponse when etmp call fails" in {
+    "return etmp call failed response when etmp call fails" in {
       when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
 
       val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
       response.getMessage must be("ETMP call failed")
+    }
+
+    "return gg call failed response when gg call fails" in {
+      when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+      when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+      val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
+      response.getMessage must be("GG Proxy call failed")
     }
 
     "if service not ATED, throw bad request exception" in {
