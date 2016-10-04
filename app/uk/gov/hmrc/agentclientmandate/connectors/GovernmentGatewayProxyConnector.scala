@@ -31,10 +31,11 @@ import scala.concurrent.Future
 trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseReads {
 
   def serviceUrl:String = baseUrl("government-gateway-proxy")
+  def ggUri = "government-gateway-proxy"
   def http: HttpGet with HttpPost with HttpPut
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    http.POSTString(serviceUrl + "/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
+    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         logResponse(input.agentCode, input.serviceName, input.identifiers, response.body)
         response

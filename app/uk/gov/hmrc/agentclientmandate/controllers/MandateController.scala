@@ -80,12 +80,20 @@ trait MandateController extends BaseController {
   def activate(agentCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) =>
-        relationshipService.maintainRelationship(mandate, agentCode).map { response =>
-          response.status match {
-            case OK => Ok
-            case BAD_REQUEST => BadRequest
-            case _ => InternalServerError
-          }
+        updateService.updateStatus(mandate, models.Status.PendingActivation).flatMap {
+          case MandateUpdated(x) =>
+            relationshipService.maintainRelationship(mandate, agentCode).flatMap { response =>
+              response.status match {
+                case OK =>
+                  updateService.updateStatus(mandate, models.Status.Active).map {
+                    case MandateUpdated(y) => Ok(Json.toJson(y))
+                    case MandateUpdateError => InternalServerError
+                  }
+                case BAD_REQUEST => Future.successful(BadRequest)
+                case _ => Future.successful(InternalServerError)
+              }
+            }
+          case MandateUpdateError => Future.successful(NotFound)
         }
       case MandateNotFound => Future.successful(NotFound)
     }
