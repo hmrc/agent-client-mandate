@@ -27,6 +27,7 @@ import uk.gov.hmrc.play.microservice.controller.BaseController
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import uk.gov.hmrc.agentclientmandate._
+import play.api.Logger
 
 //scalastyle:off public.methods.have.type
 trait MandateController extends BaseController {
@@ -50,7 +51,6 @@ trait MandateController extends BaseController {
       case None => Future.successful(BadRequest)
     }
   }
-
 
   def fetch(authId: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).map {
@@ -79,10 +79,10 @@ trait MandateController extends BaseController {
 
   def activate(agentCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) =>
+      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
         updateService.updateStatus(mandate, models.Status.PendingActivation).flatMap {
           case MandateUpdated(x) =>
-            relationshipService.maintainRelationship(mandate, agentCode).flatMap { response =>
+            relationshipService.maintainRelationship(mandate, agentCode, "Authorise").flatMap { response =>
               response.status match {
                 case OK =>
                   updateService.updateStatus(mandate, models.Status.Active).map {
@@ -95,6 +95,35 @@ trait MandateController extends BaseController {
             }
           case MandateUpdateError => Future.successful(NotFound)
         }
+      case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Approved =>
+        Logger.warn(s"[MandateController][remove] - mandate status not APPROVED")
+        throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be activated")
+      case MandateNotFound => Future.successful(NotFound)
+    }
+  }
+
+  def remove(authCode: String, mandateId: String) = Action.async { implicit request =>
+    fetchService.fetchClientMandate(mandateId).flatMap {
+      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
+        updateService.updateStatus(mandate, models.Status.PendingCancellation).flatMap {
+          case MandateUpdated(x) =>
+            val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
+            relationshipService.maintainRelationship(mandate, agentCode, "Deauthorise").flatMap { response =>
+              response.status match {
+                case OK =>
+                  updateService.updateStatus(mandate, models.Status.Cancelled).map {
+                    case MandateUpdated(y) => Ok(Json.toJson(y))
+                    case MandateUpdateError => InternalServerError
+                  }
+                case BAD_REQUEST => Future.successful(BadRequest)
+                case _ => Future.successful(InternalServerError)
+              }
+            }
+          case MandateUpdateError => Future.successful(NotFound)
+        }
+      case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Active =>
+        Logger.warn(s"[MandateController][remove] - mandate status not ACTIVE")
+        throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be removed")
       case MandateNotFound => Future.successful(NotFound)
     }
   }

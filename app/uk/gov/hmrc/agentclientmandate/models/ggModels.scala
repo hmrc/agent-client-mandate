@@ -30,7 +30,9 @@ object Identifier {
 case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String) {
 
   val toXml = {
-    <GsoAdminAllocateAgentXmlInput xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:GSO-System-Services:external:1.65:GsoAdminAllocateAgentXmlInput">
+    <GsoAdminAllocateAgentXmlInput xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                   xmlns="urn:GSO-System-Services:external:1.65:GsoAdminAllocateAgentXmlInput">
       <ServiceName>{serviceName}</ServiceName>
       <Identifiers>
         {
@@ -39,6 +41,25 @@ case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCod
       </Identifiers>
       <AgentCode>{agentCode}</AgentCode>
     </GsoAdminAllocateAgentXmlInput>
+  }
+
+  private def getIdentifier(identifier : Identifier):Elem = {
+    <Identifier IdentifierType={identifier.`type`}>{identifier.value}</Identifier>
+  }
+}
+
+case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String) {
+
+  val toXml = {
+    <GsoAdminDeallocateAgentXmlInput xmlns="urn:GSO-System-Services:external:1.65:GsoAdminDeallocateAgentXmlInput">
+      <ServiceName>{serviceName}</ServiceName>
+      <Identifiers>
+        {
+        for (identifier <- identifiers) yield getIdentifier(identifier)
+        }
+      </Identifiers>
+      <AgentCode>{agentCode}</AgentCode>
+    </GsoAdminDeallocateAgentXmlInput>
   }
 
   private def getIdentifier(identifier : Identifier):Elem = {

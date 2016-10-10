@@ -42,26 +42,32 @@ trait MandateUpdateService {
     val service = approvedMandate.subscription.service.id.toLowerCase
     service match {
       case "ated" =>
-        authConnector.getAuthority() flatMap { authority =>
-          val subscriptionId = (authority \ "accounts" \ "ated" \ "utr").as[String]
-          val credId = (authority \ "credentials" \ "gatewayId").as[String]
-          etmpConnector.getAtedSubscriptionDetails(subscriptionId) flatMap { subscriptionJson =>
-            val clientPartyId = (subscriptionJson \ "safeId").as[String]
-            val clientPartyName = (subscriptionJson \ "organisationName").as[String]
-            val approvedBy = User(credId, clientPartyName)
-            val clientParty = approvedMandate.clientParty.getOrElse(throw new RuntimeException("Client party not found"))
-            val clientPartyUpdated = clientParty.copy(id = clientPartyId, name = clientPartyName)
-            val currentStatus = createApprovedStatus(credId)
-            val subscription = approvedMandate.subscription.copy(referenceNumber = Some(subscriptionId))
-            val updatedMandate = approvedMandate.copy(
-              approvedBy = Some(approvedBy),
-              clientParty = Some(clientPartyUpdated),
-              currentStatus = currentStatus,
-              statusHistory = Seq(approvedMandate.currentStatus),
-              subscription = subscription
-            )
-            updateMandate(updatedMandate)
-          }
+        mandateRepository.fetchMandate(approvedMandate.id) flatMap {
+          case MandateFetched(m) if m.currentStatus.status == Status.New =>
+            authConnector.getAuthority() flatMap { authority =>
+              val subscriptionId = (authority \ "accounts" \ "ated" \ "utr").as[String]
+              val credId = (authority \ "credentials" \ "gatewayId").as[String]
+              etmpConnector.getAtedSubscriptionDetails(subscriptionId) flatMap { subscriptionJson =>
+                val clientPartyId = (subscriptionJson \ "safeId").as[String]
+                val clientPartyName = (subscriptionJson \ "organisationName").as[String]
+                val approvedBy = User(credId, clientPartyName)
+                val clientParty = approvedMandate.clientParty.getOrElse(throw new RuntimeException("Client party not found"))
+                val clientPartyUpdated = clientParty.copy(id = clientPartyId, name = clientPartyName)
+                val currentStatus = createApprovedStatus(credId)
+                val subscription = approvedMandate.subscription.copy(referenceNumber = Some(subscriptionId))
+                val updatedMandate = approvedMandate.copy(
+                  approvedBy = Some(approvedBy),
+                  clientParty = Some(clientPartyUpdated),
+                  currentStatus = currentStatus, // TODO :: Fix here to call updateStatus
+                  statusHistory = Seq(approvedMandate.currentStatus),
+                  subscription = subscription
+                )
+                updateMandate(updatedMandate, "agent")
+              }
+            }
+          case MandateNotFound =>
+            Logger.warn(s"[MandateUpdateService][approveMandate] - mandate not found")
+            throw new RuntimeException(s"mandate not found for mandate id::${approvedMandate.id}")
         }
       case any =>
         Logger.warn(s"[MandateUpdateService][approveMandate] - $any service not supported yet")
@@ -71,30 +77,28 @@ trait MandateUpdateService {
 
   private def createApprovedStatus(credId: String): MandateStatus = MandateStatus(Status.Approved, DateTime.now(), credId)
 
-  def updateMandate(updatedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+  def updateMandate(updatedMandate: Mandate, userType: String)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     for {
       update <- mandateRepository.updateMandate(updatedMandate)
-      _ <- sendNotificationEmail(updatedMandate)
+      _ <- sendNotificationEmail(updatedMandate, userType)
     } yield update
   }
 
-  def sendNotificationEmail(mandate: Mandate)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    import uk.gov.hmrc.agentclientmandate.models.Status._
-
-    val statusesToNotify = Seq(Approved -> "agent", PendingCancellation -> "client", Active -> "client")
-
-    statusesToNotify.toStream.find(_._1 == mandate.currentStatus.status).map(a => emailNotificationService.sendMail(mandate.id, a._2))
-      .getOrElse(Future.successful(EmailNotSent))
+  def sendNotificationEmail(mandate: Mandate, userType: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    userType match {
+      case "agent" => emailNotificationService.sendMail(mandate.id, "client")
+      case "client" => emailNotificationService.sendMail(mandate.id, "agent")
+    }
   }
 
   def updateStatus(mandate: Mandate, status: Status)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
-
     authConnector.getAuthority() flatMap { authority =>
-
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
+      val userType = {
+        authority \ "accounts" \ "agent" \ "agentBusinessUtr"
+      }.asOpt[String].fold("client")(a => "agent")
       val updatedMandate = mandate.updateStatus(MandateStatus(status, DateTime.now, credId))
-
-      updateMandate(updatedMandate)
+      updateMandate(updatedMandate, userType)
     }
   }
 

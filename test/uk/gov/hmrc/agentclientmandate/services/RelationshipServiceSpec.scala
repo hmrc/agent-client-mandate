@@ -32,6 +32,8 @@ import scala.concurrent.Future
 class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   val agentCode = "ABC"
+  val authoriseAction = "Authorise"
+  val deAuthoriseAction = "Deauthorise"
 
   val mandate =
     Mandate(
@@ -61,35 +63,73 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
   "RelationshipService" should {
 
-    "return a successful response given valid input" in {
+    "authorise a relationship" when {
 
-      when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-      when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+      "return a successful response given valid input" in {
 
-      val result = await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
-      result.status must be(OK)
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+
+        val result = await(TestRelationshipService.maintainRelationship(mandate, agentCode, authoriseAction)(hc))
+        result.status must be(OK)
+      }
+
+      "return etmp call failed response when etmp call fails" in {
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+        val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, authoriseAction)(hc))
+        response.getMessage must be("ETMP call failed")
+      }
+
+      "return gg call failed response when gg call fails" in {
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+        val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, authoriseAction)(hc))
+        response.getMessage must be("Authorise - GG Proxy call failed")
+      }
+
+      "if service not ATED, throw bad request exception" in {
+        val sub = Subscription(None, Service("XYZ", "XYZ"))
+        val response = the[BadRequestException] thrownBy await(TestRelationshipService.maintainRelationship(mandate.copy(subscription = sub), agentCode, authoriseAction)(hc))
+        response.getMessage must be("This is only defined for ATED")
+      }
     }
 
-    "return etmp call failed response when etmp call fails" in {
-      when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+    "deauthorise a relationship" when {
 
-      val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
-      response.getMessage must be("ETMP call failed")
-    }
+      "return a successful response given valid input" in {
 
-    "return gg call failed response when gg call fails" in {
-      when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-      when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
 
-      val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode)(hc))
-      response.getMessage must be("GG Proxy call failed")
-    }
+        val result = await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
+        result.status must be(OK)
+      }
 
-    "if service not ATED, throw bad request exception" in {
-      val sub = Subscription(None, Service("XYZ", "XYZ"))
-      val response = the[BadRequestException] thrownBy await(TestRelationshipService.maintainRelationship(mandate.copy(subscription = sub), agentCode)(hc))
-      response.getMessage must be("This is only defined for ATED")
+      "return etmp call failed response when etmp call fails" in {
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+        val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
+        response.getMessage must be("ETMP call failed")
+      }
+
+      "return gg call failed response when gg call fails" in {
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+
+        val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
+        response.getMessage must be("Deauthorise - GG Proxy call failed")
+      }
+
+      "if service not ATED, throw bad request exception" in {
+        val sub = Subscription(None, Service("XYZ", "XYZ"))
+        val response = the[BadRequestException] thrownBy await(TestRelationshipService.maintainRelationship(mandate.copy(subscription = sub), agentCode, deAuthoriseAction)(hc))
+        response.getMessage must be("This is only defined for ATED")
+      }
     }
   }
+
+
 
 }

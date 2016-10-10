@@ -23,3 +23,8 @@ POST   /agent/:ac/mandate/activate/:mandateId    uk.gov.hmrc.agentclientmandate.
 # agent rejects client
 POST   /agent/:ac/mandate/rejectClient/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.agentRejectsClient(ac: String, mandateId: String)
 
+# remove client
+POST   /agent/:ac/mandate/remove/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.remove(ac: String, mandateId: String)
+
+# remove agent
+POST   /org/:org/mandate/remove/:mandateId        uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.remove(org: String, mandateId: String)
