@@ -20,7 +20,7 @@ import play.api.Logger
 import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.http.ContentTypes.XML
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
-import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier}
+import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier, GsoAdminDeallocateAgentXmlInput}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
@@ -31,11 +31,19 @@ import scala.concurrent.Future
 trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseReads {
 
   def serviceUrl:String = baseUrl("government-gateway-proxy")
-  def ggUri = "government-gateway-proxy"
+  val ggUri = "government-gateway-proxy"
   def http: HttpGet with HttpPost with HttpPut
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
+      .map({ response =>
+        logResponse(input.agentCode, input.serviceName, input.identifiers, response.body)
+        response
+      })
+  }
+
+  def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         logResponse(input.agentCode, input.serviceName, input.identifiers, response.body)
         response

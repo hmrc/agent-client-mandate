@@ -29,29 +29,42 @@ import scala.concurrent.ExecutionContext.Implicits.global
 trait RelationshipService {
 
   def ggProxyConnector: GovernmentGatewayProxyConnector
+
   def etmpConnector: EtmpConnector
 
-  def maintainRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def maintainRelationship(mandate: Mandate, agentCode: String, action: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     if (mandate.subscription.service.name.toUpperCase == "ATED") {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.clientParty.get.id
 
-      etmpConnector.maintainAtedRelationship(createEtmpRelationship(clientId, mandate.agentParty.id)).flatMap { etmpResponse =>
+      etmpConnector.maintainAtedRelationship(createEtmpRelationship(clientId, mandate.agentParty.id, action)).flatMap { etmpResponse =>
         etmpResponse.status match {
           case OK =>
-            ggProxyConnector.allocateAgent(
-            GsoAdminAllocateAgentXmlInput(
-              List(Identifier(identifier, clientId)),
-              agentCode,
-              mandate.subscription.service.name.toUpperCase
-            )
-          ).map { resp =>
-              resp.status match {
-                case OK => resp
-                case _ => throw new RuntimeException("GG Proxy call failed")
-              }
+            action match {
+              case "Authorise" =>
+                ggProxyConnector.allocateAgent(
+                  GsoAdminAllocateAgentXmlInput(
+                    List(Identifier(identifier, clientId)),
+                    agentCode,
+                    mandate.subscription.service.name.toUpperCase)).map { resp =>
+                  resp.status match {
+                    case OK => resp
+                    case _ => throw new RuntimeException("Authorise - GG Proxy call failed")
+                  }
+                }
+              case "Deauthorise" =>
+                ggProxyConnector.deAllocateAgent(
+                  GsoAdminDeallocateAgentXmlInput(
+                    List(Identifier(identifier, clientId)),
+                    agentCode,
+                    mandate.subscription.service.name.toUpperCase)).map { resp =>
+                  resp.status match {
+                    case OK => resp
+                    case _ => throw new RuntimeException("Deauthorise - GG Proxy call failed")
+                  }
+                }
             }
           case _ => throw new RuntimeException("ETMP call failed")
         }
@@ -62,8 +75,8 @@ trait RelationshipService {
     }
   }
 
-  private def createEtmpRelationship(clientId: String, agentId: String) = {
-    val etmpRelationship = EtmpRelationship(action = "Authorise", isExclusiveAgent = true)
+  private def createEtmpRelationship(clientId: String, agentId: String, action: String) = {
+    val etmpRelationship = EtmpRelationship(action = action, isExclusiveAgent = true)
     EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, etmpRelationship)
   }
 }

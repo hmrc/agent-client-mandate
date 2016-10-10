@@ -22,7 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.models.GsoAdminAllocateAgentXmlInput
+import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 
@@ -52,37 +52,80 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
       TestGovernmentGatewayProxyConnector.serviceUrl must be("http://localhost:9907")
     }
 
-    "return response with 502" in {
+    "return response with 502" when {
 
-      implicit val hc = new HeaderCarrier()
+      "call to allocate agent return a BAD_GATEWAY" in {
 
-      when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(HttpResponse(BAD_GATEWAY)))
+        implicit val hc = new HeaderCarrier()
 
-      val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
-      result.status must be(502)
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(BAD_GATEWAY)))
+
+        val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
+        result.status must be(502)
+      }
+
+      "call to deallocate agent return a BAD_GATEWAY" in {
+
+        implicit val hc = new HeaderCarrier()
+
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(BAD_GATEWAY)))
+
+        val result = await(TestGovernmentGatewayProxyConnector.deAllocateAgent(GsoAdminDeallocateAgentXmlInput(List(), "", "")))
+        result.status must be(502)
+      }
     }
 
-    "return response with 404" in {
+    "return response with 404" when {
 
-      implicit val hc = new HeaderCarrier()
+      "call to allocate agent return a NOT_FOUND" in {
 
-      when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
+        implicit val hc = new HeaderCarrier()
 
-      val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
-      result.status must be(404)
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
+
+        val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
+        result.status must be(404)
+      }
+
+      "call to deallocate agent return a NOT_FOUND" in {
+
+        implicit val hc = new HeaderCarrier()
+
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
+
+        val result = await(TestGovernmentGatewayProxyConnector.deAllocateAgent(GsoAdminDeallocateAgentXmlInput(List(), "", "")))
+        result.status must be(404)
+      }
+
     }
 
-    "return response with 200" in {
+    "return response with 200" when {
 
-      implicit val hc = new HeaderCarrier()
+      "call to allocate agent return a OK" in {
 
-      when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
-        .thenReturn(Future.successful(HttpResponse(OK)))
+        implicit val hc = new HeaderCarrier()
 
-      val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
-      result.status must be(200)
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(OK)))
+
+        val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
+        result.status must be(200)
+      }
+
+      "call to deallocate agent return a OK" in {
+
+        implicit val hc = new HeaderCarrier()
+
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(OK)))
+
+        val result = await(TestGovernmentGatewayProxyConnector.deAllocateAgent(GsoAdminDeallocateAgentXmlInput(List(), "", "")))
+        result.status must be(200)
+      }
     }
   }
 

@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailSent, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepository, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateRepository, MandateUpdated}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -36,9 +36,12 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
   "MandateUpdateService" should {
 
     "update data in mongo with given data provided" when {
+
       "requested to do so - updateMandate" in {
-        when(mockMandateRepository.updateMandate(Matchers.eq(mandate))).thenReturn(Future.successful(MandateUpdated(mandate)))
-        await(TestMandateUpdateService.updateMandate(mandate)(new HeaderCarrier())) must be(MandateUpdated(mandate))
+       when(mockMandateRepository.updateMandate(Matchers.eq(clientApprovedMandate))).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
+        when(mockEmailService.sendMail(Matchers.eq("AS12345678"), Matchers.eq("agent"))(Matchers.any())).thenReturn(Future.successful(EmailSent))
+
+        await(TestMandateUpdateService.updateMandate(clientApprovedMandate, "client")(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
       }
     }
 
@@ -48,7 +51,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
         val mandateToUse = mandate.copy(currentStatus = MandateStatus(Status.Approved, mandate.currentStatus.timestamp, mandate.currentStatus.updatedBy))
         when(mockEmailService.sendMail(Matchers.eq(mandateToUse.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
         when(mockMandateRepository.updateMandate(Matchers.eq(mandateToUse))).thenReturn(Future.successful(MandateUpdated(mandateToUse)))
-        await(TestMandateUpdateService.updateMandate(mandateToUse)(new HeaderCarrier())) must be(MandateUpdated(mandateToUse))
+        await(TestMandateUpdateService.updateMandate(mandateToUse, "agent")(new HeaderCarrier())) must be(MandateUpdated(mandateToUse))
       }
 
     }
@@ -56,6 +59,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "approveMandate" must {
       "change status of mandate to approve, if all calls are successful and service name is ated" in {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
+        when(mockMandateRepository.fetchMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
         when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
@@ -66,6 +70,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
       "throw exception, if post was made without client party in it" in {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
+        when(mockMandateRepository.fetchMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
         when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
@@ -79,11 +84,27 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
         val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandateToUse))
         thrown.getMessage must be("currently supported only for ATED")
       }
+
+      "throw exception if no mandate is fetched" in {
+        when(mockMandateRepository.fetchMandate(Matchers.any())).thenReturn(Future.successful(MandateNotFound))
+        val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandate))
+        thrown.getMessage must be("mandate not found for mandate id::AS12345678")
+
+      }
     }
 
     "updateStatus" must {
-      "change madate status and send email" in {
+      "change madate status and send email for client" in {
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+
+        val result = await(TestMandateUpdateService.updateStatus(updatedMandate, Status.PendingCancellation))
+        result must be(MandateUpdated(updatedMandate))
+      }
+
+      "change madate status and send email for agent" in {
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
@@ -129,6 +150,22 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       |  "accounts": {
       |    "ated": {
       |      "utr": "ated-ref-num",
+      |      "link": "/link"
+      |    }
+      |  }
+      |}
+    """.stripMargin
+  )
+
+  val authJson1 = Json.parse(
+    """
+      |{
+      |  "credentials": {
+      |    "gatewayId": "cred-id-1234567890"
+      |  },
+      |  "accounts": {
+      |    "agent": {
+      |      "agentBusinessUtr": "JARN1234567",
       |      "link": "/link"
       |    }
       |  }
