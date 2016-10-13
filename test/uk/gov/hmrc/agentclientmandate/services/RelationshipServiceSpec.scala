@@ -22,44 +22,16 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.domain.{AtedUtr, Generator}
 import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
 
 class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
-
-  val agentCode = "ABC"
-  val authoriseAction = "Authorise"
-  val deAuthoriseAction = "Deauthorise"
-
-  val mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
-      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
-    )
-
-  override def beforeEach(): Unit = {
-    reset(ggProxyMock)
-    reset(etmpMock)
-  }
-
-  val ggProxyMock = mock[GovernmentGatewayProxyConnector]
-  val etmpMock = mock[EtmpConnector]
-
-  object TestRelationshipService extends RelationshipService {
-    override val ggProxyConnector = ggProxyMock
-    override val etmpConnector = etmpMock
-  }
-
-  val hc = new HeaderCarrier()
 
   "RelationshipService" should {
 
@@ -67,23 +39,23 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
       "return a successful response given valid input" in {
 
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
 
         val result = await(TestRelationshipService.maintainRelationship(mandate, agentCode, authoriseAction)(hc))
         result.status must be(OK)
       }
 
       "return etmp call failed response when etmp call fails" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
 
         val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, authoriseAction)(hc))
         response.getMessage must be("ETMP call failed")
       }
 
       "return gg call failed response when gg call fails" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
 
         val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, authoriseAction)(hc))
         response.getMessage must be("Authorise - GG Proxy call failed")
@@ -100,23 +72,23 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
       "return a successful response given valid input" in {
 
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
 
         val result = await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
         result.status must be(OK)
       }
 
       "return etmp call failed response when etmp call fails" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
 
         val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
         response.getMessage must be("ETMP call failed")
       }
 
       "return gg call failed response when gg call fails" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(500, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
 
         val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
         response.getMessage must be("Deauthorise - GG Proxy call failed")
@@ -128,8 +100,99 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         response.getMessage must be("This is only defined for ATED")
       }
     }
+
+    "returns true - for delegation authorization check for Ated" when {
+      "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandate)))
+        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(true)
+      }
+    }
+
+    "returns false - for delegation authorization check for Ated" when {
+      "authority doesn't return registered Agents" in {
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
+        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+      "mandate subscription doesn't have subscription reference" in {
+        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+      "mandate doesn't have the same AtedRefNumber" in {
+        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+    }
+
+
   }
 
+  val agentCode = "ABC"
+  val authoriseAction = "Authorise"
+  val deAuthoriseAction = "Deauthorise"
+  val atedUtr: AtedUtr = new Generator().nextAtedUtr
+  val atedUtr2: AtedUtr = new Generator().nextAtedUtr
+
+  implicit val hc = new HeaderCarrier()
+
+  val mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED"))
+    )
+
+  override def beforeEach(): Unit = {
+    reset(ggProxyMock)
+    reset(etmpMock)
+    reset(mockAuthConnector)
+    reset(mockMandateFetchService)
+  }
+
+  val ggProxyMock = mock[GovernmentGatewayProxyConnector]
+  val etmpMock = mock[EtmpConnector]
+  val mockAuthConnector = mock[AuthConnector]
+  val mockMandateFetchService = mock[MandateFetchService]
+
+  object TestRelationshipService extends RelationshipService {
+    override val ggProxyConnector = ggProxyMock
+    override val etmpConnector = etmpMock
+    override val authConnector: AuthConnector = mockAuthConnector
+    override val mandateFetchService: MandateFetchService = mockMandateFetchService
+  }
+
+  val successResponseJsonAuth = Json.parse(
+    """
+      {
+        "accounts": {
+          "agent": {
+            "agentCode":"AGENT-123",
+            "agentBusinessUtr":"JARN1234567"
+          }
+        }
+      }
+    """
+  )
+
+  val notRegisteredAgentJsonAuth = Json.parse(
+    """
+      {
+        "accounts": {
+          "agent": {
+            "agentCode":"AGENT-123"
+          }
+        }
+      }
+    """
+  )
 
 
 }

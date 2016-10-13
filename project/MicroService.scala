@@ -1,3 +1,4 @@
+import play.PlayImport.PlayKeys._
 import sbt.Keys._
 import sbt.Tests.{Group, SubProcess}
 import sbt._
@@ -35,6 +36,7 @@ trait MicroService {
     .settings(scalaSettings: _*)
     .settings(publishingSettings: _*)
     .settings(defaultSettings(): _*)
+    .settings(routesImport ++= Seq("uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._"))
     .settings(playSettings ++ scoverageSettings: _*)
     .settings(
       libraryDependencies ++= appDependencies,

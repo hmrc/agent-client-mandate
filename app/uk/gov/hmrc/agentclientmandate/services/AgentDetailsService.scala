@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models.{AgentDetails, RegisteredAddressDetails}
 import uk.gov.hmrc.play.http.HeaderCarrier
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -26,6 +27,7 @@ import scala.concurrent.Future
 trait AgentDetailsService {
 
   def etmpConnector: EtmpConnector
+
   def authConnector: AuthConnector
 
   def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier): Future[AgentDetails] = {
@@ -57,10 +59,8 @@ trait AgentDetailsService {
 }
 
 object AgentDetailsService extends AgentDetailsService {
-
   // $COVERAGE-OFF$
   val authConnector = AuthConnector
   val etmpConnector = EtmpConnector
   // $COVERAGE-ON$
-
 }

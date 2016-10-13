@@ -16,21 +16,26 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
-import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
+import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
-import play.api.http.Status._
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 trait RelationshipService {
 
   def ggProxyConnector: GovernmentGatewayProxyConnector
 
   def etmpConnector: EtmpConnector
+
+  def authConnector: AuthConnector
+
+  def mandateFetchService: MandateFetchService
 
   def maintainRelationship(mandate: Mandate, agentCode: String, action: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
@@ -75,15 +80,29 @@ trait RelationshipService {
     }
   }
 
+  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    authConnector.getAuthority().flatMap { authority =>
+      val agentRefNumberOpt = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").asOpt[String]
+      agentRefNumberOpt match {
+        case Some(arn) =>
+          mandateFetchService.getAllMandates(arn, "ated").map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
+        case None => Future.successful(false)
+      }
+    }
+  }
+
   private def createEtmpRelationship(clientId: String, agentId: String, action: String) = {
     val etmpRelationship = EtmpRelationship(action = action, isExclusiveAgent = true)
     EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, etmpRelationship)
   }
+
 }
 
 object RelationshipService extends RelationshipService {
   // $COVERAGE-OFF$
-  val ggProxyConnector = GovernmentGatewayProxyConnector
-  val etmpConnector = EtmpConnector
+  val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
+  val etmpConnector: EtmpConnector = EtmpConnector
+  val authConnector: AuthConnector = AuthConnector
+  val mandateFetchService: MandateFetchService = MandateFetchService
   // $COVERAGE-ON$
 }

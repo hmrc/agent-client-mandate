@@ -16,18 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate, MandateStatus}
+import uk.gov.hmrc.agentclientmandate._
+import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Mandate}
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.agentclientmandate._
-import play.api.Logger
 
 //scalastyle:off public.methods.have.type
 trait MandateController extends BaseController {
