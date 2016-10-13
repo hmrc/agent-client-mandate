@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailStatus, EmailNotSent, EmailConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailNotSent, EmailStatus}
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateNotFound}
+import uk.gov.hmrc.play.http.HeaderCarrier
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

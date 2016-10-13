@@ -18,8 +18,7 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
 import play.api.Logger
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailNotSent, EmailStatus, EtmpConnector}
-import uk.gov.hmrc.agentclientmandate.models
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailStatus, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
