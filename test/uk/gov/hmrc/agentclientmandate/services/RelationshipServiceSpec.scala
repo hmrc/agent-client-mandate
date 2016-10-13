@@ -114,6 +114,18 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
         await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
       }
+      "mandate subscription doesn't have subscription reference" in {
+        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+      "mandate doesn't have the same AtedRefNumber" in {
+        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
     }
 
 
@@ -123,6 +135,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   val authoriseAction = "Authorise"
   val deAuthoriseAction = "Deauthorise"
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
+  val atedUtr2: AtedUtr = new Generator().nextAtedUtr
 
   implicit val hc = new HeaderCarrier()
 
