@@ -17,16 +17,23 @@
 package uk.gov.hmrc.agentclientmandate.repositories
 
 import org.joda.time.DateTime
+import org.mockito.Matchers
 import org.scalatest.BeforeAndAfterEach
+import org.mockito.Mockito._
+import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
 import reactivemongo.api.DB
+import reactivemongo.api.commands.UpdateWriteResult
+import reactivemongo.json.collection.JSONCollection
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
+import reactivemongo.api.indexes.CollectionIndexesManager
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServerPerSuite with BeforeAndAfterEach {
+class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
   "MandateRepository" should {
 
@@ -39,6 +46,14 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.count) must be(1)
       }
 
+      "insert results in error" in {
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.insert(Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
+        val testRepository = new TestMandateRepository
+        val result = await(testRepository.insertMandate(mandate))
+
+        result mustBe MandateCreateError
+      }
     }
 
     "update a client mandate in the repo" when {
@@ -122,8 +137,23 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       subscription = Subscription(None, Service("ated", "ATED"))
     )
 
+  val mockCollection = mock[JSONCollection]
+
+  private def setupIndexesManager: CollectionIndexesManager = {
+    val mockIndexesManager = mock[CollectionIndexesManager]
+    when(mockCollection.indexesManager).thenReturn(mockIndexesManager)
+    when(mockIndexesManager.dropAll) thenReturn Future.successful(0)
+    mockIndexesManager
+  }
+
   override def beforeEach(): Unit = {
     await(testMandateRepository.drop)
+    reset(mockCollection)
+    setupIndexesManager
+  }
+
+  class TestMandateRepository extends MandateMongoRepository {
+    override lazy val collection = mockCollection
   }
 
 }

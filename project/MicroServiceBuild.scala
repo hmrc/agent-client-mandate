@@ -24,7 +24,7 @@ private object AppDependencies {
   private val hmrcTestVersion = "1.8.0"
   private val scalaTestVersion = "2.2.6"
   private val pegdownVersion = "1.6.0"
-
+  private val akkaContribVersion = "2.3.4"
   private val playReactivemongoVersion = "4.8.0"
 
   val compile = Seq(
@@ -37,7 +37,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
-    "uk.gov.hmrc" %% "domain" % domainVersion
+    "uk.gov.hmrc" %% "domain" % domainVersion,
+    "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion
   )
 
   trait TestDependencies {
@@ -53,7 +54,8 @@ private object AppDependencies {
         "org.scalatestplus" %% "play" % "1.2.0" % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope,
+        "com.typesafe.akka" % "akka-testkit_2.11" % akkaContribVersion % scope
       )
     }.test
   }

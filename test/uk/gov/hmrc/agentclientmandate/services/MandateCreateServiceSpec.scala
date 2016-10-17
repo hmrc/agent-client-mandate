@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreated, MandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreateError, MandateCreated, MandateRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -42,9 +42,9 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
     }
 
-    "return success response" when {
+    "createMandate" when {
 
-      "a Mandate is created for an organisation" in {
+      "a Mandate is created" in {
 
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
@@ -90,8 +90,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
       }
 
-      "a Mandate is created for a person" in {
-
+      "results in error" in {
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
           """
@@ -99,10 +98,9 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
             |  "sapNumber":"1234567890",
             |  "safeId": "EX0012345678909",
             |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": true,
-            |  "individual" : {
-            |    "firstName": "firstName",
-            |    "lastName": "lastName"
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
             |  }
             |}
           """.stripMargin
@@ -121,7 +119,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
              }""")
 
         when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
+          Future.successful(MandateCreateError)
         }
 
         when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
@@ -132,14 +130,10 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonETMP)
         }
 
-        val createdMandateId = TestClientMandateCreateService.createMandate(agentCode, mandateDto)
-        await(createdMandateId) must be(mandateId)
-
+        val thrown = the[RuntimeException] thrownBy await(TestClientMandateCreateService.createMandate(agentCode, mandateDto))
+        thrown.getMessage must include("Mandate not created")
       }
-
     }
-
-
 
     "generate a 10 character mandate id" when {
 
@@ -147,6 +141,147 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         val mandateId = TestClientMandateCreateService.createMandateId
         mandateId.length must be(10)
         mandateId.take(2) must be("AS")
+      }
+    }
+
+
+    "createMandateForExistingRelationships" must {
+
+      "create a mandate successfully" in {
+
+        val successResponseJsonETMPForAgent = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": true,
+            |  "individual" : {
+            |    "firstName": "firstName",
+            |    "lastName": "lastName"
+            |  }
+            |}
+          """.stripMargin
+        )
+        val etmpSubscriptionJson = Json.parse(
+          """
+            |{
+            |  "safeId": "cred-id-1234567890",
+            |  "organisationName": "client-name"
+            |}
+          """.stripMargin
+        )
+
+        val mandateId = TestClientMandateCreateService.createMandateId
+
+        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
+        }
+        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+          Future.successful(successResponseJsonETMPForAgent)
+        }
+        when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
+
+        val initialMandateDto = ExistingMandateDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
+
+        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(initialMandateDto))
+        result mustBe(true)
+      }
+
+      "fails to create a mandate" in {
+
+        val successResponseJsonETMPForAgent = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": true,
+            |  "individual" : {
+            |    "firstName": "firstName",
+            |    "lastName": "lastName"
+            |  }
+            |}
+          """.stripMargin
+        )
+        val etmpSubscriptionJson = Json.parse(
+          """
+            |{
+            |  "safeId": "cred-id-1234567890",
+            |  "organisationName": "client-name"
+            |}
+          """.stripMargin
+        )
+
+        val mandateId = TestClientMandateCreateService.createMandateId
+
+        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateCreateError)
+        }
+        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+          Future.successful(successResponseJsonETMPForAgent)
+        }
+        when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
+
+        val initialMandateDto = ExistingMandateDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
+
+        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(initialMandateDto))
+        result mustBe(false)
+      }
+
+    }
+
+    "getAgentPartyName" must {
+      "get agent name for individual" in {
+        val etmpAgentDetails = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": true,
+            |  "individual" : {
+            |    "firstName": "firstName",
+            |    "lastName": "lastName"
+            |  }
+            |}
+          """.stripMargin
+        )
+
+        val agentPartyName = TestClientMandateCreateService.getAgentPartyName(etmpAgentDetails, true)
+        agentPartyName mustBe "firstName lastName"
+      }
+
+      "get agent name for organisation" in {
+
+        val etmpAgentDetails = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
+            |  }
+            |}
+          """.stripMargin
+        )
+
+        val agentPartyName = TestClientMandateCreateService.getAgentPartyName(etmpAgentDetails, false)
+        agentPartyName mustBe "ABC Limited"
+      }
+    }
+
+    "getAgentPartyType" must {
+      "party type for organisation" in {
+        val partyType = TestClientMandateCreateService.getAgentPartyType(false)
+        partyType must be(PartyType.Organisation)
+      }
+
+      "party type for individual" in {
+        val partyType = TestClientMandateCreateService.getAgentPartyType(true)
+        partyType must be(PartyType.Individual)
       }
     }
 
