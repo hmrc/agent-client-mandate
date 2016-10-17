@@ -34,18 +34,13 @@ class ImportExistingMandateActor extends Actor {
       Logger.debug("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
       createService.createMandateForExistingRelationships(request).map { result =>
 
-        Logger.debug("Importing result: " + result)
+        Logger.debug("[ImportExistingMandateActor] - Importing result: " + result)
         origSender ! result // this result is only used in testing
-//        case true => {
-//          Logger.info("Successfully imported existing relationship: agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
-//        }
-//        case _ => {
-//          Logger.info("Existing agent-client relationship importing failed")
-//        }
+
       }.recover {
         case e =>
           // $COVERAGE-OFF$
-          Logger.error(s"[ImportExistingMandateActor] Importing existing relationship failed with error :$e")
+          Logger.error(s"[ImportExistingMandateActor] - Importing existing relationship failed with error :$e")
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }

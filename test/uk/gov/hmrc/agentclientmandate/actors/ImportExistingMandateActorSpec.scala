@@ -64,19 +64,6 @@ class ImportExistingMandateActorSpec extends TestKit(ActorSystem("TestCalculatio
       }
 
     }
-
-//    "get failure when something exceptional happens" in {
-//      when(createServiceMock.createMandateForExistingRelationships(Matchers.any())).thenThrow(new RuntimeException("The import failed"))
-//
-//      val actorRef = system.actorOf(ImportExistingMandateActorMock.props(createServiceMock))
-//
-//      within(testTimeout) {
-//
-//        actorRef ! ExistingMandateDto("", "", "", "", "")
-//        expectMsgClass(classOf[akka.actor.Status.Failure])
-//      }
-//    }
-
   }
 
 }

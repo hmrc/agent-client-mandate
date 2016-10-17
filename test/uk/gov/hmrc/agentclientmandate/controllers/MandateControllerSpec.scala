@@ -309,7 +309,56 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
     }
 
+    "import existing relationships" must {
+      "sending incorrect data" must {
+        "return Bad Request" in {
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(incorrectJson))
+          val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
+          status(result) must be(BAD_REQUEST)
+        }
+      }
+
+      "sending correct data" must {
+        "return Ok" in {
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
+          val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
+          status(result) must be(OK)
+        }
+      }
+    }
+
   }
+
+  val incorrectJson =
+    s"""
+        {
+          "serviceName": "",
+          "agentPartyId": "",
+          "credId": "",
+          "clientSubscriptionId": "",
+          "agentCode": ""
+        }
+      """
+
+  val correctJson =
+    s"""
+        [
+            {
+              "serviceName": "",
+              "agentPartyId": "",
+              "credId": "",
+              "clientSubscriptionId": "",
+              "agentCode": ""
+            },
+            {
+              "serviceName": "",
+              "agentPartyId": "",
+              "credId": "",
+              "clientSubscriptionId": "",
+              "agentCode": ""
+            }
+        ]
+      """
 
   val fetchServiceMock = mock[MandateFetchService]
   val createServiceMock = mock[MandateCreateService]
