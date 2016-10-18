@@ -18,10 +18,11 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
 import play.api.Logger
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreated, MandateRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,13 +55,9 @@ trait MandateCreateService {
 
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
 
-        val agentPartyName = if (isAnIndividual) {
-          s"""${(etmpDetails \ "individual" \ "firstName").as[String]} ${(etmpDetails \ "individual" \ "lastName").as[String]}"""
-        } else {
-          s"""${(etmpDetails \ "organisation" \ "organisationName").as[String]}"""
-        }
+        val agentPartyName: String = getAgentPartyName(etmpDetails, isAnIndividual)
 
-        val partyType = if (isAnIndividual) PartyType.Individual else PartyType.Organisation
+        val partyType = getAgentPartyType(isAnIndividual)
 
         val serviceName = createMandateDto.serviceName.toLowerCase
 
@@ -81,11 +78,68 @@ trait MandateCreateService {
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
-        mandateRepository.insertMandate(mandate).map(_.mandate.id)
+        mandateRepository.insertMandate(mandate).map {
+          case MandateCreated(mandate) => mandate.id
+          case _ => throw new RuntimeException("Mandate not created")
+        }
       }
     }
   }
 
+  def createMandateForExistingRelationships(exsitingMandateDto: ExistingMandateDto): Future[Boolean] = {
+
+    etmpConnector.getAtedSubscriptionDetails(exsitingMandateDto.clientSubscriptionId) flatMap { subscriptionJson =>
+      val clientPartyId = (subscriptionJson \ "safeId").as[String]
+      val clientPartyName = (subscriptionJson \ "organisationName").as[String]
+
+      etmpConnector.getAgentDetailsFromEtmp(exsitingMandateDto.agentPartyId).flatMap { etmpDetails =>
+
+        val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
+
+        val agentPartyName: String = getAgentPartyName(etmpDetails, isAnIndividual)
+
+        val agentPartyType = getAgentPartyType(isAnIndividual)
+
+        val mandate = Mandate(
+          id = createMandateId,
+          createdBy = User(exsitingMandateDto.credId, clientPartyName),
+          agentParty = Party(
+            exsitingMandateDto.agentPartyId,
+            agentPartyName,
+            agentPartyType,
+            ContactDetails("", None)
+          ),
+          clientParty = Some(Party(
+            clientPartyId,
+            clientPartyName,
+            PartyType.Organisation,
+            ContactDetails("", None)
+          )),
+          currentStatus = MandateStatus(Status.Active, DateTime.now, ""),
+          statusHistory = Nil,
+          subscription = Subscription(None, Service(identifiers.getString(s"${exsitingMandateDto.serviceName}.serviceId"), exsitingMandateDto.serviceName))
+        )
+
+        Logger.info(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = $mandate")
+        mandateRepository.insertMandate(mandate).map {
+          case MandateCreated(mandate) => true
+          case _ => false
+        }
+      }
+    }
+  }
+
+  def getAgentPartyType(isAnIndividual: Boolean): PartyType.Value = {
+    if (isAnIndividual) PartyType.Individual else PartyType.Organisation
+  }
+
+  def getAgentPartyName(etmpDetails: JsValue, isAnIndividual: Boolean): String = {
+    if (isAnIndividual) {
+      s"""${(etmpDetails \ "individual" \ "firstName").as[String]} ${(etmpDetails \ "individual" \ "lastName").as[String]}"""
+    } else {
+      s"""${(etmpDetails \ "organisation" \ "organisationName").as[String]}"""
+    }
+  }
 }
 
 object MandateCreateService extends MandateCreateService {

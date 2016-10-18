@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.repositories
 
+import play.api.Logger
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -27,23 +28,21 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-case class MandateCreated(mandate: Mandate)
+sealed trait MandateCreate
+case class MandateCreated(mandate: Mandate) extends MandateCreate
+case object MandateCreateError extends MandateCreate
 
 sealed trait MandateUpdate
-
 case class MandateUpdated(mandate: Mandate) extends MandateUpdate
-
 case object MandateUpdateError extends MandateUpdate
 
 sealed trait MandateFetchStatus
-
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
-
 case object MandateNotFound extends MandateFetchStatus
 
 trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
-  def insertMandate(mandate: Mandate): Future[MandateCreated]
+  def insertMandate(mandate: Mandate): Future[MandateCreate]
 
   def updateMandate(mandate: Mandate): Future[MandateUpdate]
 
@@ -72,8 +71,18 @@ class MandateMongoRepository(implicit mongo: () => DB)
     )
   }
 
-  def insertMandate(mandate: Mandate): Future[MandateCreated] = {
-    collection.insert[Mandate](mandate).map(writeResult => MandateCreated(mandate))
+  def insertMandate(mandate: Mandate): Future[MandateCreate] = {
+    collection.insert[Mandate](mandate).map { writeResult =>
+      writeResult.ok match {
+        case true => MandateCreated(mandate)
+        case _ => MandateCreateError
+      }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.error("Failed to insert mandate", e)
+        MandateCreateError
+      // $COVERAGE-ON$
+    }
   }
 
   def updateMandate(mandate: Mandate): Future[MandateUpdate] = {
