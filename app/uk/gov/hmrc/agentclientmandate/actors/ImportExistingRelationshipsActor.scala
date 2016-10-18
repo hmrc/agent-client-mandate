@@ -17,30 +17,30 @@
 package uk.gov.hmrc.agentclientmandate.actors
 
 import akka.actor.{Actor, Props}
-import uk.gov.hmrc.agentclientmandate.models.ExistingMandateDto
+import uk.gov.hmrc.agentclientmandate.models.GGRelationshipDto
 import uk.gov.hmrc.agentclientmandate.services.MandateCreateService
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ImportExistingMandateActor extends Actor {
+class ImportExistingRelationshipsActor extends Actor {
 
-  self: ImportExistingMandateActorComponent =>
+  self: ImportExistingRelationshipsActorComponent =>
 
   override def receive: Receive = {
-    case request: ExistingMandateDto => {
+    case request: GGRelationshipDto => {
 
       val origSender = sender
 
-      Logger.debug("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
+      Logger.info("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
       createService.createMandateForExistingRelationships(request).map { result =>
 
-        Logger.debug("[ImportExistingMandateActor] - Importing result: " + result)
+        Logger.info("[ImportExistingRelationshipsActor] - Importing result: " + result)
         origSender ! result // this result is only used in testing
 
       }.recover {
         case e =>
           // $COVERAGE-OFF$
-          Logger.error(s"[ImportExistingMandateActor] - Importing existing relationship failed with error :$e")
+          Logger.error(s"[ImportExistingRelationshipsActor] - Importing existing relationship failed with error :$e")
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }
@@ -49,20 +49,20 @@ class ImportExistingMandateActor extends Actor {
 
 }
 
-trait ImportExistingMandateActorComponent {
+trait ImportExistingRelationshipsActorComponent {
   def createService: MandateCreateService
 }
 
-class DefaultImportExistingMandateActor extends ImportExistingMandateActor with DefaultImportExistingMandateActorComponent
+class DefaultImportExistingRelationshipsActor extends ImportExistingRelationshipsActor with DefaultImportExistingRelationshipsActorComponent
 
-trait DefaultImportExistingMandateActorComponent extends ImportExistingMandateActorComponent {
+trait DefaultImportExistingRelationshipsActorComponent extends ImportExistingRelationshipsActorComponent {
   // $COVERAGE-OFF$
   override val createService = MandateCreateService
   // $COVERAGE-ON$
 }
 
-object ImportExistingMandateActor {
+object ImportExistingRelationshipsActor {
   // $COVERAGE-OFF$
-  def props = Props(classOf[DefaultImportExistingMandateActor])
+  def props = Props(classOf[DefaultImportExistingRelationshipsActor])
   // $COVERAGE-ON$
 }

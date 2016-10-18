@@ -22,7 +22,7 @@ import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreated, MandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -86,13 +86,13 @@ trait MandateCreateService {
     }
   }
 
-  def createMandateForExistingRelationships(exsitingMandateDto: ExistingMandateDto): Future[Boolean] = {
+  def createMandateForExistingRelationships(ggRelationshipDto: GGRelationshipDto): Future[Boolean] = {
 
-    etmpConnector.getAtedSubscriptionDetails(exsitingMandateDto.clientSubscriptionId) flatMap { subscriptionJson =>
+    etmpConnector.getAtedSubscriptionDetails(ggRelationshipDto.clientSubscriptionId) flatMap { subscriptionJson =>
       val clientPartyId = (subscriptionJson \ "safeId").as[String]
       val clientPartyName = (subscriptionJson \ "organisationName").as[String]
 
-      etmpConnector.getAgentDetailsFromEtmp(exsitingMandateDto.agentPartyId).flatMap { etmpDetails =>
+      etmpConnector.getAgentDetailsFromEtmp(ggRelationshipDto.agentPartyId).flatMap { etmpDetails =>
 
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
 
@@ -102,9 +102,9 @@ trait MandateCreateService {
 
         val mandate = Mandate(
           id = createMandateId,
-          createdBy = User(exsitingMandateDto.credId, clientPartyName),
+          createdBy = User(ggRelationshipDto.credId, clientPartyName),
           agentParty = Party(
-            exsitingMandateDto.agentPartyId,
+            ggRelationshipDto.agentPartyId,
             agentPartyName,
             agentPartyType,
             ContactDetails("", None)
@@ -117,7 +117,7 @@ trait MandateCreateService {
           )),
           currentStatus = MandateStatus(Status.Active, DateTime.now, ""),
           statusHistory = Nil,
-          subscription = Subscription(None, Service(identifiers.getString(s"${exsitingMandateDto.serviceName}.serviceId"), exsitingMandateDto.serviceName))
+          subscription = Subscription(None, Service(identifiers.getString(s"${ggRelationshipDto.serviceName}.serviceId"), ggRelationshipDto.serviceName))
         )
 
         Logger.info(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = $mandate")
@@ -139,6 +139,10 @@ trait MandateCreateService {
     } else {
       s"""${(etmpDetails \ "organisation" \ "organisationName").as[String]}"""
     }
+  }
+
+  def insertExistingRelationships(ggRelationshipDtos: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert] = {
+    mandateRepository.insertExistingRelationships(ggRelationshipDtos)
   }
 }
 

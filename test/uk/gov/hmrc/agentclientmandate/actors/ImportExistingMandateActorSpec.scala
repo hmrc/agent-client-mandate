@@ -24,15 +24,15 @@ import uk.gov.hmrc.play.test.UnitSpec
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import uk.gov.hmrc.agentclientmandate.models.ExistingMandateDto
+import uk.gov.hmrc.agentclientmandate.models.GGRelationshipDto
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
 
-class ImportExistingMandateActorMock(val createService: MandateCreateService) extends ImportExistingMandateActor with ImportExistingMandateActorComponent
+class ImportExistingRelationshipsActorMock(val createService: MandateCreateService) extends ImportExistingRelationshipsActor with ImportExistingRelationshipsActorComponent
 
-class ImportExistingMandateActorSpec extends TestKit(ActorSystem("TestCalculationActorSystem")) with UnitSpec with MockitoSugar
+class ImportExistingRelationshipsActorSpec extends TestKit(ActorSystem("ImportExistingRelationship")) with UnitSpec with MockitoSugar
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with BeforeAndAfter {
 
   val createServiceMock = mock[MandateCreateService]
@@ -47,19 +47,19 @@ class ImportExistingMandateActorSpec extends TestKit(ActorSystem("TestCalculatio
     shutdown()
   }
 
-  object ImportExistingMandateActorMock {
-    def props(createService: MandateCreateService) = Props(classOf[ImportExistingMandateActorMock], createService)
+  object ImportExistingRelationshipsActorMock {
+    def props(createService: MandateCreateService) = Props(classOf[ImportExistingRelationshipsActorMock], createService)
   }
 
   "ImportExistingMandateActor" must {
     "successfully import existing relationship" in {
       when(createServiceMock.createMandateForExistingRelationships(Matchers.any())).thenReturn(Future.successful(true))
 
-      val actorRef = system.actorOf(ImportExistingMandateActorMock.props(createServiceMock))
+      val actorRef = system.actorOf(ImportExistingRelationshipsActorMock.props(createServiceMock))
 
       within(testTimeout) {
 
-        actorRef ! ExistingMandateDto("", "", "", "", "")
+        actorRef ! GGRelationshipDto("", "", "", "", "")
         expectMsg(true)
       }
 

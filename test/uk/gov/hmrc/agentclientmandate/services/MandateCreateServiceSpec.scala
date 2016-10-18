@@ -182,9 +182,9 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
 
-        val initialMandateDto = ExistingMandateDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
+        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
 
-        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(initialMandateDto))
+        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(ggRelationshipDto))
         result mustBe(true)
       }
 
@@ -223,9 +223,9 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
 
-        val initialMandateDto = ExistingMandateDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
+        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
 
-        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(initialMandateDto))
+        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(ggRelationshipDto))
         result mustBe(false)
       }
 

@@ -20,18 +20,23 @@ import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.scalatest.BeforeAndAfterEach
 import org.mockito.Mockito._
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.iteratee.Enumerator
 import play.api.test.Helpers._
-import reactivemongo.api.DB
-import reactivemongo.api.commands.UpdateWriteResult
-import reactivemongo.json.collection.JSONCollection
+import reactivemongo.api.{Cursor, DB}
+import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult}
+import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import reactivemongo.api.indexes.CollectionIndexesManager
+import reactivemongo.bson.BSONDocument
 
+import scala.collection.generic.CanBuildFrom
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
@@ -106,6 +111,54 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
+    "insert existing relationships" must {
+      "insert successfully" in {
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+
+        await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
+      }
+
+      "agent already exists" in {
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+        await(testMandateRepository.insertExistingRelationships(existingRelationships))
+
+        val existingRelationshipsAgain = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"))
+        await(testMandateRepository.insertExistingRelationships(existingRelationshipsAgain)) must be (ExistingRelationshipsAlreadyExist)
+
+      }
+
+      "return error when insert fails" in {
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+
+        setupFindMock
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.ImplicitlyDocumentProducer).thenThrow(new scala.RuntimeException)
+        when(mockCollection.bulkInsert(Matchers.any())(Matchers.any(), Matchers.any())).thenReturn(Future.successful(MultiBulkWriteResult(false, 0, 0, Nil, Nil, None, None, None, 0)))
+        val testRepository = new TestMandateRepository
+        val result = await(testRepository.insertExistingRelationships(existingRelationships))
+
+        result mustBe ExistingRelationshipsInsertError
+      }
+    }
+
+    "check for existing agent already inserted" must {
+      "agent already exists" in {
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+
+        await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
+
+        await(testMandateRepository.agentAlreadyInserted("bbb")) must be (ExistingAgentFound)
+      }
+
+      "agent does not exist" in {
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+
+        await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
+
+        await(testMandateRepository.agentAlreadyInserted("ttt")) must be (ExistingAgentNotFound)
+      }
+    }
+
   }
 
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
@@ -156,4 +209,10 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     override lazy val collection = mockCollection
   }
 
+  private def setupFindMock = {
+    val queryBuilder = mock[JSONQueryBuilder]
+    when(mockCollection.find(Matchers.any())(Matchers.any())) thenReturn queryBuilder
+
+    when(queryBuilder.one[GGRelationshipDto](Matchers.any(), Matchers.any()))thenReturn(Future.successful(None))
+  }
 }
