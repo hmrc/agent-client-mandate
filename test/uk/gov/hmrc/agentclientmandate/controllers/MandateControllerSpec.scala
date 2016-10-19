@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.http.HttpResponse
 
@@ -319,10 +319,27 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "sending correct data" must {
-        "return Ok" in {
+        "return Ok when insert relationships ok" in {
+          when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInserted))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
           val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
           status(result) must be(OK)
+        }
+
+        "return Ok when relationships already exist" in {
+          when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsAlreadyExist))
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
+          val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
+          status(result) must be(OK)
+        }
+
+        "exception thrown when there is an error inserting relationships" in {
+          when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInsertError))
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
+
+          val thrown = the[RuntimeException] thrownBy await(TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest))
+
+          thrown.getMessage must include("Could not insert existing relationships")
         }
       }
     }

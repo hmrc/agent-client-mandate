@@ -22,9 +22,9 @@ import play.api.libs.json.Json
 import play.api.mvc.Action
 import play.libs.Akka
 import uk.gov.hmrc.agentclientmandate._
-import uk.gov.hmrc.agentclientmandate.actors.ImportExistingMandateActor
-import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, ExistingMandateDto, Mandate}
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateUpdateError, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.actors.{ImportExistingRelationshipsActor, ImportExistingRelationshipsActor$}
+import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate}
+import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
@@ -147,15 +147,12 @@ trait MandateController extends BaseController {
   }
 
   def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
-    request.body.asOpt[Seq[ExistingMandateDto]] match {
+    request.body.asOpt[Seq[GGRelationshipDto]] match {
       case Some(x) => {
-        lazy val existingRelationshipsImporter = Akka.system.actorOf(Props[ImportExistingMandateActor], "existing-relationships-importer")
-
-        x.par.map {
-          existingRelationshipsImporter ! _
+        createService.insertExistingRelationships(x).map {
+          case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
+          case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
         }
-
-        Future.successful(Ok)
       }
       case None => Future.successful(BadRequest)
     }

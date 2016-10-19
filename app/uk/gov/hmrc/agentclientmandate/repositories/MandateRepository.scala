@@ -19,14 +19,16 @@ package uk.gov.hmrc.agentclientmandate.repositories
 import play.api.Logger
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
+import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import uk.gov.hmrc.agentclientmandate.models.Mandate
+import uk.gov.hmrc.agentclientmandate.models.{GGRelationshipDto, Mandate}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 sealed trait MandateCreate
 case class MandateCreated(mandate: Mandate) extends MandateCreate
@@ -40,6 +42,20 @@ sealed trait MandateFetchStatus
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
 case object MandateNotFound extends MandateFetchStatus
 
+sealed trait ExistingRelationshipsInsert
+case object ExistingRelationshipsInserted extends ExistingRelationshipsInsert
+case object ExistingRelationshipsInsertError extends ExistingRelationshipsInsert
+case object ExistingRelationshipsAlreadyExist extends ExistingRelationshipsInsert
+
+sealed trait ExistingAgentStatus
+case object ExistingAgentFound extends ExistingAgentStatus
+case object ExistingAgentNotFound extends ExistingAgentStatus
+
+sealed trait ExistingRelationshipProcess
+case object ExistingRelationshipProcessed extends ExistingRelationshipProcess
+case object ExistingRelationshipProcessError extends ExistingRelationshipProcess
+
+
 trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def insertMandate(mandate: Mandate): Future[MandateCreate]
@@ -50,6 +66,11 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]]
 
+  def insertExistingRelationships(ggRelationshipDto: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert]
+
+  def agentAlreadyInserted(agentId: String): Future[ExistingAgentStatus]
+
+  def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess]
 }
 
 object MandateRepository extends MongoDbConnection {
@@ -67,7 +88,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
   override def indexes: Seq[Index] = {
     Seq(
       Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
-      Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true)
+      Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true),
+      Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending, "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true)
     )
   }
 
@@ -111,4 +133,81 @@ class MandateMongoRepository(implicit mongo: () => DB)
     collection.find(query).cursor[Mandate]().collect[Seq]()
   }
 
+  def insertExistingRelationships(ggRelationshipDtos: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert] = {
+
+    agentAlreadyInserted(ggRelationshipDtos.head.agentPartyId).flatMap {
+      case ExistingAgentFound => Future.successful(ExistingRelationshipsAlreadyExist)
+      case ExistingAgentNotFound => {
+
+        val insertResult = Try {
+          val bulkDocs = ggRelationshipDtos.map(implicitly[collection.ImplicitlyDocumentProducer](_))
+
+          collection.bulkInsert(ordered=false)(bulkDocs: _*)
+        }
+
+        insertResult match {
+          case Success(s) => {
+            s.map {
+              case x: MultiBulkWriteResult if x.writeErrors == Nil =>
+                Logger.debug(s"[MandateRepository][insertExistingRelationships] $x")
+                ExistingRelationshipsInserted
+            }.recover {
+              case e: Throwable =>
+                // $COVERAGE-OFF$
+                Logger.error("Error inserting document", e)
+                ExistingRelationshipsInsertError
+              // $COVERAGE-ON$
+            }
+          }
+
+          case Failure(f) => {
+            Logger.error(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
+            Future.successful(ExistingRelationshipsInsertError)
+          }
+        }
+      }
+    }
+  }
+
+  def agentAlreadyInserted(agentId: String): Future[ExistingAgentStatus] = {
+    val query = BSONDocument(
+      "agentPartyId" -> agentId
+    )
+    collection.find(query).one[GGRelationshipDto] map {
+      case Some(existingAgent) => ExistingAgentFound
+      case _ => ExistingAgentNotFound
+    }
+  }
+
+  def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess] = {
+    val query = BSONDocument(
+      "agentPartyId" -> ggRelationshipDto.agentPartyId,
+      "clientSubscriptionId" -> ggRelationshipDto.clientSubscriptionId,
+      "serviceName" -> ggRelationshipDto.serviceName
+    )
+
+    val modifier = BSONDocument("$set" -> BSONDocument("processed" -> true))
+
+    val updateResult = Try { collection.update(query, modifier, multi = false, upsert = false) }
+
+    updateResult match {
+      case Success(s) => {
+        s.map {
+          case x: WriteResult if x.writeErrors == Nil && !x.hasErrors && x.ok =>
+            Logger.debug(s"[MandateRepository][existingRelationshipProcessed] $x")
+            ExistingRelationshipProcessed
+        }.recover {
+          case e: Throwable =>
+            // $COVERAGE-OFF$
+            Logger.error("Error updating document", e)
+            ExistingRelationshipProcessError
+          // $COVERAGE-ON$
+        }
+      }
+      case Failure(f) => {
+        Logger.error(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
+        Future.successful(ExistingRelationshipProcessError)
+      }
+    }
+  }
 }
