@@ -159,6 +159,29 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
+    "mark existing relationship processed" must {
+      "update relationship successfully with processed true" in {
+        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee")
+        val existingRelationships = List(relationship)
+
+        await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
+
+        await(testMandateRepository.existingRelationshipProcessed(relationship)) must be(ExistingRelationshipProcessed)
+      }
+
+      "failure in updating relationship must be handled" in {
+        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee")
+        val existingRelationships = List(relationship)
+
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenThrow(new RuntimeException(""))
+        val testRepository = new TestMandateRepository
+        val result = await(testRepository.existingRelationshipProcessed(relationship))
+
+        result mustBe ExistingRelationshipProcessError
+      }
+    }
+
   }
 
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository

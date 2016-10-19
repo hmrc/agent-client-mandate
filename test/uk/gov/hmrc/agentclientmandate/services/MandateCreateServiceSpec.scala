@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreateError, MandateCreated, MandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{ExistingRelationshipsInserted, MandateCreateError, MandateCreated, MandateRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -282,6 +282,17 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       "party type for individual" in {
         val partyType = TestClientMandateCreateService.getAgentPartyType(true)
         partyType must be(PartyType.Individual)
+      }
+    }
+
+    "insert existing relationships" must {
+      "insert successfully" in {
+        when (mandateRepositoryMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInserted))
+
+        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId", "agentCode")
+
+        val result = await(TestClientMandateCreateService.insertExistingRelationships(List(ggRelationshipDto)))
+        result mustBe(ExistingRelationshipsInserted)
       }
     }
 

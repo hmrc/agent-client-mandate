@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentclientmandate.repositories
 import play.api.Logger
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
-import reactivemongo.api.commands.MultiBulkWriteResult
+import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.models.{GGRelationshipDto, Mandate}
@@ -28,7 +28,7 @@ import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 sealed trait MandateCreate
 case class MandateCreated(mandate: Mandate) extends MandateCreate
@@ -51,6 +51,11 @@ sealed trait ExistingAgentStatus
 case object ExistingAgentFound extends ExistingAgentStatus
 case object ExistingAgentNotFound extends ExistingAgentStatus
 
+sealed trait ExistingRelationshipProcess
+case object ExistingRelationshipProcessed extends ExistingRelationshipProcess
+case object ExistingRelationshipProcessError extends ExistingRelationshipProcess
+
+
 trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def insertMandate(mandate: Mandate): Future[MandateCreate]
@@ -64,6 +69,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def insertExistingRelationships(ggRelationshipDto: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert]
 
   def agentAlreadyInserted(agentId: String): Future[ExistingAgentStatus]
+
+  def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess]
 }
 
 object MandateRepository extends MongoDbConnection {
@@ -82,7 +89,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     Seq(
       Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
       Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true),
-      Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending, "agentPartyId" -> IndexType.Ascending, "credId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending, "agentCode" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true)
+      Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending, "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true)
     )
   }
 
@@ -172,4 +179,35 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
+  def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess] = {
+    val query = BSONDocument(
+      "agentPartyId" -> ggRelationshipDto.agentPartyId,
+      "clientSubscriptionId" -> ggRelationshipDto.clientSubscriptionId,
+      "serviceName" -> ggRelationshipDto.serviceName
+    )
+
+    val modifier = BSONDocument("$set" -> BSONDocument("processed" -> true))
+
+    val updateResult = Try { collection.update(query, modifier, multi = false, upsert = false) }
+
+    updateResult match {
+      case Success(s) => {
+        s.map {
+          case x: WriteResult if x.writeErrors == Nil && !x.hasErrors && x.ok =>
+            Logger.debug(s"[MandateRepository][existingRelationshipProcessed] $x")
+            ExistingRelationshipProcessed
+        }.recover {
+          case e: Throwable =>
+            // $COVERAGE-OFF$
+            Logger.error("Error updating document", e)
+            ExistingRelationshipProcessError
+          // $COVERAGE-ON$
+        }
+      }
+      case Failure(f) => {
+        Logger.error(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
+        Future.successful(ExistingRelationshipProcessError)
+      }
+    }
+  }
 }
