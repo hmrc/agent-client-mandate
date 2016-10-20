@@ -16,13 +16,10 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import akka.actor.Props
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Action
-import play.libs.Akka
 import uk.gov.hmrc.agentclientmandate._
-import uk.gov.hmrc.agentclientmandate.actors.{ImportExistingRelationshipsActor, ImportExistingRelationshipsActor$}
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate}
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
@@ -149,6 +146,7 @@ trait MandateController extends BaseController {
   def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[Seq[GGRelationshipDto]] match {
       case Some(x) => {
+        Logger.info(s"request for migration for ${x.size} clients")
         createService.insertExistingRelationships(x).map {
           case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
           case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
