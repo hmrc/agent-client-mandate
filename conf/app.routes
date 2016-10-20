@@ -33,5 +33,5 @@ POST   /agent/:ac/mandate/remove/:mandateId      uk.gov.hmrc.agentclientmandate.
 POST   /org/:org/mandate/remove/:mandateId        uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.remove(org: String, mandateId: String)
 
 # import existing relationships
-POST   /agent/:ac/mandate/importExisting          uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.importExistingRelationships(ac: String)
+POST   /agent/:ac/mandate/importExisting          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.importExistingRelationships(ac: String)
 

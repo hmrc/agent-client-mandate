@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.models
+package uk.gov.hmrc.agentclientmandate.actors
 
-import play.api.libs.json.Json
-
-case class GGRelationshipDto(serviceName: String, agentPartyId: String, credId: String, clientSubscriptionId: String)
-
-object GGRelationshipDto {
-  implicit val formats = Json.format[GGRelationshipDto]
+trait ActorUtils {
+  val START = "start"
+  val STOP = "stop"
 }

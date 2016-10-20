@@ -26,6 +26,8 @@ private object AppDependencies {
   private val pegdownVersion = "1.6.0"
   private val akkaContribVersion = "2.3.4"
   private val playReactivemongoVersion = "4.8.0"
+  private val mongoLockVersion = "3.4.0"
+  private val playSchedulingVersion = "3.0.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
@@ -38,7 +40,9 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "play-json-logger" % playJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
-    "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion
+    "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion,
+    "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
+    "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion
   )
 
   trait TestDependencies {

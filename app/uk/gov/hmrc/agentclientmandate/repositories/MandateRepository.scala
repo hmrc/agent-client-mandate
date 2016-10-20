@@ -71,6 +71,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def agentAlreadyInserted(agentId: String): Future[ExistingAgentStatus]
 
   def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess]
+
+  def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
 }
 
 object MandateRepository extends MongoDbConnection {
@@ -209,5 +211,31 @@ class MandateMongoRepository(implicit mongo: () => DB)
         Future.successful(ExistingRelationshipProcessError)
       }
     }
+  }
+
+  def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]] = {
+
+    val result = Try {
+
+      val query = BSONDocument(
+        "agentPartyId" -> BSONDocument("$exists" -> true),
+        "processed" -> BSONDocument("$exists" -> false)
+      )
+      collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
+    }
+
+    result match {
+      case Success(s) => {
+        s.map { x =>
+          Logger.info(s"[MandateRepository][findGGRelationshipsToProcess] found relationships: ${x.size}")
+          x
+        }
+      }
+      case Failure(f) => {
+        Logger.error(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
+        Future.successful(Nil)
+      }
+    }
+
   }
 }
