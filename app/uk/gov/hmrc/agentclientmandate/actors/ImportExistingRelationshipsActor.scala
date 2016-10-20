@@ -22,7 +22,7 @@ import uk.gov.hmrc.agentclientmandate.services.MandateCreateService
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class ImportExistingRelationshipsActor extends Actor {
+class ImportExistingRelationshipsActor extends Actor with ActorUtils {
 
   self: ImportExistingRelationshipsActorComponent =>
 
@@ -44,6 +44,16 @@ class ImportExistingRelationshipsActor extends Actor {
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }
+    }
+
+    case STOP => {
+      Logger.debug(s"[ImportExistingRelationshipsActor] stop message")
+      sender ! STOP
+    }
+
+    case e => {
+      Logger.debug(s"[ImportExistingRelationshipsActor] Invalid Message : { message : $e}")
+      sender ! akka.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
     }
   }
 

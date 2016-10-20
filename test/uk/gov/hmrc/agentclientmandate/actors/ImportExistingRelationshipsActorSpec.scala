@@ -33,7 +33,7 @@ import scala.concurrent.duration._
 class ImportExistingRelationshipsActorMock(val createService: MandateCreateService) extends ImportExistingRelationshipsActor with ImportExistingRelationshipsActorComponent
 
 class ImportExistingRelationshipsActorSpec extends TestKit(ActorSystem("ImportExistingRelationship")) with UnitSpec with MockitoSugar
-  with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with BeforeAndAfter {
+  with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with BeforeAndAfter with ActorUtils {
 
   val createServiceMock = mock[MandateCreateService]
 
@@ -59,10 +59,31 @@ class ImportExistingRelationshipsActorSpec extends TestKit(ActorSystem("ImportEx
 
       within(testTimeout) {
 
-        actorRef ! GGRelationshipDto("", "", "", "", "")
+        actorRef ! GGRelationshipDto("", "", "", "")
         expectMsg(true)
       }
+    }
 
+    "get failure when message wrong type" in {
+
+      val actorRef = system.actorOf(ImportExistingRelationshipsActorMock.props(createServiceMock))
+
+      within(testTimeout) {
+
+        actorRef ! "purple rain"
+        expectMsgClass(classOf[akka.actor.Status.Failure])
+      }
+    }
+
+    "send STOP message to sender when receive the STOP message" in {
+
+      val actorRef = system.actorOf(ImportExistingRelationshipsActorMock.props(createServiceMock))
+
+      within(testTimeout) {
+
+        actorRef ! STOP
+        expectMsg(STOP)
+      }
     }
   }
 

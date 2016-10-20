@@ -18,25 +18,21 @@ package uk.gov.hmrc.agentclientmandate.repositories
 
 import org.joda.time.DateTime
 import org.mockito.Matchers
-import org.scalatest.BeforeAndAfterEach
 import org.mockito.Mockito._
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.libs.iteratee.Enumerator
+import play.api.libs.json.Json
 import play.api.test.Helpers._
-import reactivemongo.api.{Cursor, DB}
+import reactivemongo.api.DB
 import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult}
+import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import reactivemongo.api.indexes.CollectionIndexesManager
-import reactivemongo.bson.BSONDocument
 
-import scala.collection.generic.CanBuildFrom
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
@@ -113,22 +109,22 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
     "insert existing relationships" must {
       "insert successfully" in {
-        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"), GGRelationshipDto("zzz", "yyy", "xxx", "www"))
 
         await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
       }
 
       "agent already exists" in {
-        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"), GGRelationshipDto("zzz", "yyy", "xxx", "www"))
         await(testMandateRepository.insertExistingRelationships(existingRelationships))
 
-        val existingRelationshipsAgain = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"))
+        val existingRelationshipsAgain = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"))
         await(testMandateRepository.insertExistingRelationships(existingRelationshipsAgain)) must be (ExistingRelationshipsAlreadyExist)
 
       }
 
       "return error when insert fails" in {
-        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"), GGRelationshipDto("zzz", "yyy", "xxx", "www"))
 
         setupFindMock
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
@@ -143,7 +139,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
     "check for existing agent already inserted" must {
       "agent already exists" in {
-        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"), GGRelationshipDto("zzz", "yyy", "xxx", "www"))
 
         await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
 
@@ -151,7 +147,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
 
       "agent does not exist" in {
-        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee"), GGRelationshipDto("zzz", "yyy", "xxx", "www", "vvv"))
+        val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"), GGRelationshipDto("zzz", "yyy", "xxx", "www"))
 
         await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
 
@@ -161,7 +157,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
     "mark existing relationship processed" must {
       "update relationship successfully with processed true" in {
-        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee")
+        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd")
         val existingRelationships = List(relationship)
 
         await(testMandateRepository.insertExistingRelationships(existingRelationships)) must be(ExistingRelationshipsInserted)
@@ -170,7 +166,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
 
       "failure in updating relationship must be handled" in {
-        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd", "eee")
+        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd")
         val existingRelationships = List(relationship)
 
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
@@ -179,6 +175,27 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         val result = await(testRepository.existingRelationshipProcessed(relationship))
 
         result mustBe ExistingRelationshipProcessError
+      }
+    }
+
+    "find existing relationships to process" must {
+      "find one relationship for processing" in {
+        val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd")
+        val relationships = List(relationship, GGRelationshipDto("eee", "fff", "ggg", "hhh"), GGRelationshipDto("iii", "jjj", "kkk", "lll"))
+        await(testMandateRepository.insertExistingRelationships(relationships)) must be(ExistingRelationshipsInserted)
+        await(testMandateRepository.existingRelationshipProcessed(relationship)) must be(ExistingRelationshipProcessed)
+
+        val result = await(testMandateRepository.findGGRelationshipsToProcess())
+        result.size must be(2)
+      }
+
+      "fail when trying to find relationships to process" in {
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        val testRepository = new TestMandateRepository
+        val result = await(testRepository.findGGRelationshipsToProcess())
+
+        result mustBe Nil
       }
     }
 

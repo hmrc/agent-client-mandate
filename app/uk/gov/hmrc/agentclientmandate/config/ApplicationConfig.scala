@@ -22,4 +22,6 @@ import uk.gov.hmrc.play.config.ServicesConfig
 object ApplicationConfig extends ServicesConfig {
 
   val identifiers = ConfigFactory.load("identifiers.properties")
+
+  lazy val etmpTps = getInt(s"etmp-tps")
 }

@@ -121,9 +121,14 @@ trait MandateCreateService {
         )
 
         Logger.info(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = $mandate")
-        mandateRepository.insertMandate(mandate).map {
-          case MandateCreated(mandate) => true
-          case _ => false
+        mandateRepository.insertMandate(mandate).flatMap {
+          case MandateCreated(mandate) => {
+            mandateRepository.existingRelationshipProcessed(ggRelationshipDto).map {
+              case ExistingRelationshipProcessed => true
+              case ExistingRelationshipProcessError => false
+            }
+          }
+          case _ => Future.successful(false)
         }
       }
     }
