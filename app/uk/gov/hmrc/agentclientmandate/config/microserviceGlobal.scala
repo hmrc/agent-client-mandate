@@ -16,15 +16,22 @@
 
 package uk.gov.hmrc.agentclientmandate.config
 
+import akka.actor.Props
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
+import play.api.mvc.Result
 import play.api.{Application, Configuration, Play}
+import play.libs.Akka
+import uk.gov.hmrc.agentclientmandate.actors.{ActorUtils, ProcessingSupervisor}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
+import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 
 //scalastyle:off public.methods.have.type
 object ControllerConfiguration extends ControllerConfig {
@@ -52,7 +59,7 @@ object MicroserviceAuthFilter extends AuthorisationFilter {
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with RunningOfScheduledJobs with ActorUtils {
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -62,4 +69,25 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode {
   override val microserviceAuditFilter = MicroserviceAuditFilter
 
   override val authFilter = Some(MicroserviceAuthFilter)
+
+  override val scheduledJobs: Seq[ScheduledJob] = {
+    Seq(new ExclusiveScheduledJob {
+      lazy val processingSupervisor = Akka.system.actorOf(Props[ProcessingSupervisor], "processing-supervisor")
+
+      override def name: String = "ImportingService"
+
+      override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
+        if(env != "Test") {
+          processingSupervisor ! START
+          Future.successful(Result("started"))
+        }else {
+          Future.successful(Result("not running scheduled jobs"))
+        }
+      }
+
+      override def interval: FiniteDuration = 30 seconds
+
+      override def initialDelay: FiniteDuration = 0 seconds
+    })
+  }
 }
