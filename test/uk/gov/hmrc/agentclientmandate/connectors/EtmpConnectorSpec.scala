@@ -48,13 +48,34 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   }
 
   "EtmpConnector" must {
-    "getAgentDetailsFromEtmp" must {
-      "return valid response" in {
+    "getDetails" must {
+      "return valid response, for ARN as identifier type" in {
         when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getDetails("ABC", "arn"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
+      }
+
+      "return valid response, for SafeId as identifier type" in {
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
+
+        val result = await(TestEtmpConnector.getDetails("ABC", "safeid"))
+        (result \ "isAnIndividual").as[Boolean] must be(false)
+      }
+
+      "return valid response, for UTR as identifier type" in {
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+          .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
+
+        val result = await(TestEtmpConnector.getDetails("ABC", "utr"))
+        (result \ "isAnIndividual").as[Boolean] must be(false)
+      }
+
+      "throw exception when Invalid identifier type is passed" in {
+        val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getDetails("ABC", "INVALID"))
+        thrown.getMessage must include("Unexpected identifier type supplied - INVALID")
       }
 
       "throw exception when response is not OK" in {

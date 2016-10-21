@@ -159,7 +159,7 @@ trait MandateController extends BaseController {
   def createRelationship(ac: String) = Action.async(parse.json) { implicit request =>
     withJsonBody[NonUKClientDto] { nonUKClientDto =>
       createService.createMandateForNonUKClient(ac, nonUKClientDto) map { mandateId =>
-        Created
+        Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
       }
     }
   }
