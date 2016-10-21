@@ -81,7 +81,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -126,7 +126,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -180,7 +180,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
           Future.successful(ExistingRelationshipProcessed)
         }
-        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMPForAgent)
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
@@ -224,7 +224,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
           Future.successful(ExistingRelationshipProcessError)
         }
-        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMPForAgent)
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
@@ -265,7 +265,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
           Future.successful(MandateCreateError)
         }
-        when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMPForAgent)
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
@@ -295,7 +295,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           """.stripMargin
         )
 
-        val agentPartyName = TestClientMandateCreateService.getAgentPartyName(etmpAgentDetails, true)
+        val agentPartyName = TestClientMandateCreateService.getPartyName(etmpAgentDetails, true)
         agentPartyName mustBe "firstName lastName"
       }
 
@@ -315,19 +315,19 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           """.stripMargin
         )
 
-        val agentPartyName = TestClientMandateCreateService.getAgentPartyName(etmpAgentDetails, false)
+        val agentPartyName = TestClientMandateCreateService.getPartyName(etmpAgentDetails, false)
         agentPartyName mustBe "ABC Limited"
       }
     }
 
     "getAgentPartyType" must {
       "party type for organisation" in {
-        val partyType = TestClientMandateCreateService.getAgentPartyType(false)
+        val partyType = TestClientMandateCreateService.getPartyType(false)
         partyType must be(PartyType.Organisation)
       }
 
       "party type for individual" in {
-        val partyType = TestClientMandateCreateService.getAgentPartyType(true)
+        val partyType = TestClientMandateCreateService.getPartyType(true)
         partyType must be(PartyType.Individual)
       }
     }
@@ -339,7 +339,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId")
 
         val result = await(TestClientMandateCreateService.insertExistingRelationships(List(ggRelationshipDto)))
-        result mustBe(ExistingRelationshipsInserted)
+        result mustBe ExistingRelationshipsInserted
       }
     }
 
@@ -362,11 +362,13 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
   val mandateRepositoryMock = mock[MandateRepository]
   val authConnectorMock = mock[AuthConnector]
   val etmpConnectorMock = mock[EtmpConnector]
+  val relationshipServiceMock = mock[RelationshipService]
 
   object TestClientMandateCreateService extends MandateCreateService {
     override val mandateRepository = mandateRepositoryMock
     override val authConnector = authConnectorMock
     override val etmpConnector = etmpConnectorMock
+    override val relationshipService = relationshipServiceMock
   }
 
   override def beforeEach(): Unit = {
