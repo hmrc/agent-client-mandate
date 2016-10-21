@@ -72,7 +72,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
   def getDetails(identifier: String, identifierType: String): Future[JsValue] = {
     def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
       implicit val hc = createHeaderCarrier
-      Logger.debug(s"[EtmpConnector][getDetailsFromEtmp] - GET $getUrl")
+      Logger.info(s"[EtmpConnector][getDetailsFromEtmp] - GET $getUrl")
       val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)
       http.GET[HttpResponse](getUrl).map { response =>
         timerContext.stop()
