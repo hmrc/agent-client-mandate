@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.models
+package uk.gov.hmrc.agentclientmandate.metrics
 
-import play.api.libs.json.Json
+object MetricsEnum extends Enumeration {
 
-case class GGRelationshipDto(serviceName: String, agentPartyId: String, credId: String, clientSubscriptionId: String)
+  type MetricsEnum = Value
+  val EtmpGetDetails = Value
 
-object GGRelationshipDto {
-  implicit val formats = Json.format[GGRelationshipDto]
 }

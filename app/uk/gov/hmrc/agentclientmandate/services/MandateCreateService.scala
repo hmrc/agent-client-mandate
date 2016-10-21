@@ -36,6 +36,8 @@ trait MandateCreateService {
 
   def etmpConnector: EtmpConnector
 
+  def relationshipService: RelationshipService
+
   def createMandateId: String = {
     val Eight = 8
     val tsRef = new DateTime().getMillis.toString.takeRight(Eight)
@@ -49,15 +51,15 @@ trait MandateCreateService {
     authConnector.getAuthority().flatMap { authority =>
 
       val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
-      val credId = (authority \ "credentials" \ "gatewayId").as[String]
+      val credId = getCredId(authority)
 
-      etmpConnector.getAgentDetailsFromEtmp(agentPartyId).flatMap { etmpDetails =>
+      etmpConnector.getDetails(agentPartyId, "arn").flatMap { etmpDetails =>
 
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
 
-        val agentPartyName: String = getAgentPartyName(etmpDetails, isAnIndividual)
+        val agentPartyName: String = getPartyName(etmpDetails, isAnIndividual)
 
-        val partyType = getAgentPartyType(isAnIndividual)
+        val partyType = getPartyType(isAnIndividual)
 
         val serviceName = createMandateDto.serviceName.toLowerCase
 
@@ -79,7 +81,7 @@ trait MandateCreateService {
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
         mandateRepository.insertMandate(mandate).map {
-          case MandateCreated(mandate) => mandate.id
+          case MandateCreated(m) => m.id
           case _ => throw new RuntimeException("Mandate not created")
         }
       }
@@ -92,13 +94,13 @@ trait MandateCreateService {
       val clientPartyId = (subscriptionJson \ "safeId").as[String]
       val clientPartyName = (subscriptionJson \ "organisationName").as[String]
 
-      etmpConnector.getAgentDetailsFromEtmp(ggRelationshipDto.agentPartyId).flatMap { etmpDetails =>
+      etmpConnector.getDetails(ggRelationshipDto.agentPartyId, "arn").flatMap { etmpDetails =>
 
-        val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
+        val isAnIndividual = isIndividual(etmpDetails)
 
-        val agentPartyName: String = getAgentPartyName(etmpDetails, isAnIndividual)
+        val agentPartyName: String = getPartyName(etmpDetails, isAnIndividual)
 
-        val agentPartyType = getAgentPartyType(isAnIndividual)
+        val agentPartyType = getPartyType(isAnIndividual)
 
         val mandate = Mandate(
           id = createMandateId,
@@ -122,27 +124,78 @@ trait MandateCreateService {
 
         Logger.info(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = $mandate")
         mandateRepository.insertMandate(mandate).flatMap {
-          case MandateCreated(mandate) => {
+          case MandateCreated(m) =>
             mandateRepository.existingRelationshipProcessed(ggRelationshipDto).map {
               case ExistingRelationshipProcessed => true
               case ExistingRelationshipProcessError => false
             }
-          }
           case _ => Future.successful(false)
         }
       }
     }
   }
 
-  def getAgentPartyType(isAnIndividual: Boolean): PartyType.Value = {
+  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
+
+  def isIndividual(etmpDetails: JsValue): Boolean = (etmpDetails \ "isAnIndividual").as[Boolean]
+
+  def getPartyType(isAnIndividual: Boolean): PartyType.Value = {
     if (isAnIndividual) PartyType.Individual else PartyType.Organisation
   }
 
-  def getAgentPartyName(etmpDetails: JsValue, isAnIndividual: Boolean): String = {
+  def getPartyName(etmpDetails: JsValue, isAnIndividual: Boolean): String = {
     if (isAnIndividual) {
       s"""${(etmpDetails \ "individual" \ "firstName").as[String]} ${(etmpDetails \ "individual" \ "lastName").as[String]}"""
     } else {
       s"""${(etmpDetails \ "organisation" \ "organisationName").as[String]}"""
+    }
+  }
+
+  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[String] = {
+
+    val agentDetailsJsonFuture = etmpConnector.getDetails(dto.arn, "arn")
+    val nonUKClientDetailsJsonFuture = etmpConnector.getDetails(dto.safeId, "safeid")
+    val authorityJsonFuture = authConnector.getAuthority()
+    val mandateId = createMandateId
+
+    def createMandateToSave(agentDetails: JsValue, clientDetails: JsValue, authorityJson: JsValue): Mandate = {
+      val isAgentAnIndividual = isIndividual(agentDetails)
+      val agentPartyName: String = getPartyName(agentDetails, isAgentAnIndividual)
+      val agentPartyType = getPartyType(isAgentAnIndividual)
+      val agentCredId = getCredId(authorityJson)
+
+      val isClientAnIndividual = isIndividual(clientDetails)
+      val clientPartyName: String = getPartyName(clientDetails, isClientAnIndividual)
+      val clientPartyType = getPartyType(isClientAnIndividual)
+
+      Mandate(
+        id = mandateId,
+        createdBy = User(agentCredId, agentPartyName, groupId = Some(ac)),
+        approvedBy = Some(User(agentCredId, agentPartyName, groupId = Some(ac))),
+        assignedTo = None,
+        agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
+        clientParty = Some(Party(dto.safeId, clientPartyName, clientPartyType, ContactDetails(dto.clientEmail))),
+        currentStatus = MandateStatus(Status.Active, DateTime.now(), updatedBy = agentCredId),
+        statusHistory = Nil,
+        subscription = Subscription(referenceNumber = Some(dto.subscriptionReference), service = Service(dto.service, dto.service))
+      )
+    }
+
+    for {
+      agentDetails <- agentDetailsJsonFuture
+      clientDetails <- nonUKClientDetailsJsonFuture
+      authorityJson <- authorityJsonFuture
+      etmpRelationshipResponse <- {
+        val mandateToSave = createMandateToSave(agentDetails, clientDetails, authorityJson)
+        relationshipService.maintainRelationship(mandateToSave, ac, "Authorise")
+      }
+      mandateCreate <- {
+        val mandateToSave = createMandateToSave(agentDetails, clientDetails, authorityJson)
+        mandateRepository.insertMandate(mandateToSave)
+      }
+    } yield mandateCreate match {
+      case MandateCreated(m) => m.id
+      case _ => throw new RuntimeException("Mandate not created")
     }
   }
 
@@ -156,5 +209,6 @@ object MandateCreateService extends MandateCreateService {
   val mandateRepository = MandateRepository()
   val authConnector = AuthConnector
   val etmpConnector = EtmpConnector
+  val relationshipService: RelationshipService = RelationshipService
   // $COVERAGE-ON$
 }

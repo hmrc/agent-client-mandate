@@ -27,3 +27,9 @@ case class RegisteredAddressDetails(addressLine1: String,
 object RegisteredAddressDetails {
   implicit val formats = Json.format[RegisteredAddressDetails]
 }
+
+case class AgentDetails(agentName: String, addressDetails: RegisteredAddressDetails)
+
+object AgentDetails {
+  implicit val formats = Json.format[AgentDetails]
+}
