@@ -1,7 +1,4 @@
 import sbt._
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
 
 object MicroServiceBuild extends Build with MicroService {
 
@@ -11,13 +8,14 @@ object MicroServiceBuild extends Build with MicroService {
 }
 
 private object AppDependencies {
+
   import play.PlayImport._
   import play.core.PlayVersion
 
   private val microserviceBootstrapVersion = "4.4.0"
   private val playAuthVersion = "3.3.0"
   private val playHealthVersion = "1.1.0"
-  private val playJsonLoggerVersion = "2.1.1"  
+  private val playJsonLoggerVersion = "2.1.1"
   private val playUrlBindersVersion = "1.1.0"
   private val playConfigVersion = "2.1.0"
   private val domainVersion = "3.7.0"
@@ -26,6 +24,7 @@ private object AppDependencies {
   private val pegdownVersion = "1.6.0"
   private val akkaContribVersion = "2.3.4"
   private val playReactivemongoVersion = "4.8.0"
+  private val reactivemongoTestVersion = "1.6.0"
   private val mongoLockVersion = "3.4.0"
   private val playSchedulingVersion = "3.0.0"
 
@@ -47,7 +46,7 @@ private object AppDependencies {
 
   trait TestDependencies {
     lazy val scope: String = "test"
-    lazy val test : Seq[ModuleID] = ???
+    lazy val test: Seq[ModuleID] = ???
   }
 
   object Test {
@@ -58,7 +57,7 @@ private object AppDependencies {
         "org.scalatestplus" %% "play" % "1.2.0" % scope,
         "org.pegdown" % "pegdown" % pegdownVersion % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % "1.6.0" % scope,
+        "uk.gov.hmrc" %% "reactivemongo-test" % reactivemongoTestVersion % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % akkaContribVersion % scope
       )
     }.test
