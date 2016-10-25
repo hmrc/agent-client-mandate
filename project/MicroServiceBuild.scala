@@ -41,7 +41,10 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
-    "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion
+    "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
+
+    "com.kenshoo" %% "metrics-play" % "2.3.0_0.1.8",
+    "com.codahale.metrics" % "metrics-graphite" % "3.0.2"
   )
 
   trait TestDependencies {
