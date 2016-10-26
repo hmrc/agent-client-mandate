@@ -104,7 +104,7 @@ trait MandateCreateService {
 
         val mandate = Mandate(
           id = createMandateId,
-          createdBy = User(ggRelationshipDto.credId, clientPartyName),
+          createdBy = User(ggRelationshipDto.credId, clientPartyName, ggRelationshipDto.agentCode),
           agentParty = Party(
             ggRelationshipDto.agentPartyId,
             agentPartyName,
