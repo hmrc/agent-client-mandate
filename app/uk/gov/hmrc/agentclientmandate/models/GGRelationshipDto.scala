@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.models
 
 import play.api.libs.json.Json
 
-case class GGRelationshipDto(serviceName: String, agentPartyId: String, credId: String, clientSubscriptionId: String)
+case class GGRelationshipDto(serviceName: String, agentPartyId: String, credId: String, clientSubscriptionId: String, agentCode: Option[String] = None)
 
 object GGRelationshipDto {
   implicit val formats = Json.format[GGRelationshipDto]

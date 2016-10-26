@@ -147,7 +147,8 @@ trait MandateController extends BaseController {
     request.body.asOpt[Seq[GGRelationshipDto]] match {
       case Some(x) =>
         Logger.info(s"request for migration for ${x.size} clients")
-        createService.insertExistingRelationships(x).map {
+        val ggdtoList = x map ( _.copy(agentCode = Some(agentCode)))
+        createService.insertExistingRelationships(ggdtoList).map {
           case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
           case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
         }
