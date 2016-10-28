@@ -119,7 +119,10 @@ trait MandateCreateService {
           )),
           currentStatus = MandateStatus(Status.Active, DateTime.now, ""),
           statusHistory = Nil,
-          subscription = Subscription(None, Service(identifiers.getString(s"${ggRelationshipDto.serviceName}.serviceId"), ggRelationshipDto.serviceName))
+          subscription = Subscription(
+            Some(ggRelationshipDto.clientSubscriptionId),
+            Service(identifiers.getString(s"${ggRelationshipDto.serviceName}.serviceId"), ggRelationshipDto.serviceName)
+          )
         )
 
         Logger.info(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = $mandate")
