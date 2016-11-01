@@ -91,7 +91,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
     Seq(
       Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
       Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true),
-      Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending, "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true)
+      Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending,
+        "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true)
     )
   }
 

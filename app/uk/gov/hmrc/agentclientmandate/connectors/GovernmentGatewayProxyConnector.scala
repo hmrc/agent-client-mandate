@@ -17,10 +17,10 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.Logger
-import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.http.ContentTypes.XML
+import play.api.http.HeaderNames.CONTENT_TYPE
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
-import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, Identifier, GsoAdminDeallocateAgentXmlInput}
+import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
 
@@ -30,14 +30,17 @@ import scala.concurrent.Future
 
 trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseReads {
 
-  def serviceUrl:String = baseUrl("government-gateway-proxy")
+  def serviceUrl: String = baseUrl("government-gateway-proxy")
+
   val ggUri = "government-gateway-proxy"
+
   def http: HttpGet with HttpPost with HttpPut
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
-        logResponse(input.agentCode, input.serviceName, input.identifiers, response.body)
+        Logger.info(s"[GovernmentGatewayProxyConnector][allocateAgent] - inputXml - ${input.toXml} " +
+          s"\n status: ${response.status} \n output - ${response.body}")
         response
       })
   }
@@ -45,14 +48,10 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
   def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
-        logResponse(input.agentCode, input.serviceName, input.identifiers, response.body)
+        Logger.info(s"[GovernmentGatewayProxyConnector][deAllocateAgent] - inputXml - ${input.toXml} " +
+          s"\n status: ${response.status} \n output - ${response.body}")
         response
       })
-  }
-
-  def logResponse(agentCode: String, serviceName: String, identifiers: List[Identifier], body: String)(implicit hc: HeaderCarrier): Unit = {
-    Logger.debug("agentCode: " + agentCode + "\n" +
-                 "response:" + body)
   }
 
 }

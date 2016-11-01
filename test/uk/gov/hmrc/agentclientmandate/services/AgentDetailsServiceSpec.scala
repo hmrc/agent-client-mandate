@@ -80,7 +80,7 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         Future.successful(successResponseJsonAuth)
       }
 
-      when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+      when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
         Future.successful(successResponseJsonETMP)
       }
 
@@ -118,7 +118,7 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         Future.successful(successResponseJsonAuth)
       }
 
-      when(etmpConnectorMock.getAgentDetailsFromEtmp(Matchers.any())) thenReturn {
+      when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
         Future.successful(successResponseJsonETMP)
       }
 

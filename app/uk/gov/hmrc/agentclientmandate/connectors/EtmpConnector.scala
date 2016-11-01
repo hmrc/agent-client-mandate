@@ -20,6 +20,7 @@ import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
@@ -33,6 +34,7 @@ object EtmpConnector extends EtmpConnector {
   val urlHeaderEnvironment: String = config("etmp-hod").getString("environment").fold("")(x => x)
   val urlHeaderAuthorization: String = s"Bearer ${config("etmp-hod").getString("authorization-token").fold("")(x => x)}"
   val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val metrics: Metrics = Metrics
   // $COVERAGE-ON$
 }
 
@@ -45,6 +47,8 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
   def urlHeaderAuthorization: String
 
   def http: HttpGet with HttpPost with HttpPut
+
+  def metrics: Metrics
 
 
   def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
@@ -65,16 +69,33 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
     }
   }
 
-  def getAgentDetailsFromEtmp(arn: String): Future[JsValue] = {
-
-    implicit val hc = createHeaderCarrier
-
-    http.GET[HttpResponse](s"$etmpUrl/registration/details?arn=$arn") map { response =>
-      Logger.info(s"[EtmpConnector][getDetailsFromEtmp] - response.status = ${response.status} && response.body = ${response.body}")
-      response.status match {
-        case OK => response.json
-        case status => throw new RuntimeException("No ETMP details found")
+  def getDetails(identifier: String, identifierType: String): Future[JsValue] = {
+    def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
+      implicit val hc = createHeaderCarrier
+      Logger.info(s"[EtmpConnector][getDetailsFromEtmp] - GET $getUrl")
+      val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)
+      http.GET[HttpResponse](getUrl).map { response =>
+        timerContext.stop()
+        Logger.info(s"[EtmpConnector][getDetails] - response.status = ${response.status} && response.body = ${response.body}")
+        response.status match {
+          case OK =>
+            metrics.incrementSuccessCounter(MetricsEnum.EtmpGetDetails)
+            response.json
+          case status =>
+            metrics.incrementFailedCounter(MetricsEnum.EtmpGetDetails)
+            Logger.warn(s"[EtmpConnector][getDetailsFromEtmp] - status: $status Error ${response.body}")
+            throw new RuntimeException("No ETMP details found")
+        }
       }
+    }
+
+    identifierType match {
+      case "arn" => getDetailsFromEtmp(s"$etmpUrl/registration/details?arn=$identifier")
+      case "safeid" => getDetailsFromEtmp(s"$etmpUrl/registration/details?safeid=$identifier")
+      case "utr" => getDetailsFromEtmp(s"$etmpUrl/registration/details?utr=$identifier")
+      case unknownIdentifier =>
+        Logger.warn(s"[EtmpConnector][getDetails] - unexpected identifier type supplied of $unknownIdentifier")
+        throw new RuntimeException(s"Unexpected identifier type supplied - $unknownIdentifier")
     }
   }
 

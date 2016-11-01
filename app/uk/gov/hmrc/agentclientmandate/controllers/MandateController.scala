@@ -20,7 +20,7 @@ import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate._
-import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate}
+import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate, NonUKClientDto}
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -145,16 +145,26 @@ trait MandateController extends BaseController {
 
   def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[Seq[GGRelationshipDto]] match {
-      case Some(x) => {
+      case Some(x) =>
         Logger.info(s"request for migration for ${x.size} clients")
-        createService.insertExistingRelationships(x).map {
+        val ggdtoList = x map ( _.copy(agentCode = Some(agentCode)))
+        createService.insertExistingRelationships(ggdtoList).map {
           case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
           case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
         }
-      }
       case None => Future.successful(BadRequest)
     }
   }
+
+
+  def createRelationship(ac: String) = Action.async(parse.json) { implicit request =>
+    withJsonBody[NonUKClientDto] { nonUKClientDto =>
+      createService.createMandateForNonUKClient(ac, nonUKClientDto) map { mandateId =>
+        Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
+      }
+    }
+  }
+
 }
 
 object MandateAgentController extends MandateController {

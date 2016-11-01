@@ -25,8 +25,8 @@ import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 class ProcessingSupervisor extends Actor with ActorUtils {
 
@@ -43,7 +43,9 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
     override def lockId: String = "existingRelationshipProcessing"
 
-    override val forceLockReleaseAfter: org.joda.time.Duration = org.joda.time.Duration.standardMinutes(5)
+    val FiveMinutes = 5
+
+    override val forceLockReleaseAfter: org.joda.time.Duration = org.joda.time.Duration.standardMinutes(FiveMinutes)
   }
 
   // $COVERAGE-OFF$
@@ -57,12 +59,10 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
   override def receive: Receive = {
 
-    case STOP => {
+    case STOP =>
       Logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
-      lockRepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
-    }
-
-    case START => {
+      lockRepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
+    case START =>
       lockKeeper.tryLock {
         context become receiveWhenProcessRunning
         Logger.debug("Starting Existing Relationship Processing")
@@ -85,17 +85,14 @@ class ProcessingSupervisor extends Actor with ActorUtils {
         case _ => Logger.debug(s"[ProcessingSupervisor][receive] failed to obtain mongo lock")
         // $COVERAGE-ON$
       }
-    }
 
   }
 
-  def receiveWhenProcessRunning : Receive = {
+  def receiveWhenProcessRunning: Receive = {
     case START => Logger.debug("[ProcessingSupervisor][received while processing] START ignored")
-
-    case STOP => {
+    case STOP =>
       Logger.debug("[ProcessingSupervisor][received while processing] STOP received")
-      lockRepo.releaseLock(lockKeeper.lockId,lockKeeper.serverId)
+      lockRepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
       context unbecome
-    }
   }
 }

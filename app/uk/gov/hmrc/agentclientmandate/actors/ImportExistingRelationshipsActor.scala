@@ -17,9 +17,10 @@
 package uk.gov.hmrc.agentclientmandate.actors
 
 import akka.actor.{Actor, Props}
+import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.models.GGRelationshipDto
 import uk.gov.hmrc.agentclientmandate.services.MandateCreateService
-import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class ImportExistingRelationshipsActor extends Actor with ActorUtils {
@@ -27,7 +28,7 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
   self: ImportExistingRelationshipsActorComponent =>
 
   override def receive: Receive = {
-    case request: GGRelationshipDto => {
+    case request: GGRelationshipDto =>
 
       val origSender = sender
 
@@ -37,24 +38,19 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
         Logger.info("[ImportExistingRelationshipsActor] - Importing result: " + result)
         origSender ! result // this result is only used in testing
 
-      }.recover {
+      } recover {
         case e =>
           // $COVERAGE-OFF$
           Logger.error(s"[ImportExistingRelationshipsActor] - Importing existing relationship failed with error :$e")
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }
-    }
-
-    case STOP => {
+    case STOP =>
       Logger.debug(s"[ImportExistingRelationshipsActor] stop message")
       sender ! STOP
-    }
-
-    case e => {
+    case e =>
       Logger.debug(s"[ImportExistingRelationshipsActor] Invalid Message : { message : $e}")
       sender ! akka.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
-    }
   }
 
 }
@@ -73,6 +69,7 @@ trait DefaultImportExistingRelationshipsActorComponent extends ImportExistingRel
 
 object ImportExistingRelationshipsActor {
   // $COVERAGE-OFF$
-  def props = Props(classOf[DefaultImportExistingRelationshipsActor])
+  def props: Props = Props(classOf[DefaultImportExistingRelationshipsActor])
+
   // $COVERAGE-ON$
 }

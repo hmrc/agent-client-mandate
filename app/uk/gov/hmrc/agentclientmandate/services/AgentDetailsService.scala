@@ -36,7 +36,7 @@ trait AgentDetailsService {
 
       val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
 
-      etmpConnector.getAgentDetailsFromEtmp(agentPartyId).map { etmpDetails =>
+      etmpConnector.getDetails(agentPartyId, "arn").map { etmpDetails =>
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
 
         val agentName = if (isAnIndividual) {
