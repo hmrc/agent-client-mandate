@@ -182,7 +182,8 @@ trait MandateCreateService {
         clientParty = Some(Party(dto.safeId, clientPartyName, clientPartyType, ContactDetails(dto.clientEmail))),
         currentStatus = MandateStatus(Status.Active, DateTime.now(), updatedBy = agentCredId),
         statusHistory = Nil,
-        subscription = Subscription(referenceNumber = Some(dto.subscriptionReference), service = Service(dto.service, dto.service))
+        subscription = Subscription(referenceNumber = Some(dto.subscriptionReference), service = Service(dto.service, dto.service)),
+        clientDisplayName = clientPartyName
       )
     }
 
