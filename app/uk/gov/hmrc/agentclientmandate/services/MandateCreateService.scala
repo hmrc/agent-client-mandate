@@ -72,6 +72,7 @@ trait MandateCreateService {
             partyType,
             ContactDetails(createMandateDto.email, None)
           ),
+          clientDisplayName = createMandateDto.displayName,
           clientParty = None,
           currentStatus = currentStatus,
           statusHistory = Nil,
@@ -109,6 +110,7 @@ trait MandateCreateService {
             agentPartyType,
             ContactDetails("", None)
           ),
+          clientDisplayName = clientPartyName,
           clientParty = Some(Party(
             clientPartyId,
             clientPartyName,

@@ -66,7 +66,8 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   val mockMandateRepository = mock[MandateRepository]

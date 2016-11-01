@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.models
+package uk.gov.hmrc.agentclientmandate.events
 
-import play.api.libs.json.Json
+import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.AuditExtensions._
 
-case class CreateMandateDto(email: String, serviceName: String, displayName: String)
-
-object CreateMandateDto {
-  implicit val formats = Json.format[CreateMandateDto]
-}
+abstract class MandateBusinessEvent(auditType: String, detail: Map[String, String])(implicit hc: HeaderCarrier)
+  extends DataEvent(auditSource = "agent-client-mandate", auditType = auditType, detail = detail, tags = hc.toAuditTags("", "N/A"))

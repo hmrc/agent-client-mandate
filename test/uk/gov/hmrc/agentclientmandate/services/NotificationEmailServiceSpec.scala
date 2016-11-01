@@ -91,7 +91,8 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
       clientParty = Some(Party("XVAT00000123456", "Jon Snow", PartyType.Organisation, ContactDetails("client@test.com", Some("0123456789")))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(Some("XVAT00000123456"), Service("ated", "ATED"))
+      subscription = Subscription(Some("XVAT00000123456"), Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   val invalidMandateId = "123456"

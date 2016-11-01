@@ -147,7 +147,8 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED"))
+      subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   override def beforeEach(): Unit = {

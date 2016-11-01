@@ -26,7 +26,8 @@ class MandateSpec extends PlaySpec {
     clientParty = None,
     currentStatus = MandateStatus(Status.New, DateTime.now, "credId"),
     statusHistory = Nil,
-    subscription = Subscription(None, Service("ated", "ATED"))
+    subscription = Subscription(None, Service("ated", "ATED")),
+    clientDisplayName = "client display name"
   )
 
   "MandateSpec" must {

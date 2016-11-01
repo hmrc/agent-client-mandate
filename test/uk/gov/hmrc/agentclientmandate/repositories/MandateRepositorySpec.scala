@@ -209,7 +209,8 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ated"))
+      subscription = Subscription(None, Service("ated", "ated")),
+      clientDisplayName = "client display name"
     )
 
   def updatedMandate: Mandate =
@@ -218,7 +219,8 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = Some(Party("XBAT00000123456", "Joe Ated", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
-      subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED"))
+      subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   def mandate1: Mandate =
@@ -227,7 +229,8 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   val mockCollection = mock[JSONCollection]
