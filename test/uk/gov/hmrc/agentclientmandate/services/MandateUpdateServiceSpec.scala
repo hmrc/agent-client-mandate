@@ -122,7 +122,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     User("credid", "Joe Bloggs", None),
     agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
     currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
-    subscription = Subscription(None, Service("ated", "ATED"))
+    subscription = Subscription(None, Service("ated", "ATED")),
+    clientDisplayName = "client display name"
   )
 
   val clientApprovedMandate = Mandate("AS12345678",
@@ -130,7 +131,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
     clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails("client@mail.com"))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, ""),
-    subscription = Subscription(None, Service("ated", "ATED"))
+    subscription = Subscription(None, Service("ated", "ATED")),
+    clientDisplayName = "client display name"
   )
 
   val updatedMandate = Mandate("AS12345678",
@@ -138,7 +140,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
-    subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED"))
+    subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
+    clientDisplayName = "client display name"
   )
 
   val authJson = Json.parse(

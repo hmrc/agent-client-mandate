@@ -447,7 +447,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
   }
 
-  val mandateDto = CreateMandateDto("test@test.com", "ated")
+  val mandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
 
   def mandate(id: String, statusTime: DateTime): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
@@ -455,7 +455,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       clientParty = None,
       currentStatus = MandateStatus(Status.New, statusTime, "credid"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   implicit val hc = HeaderCarrier()

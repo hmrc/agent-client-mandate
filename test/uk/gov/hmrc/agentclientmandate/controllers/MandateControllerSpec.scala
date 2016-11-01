@@ -428,7 +428,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   val approvedMandate =
@@ -439,7 +440,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       clientParty = None,
       currentStatus = MandateStatus(Status.Approved, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   val activeMandate =
@@ -450,7 +452,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       clientParty = None,
       currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
   val activeMandate1 =
@@ -461,11 +464,12 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       clientParty = None,
       currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED"))
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
     )
 
 
-  val createMandateDto = CreateMandateDto("test@test.com", "ated")
+  val createMandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
 
   val registeredAddressDetails = RegisteredAddressDetails("123 Fake Street", "Somewhere", None, None, None, "GB")
   val agentDetails = AgentDetails("Agent Ltd.", registeredAddressDetails)
