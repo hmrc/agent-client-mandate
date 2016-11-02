@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentclientmandate
 
 import uk.gov.hmrc.agentclientmandate.config.MicroserviceGlobal
+import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.play.audit.model.{Audit, DataEvent, EventTypes}
 import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.HeaderCarrier
@@ -28,7 +29,26 @@ trait Auditable extends AppName {
   def audit =  new Audit(appName, MicroserviceGlobal.auditConnector)
   // $COVERAGE-ON$
 
-  def sendDataEvent(auditType: String, detail: Map[String, String])
+  def doAudit(auditType: String, ac: String, m: Mandate)(implicit hc:HeaderCarrier): Unit = {
+
+    val auditDetails = Map("serviceName" -> m.subscription.service.name,
+      "mandateId" -> m.id,
+      "agentPartyId" -> m.agentParty.id,
+      "agentPartyName" -> m.agentParty.name,
+      "agentCode" -> ac)
+
+    val clientAuditDetails = {
+      m.clientParty match {
+        case Some(x) => Map("clientPartyId" -> x.id,
+          "clientPartyName" -> x.name)
+        case _ => Map.empty
+      }
+    }
+
+    sendDataEvent(auditType, auditDetails ++ clientAuditDetails)
+  }
+
+  private def sendDataEvent(auditType: String, detail: Map[String, String])
                    (implicit hc: HeaderCarrier): Unit =
     audit.sendDataEvent(DataEvent(appName, auditType,
       tags = hc.toAuditTags("", "N/A"),

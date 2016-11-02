@@ -212,25 +212,6 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def doAudit(auditType: String, ac: String, m: Mandate)(implicit hc:HeaderCarrier): Unit = {
-
-    val auditDetails = Map("serviceName" -> m.subscription.service.name,
-                          "mandateId" -> m.id,
-                          "agentPartyId" -> m.agentParty.id,
-                          "agentPartyName" -> m.agentParty.name,
-                          "agentCode" -> ac)
-
-    val clientAuditDetails = {
-      m.clientParty match {
-        case Some(x) => Map("clientPartyId" -> x.id,
-                            "clientPartyName" -> x.name)
-        case _ => Map.empty
-      }
-    }
-
-    sendDataEvent(auditType, auditDetails ++ clientAuditDetails)
-  }
-
   def insertExistingRelationships(ggRelationshipDtos: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert] = {
     mandateRepository.insertExistingRelationships(ggRelationshipDtos)
   }
