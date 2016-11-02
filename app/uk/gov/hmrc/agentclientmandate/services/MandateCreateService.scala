@@ -183,7 +183,7 @@ trait MandateCreateService {
         currentStatus = MandateStatus(Status.Active, DateTime.now(), updatedBy = agentCredId),
         statusHistory = Nil,
         subscription = Subscription(referenceNumber = Some(dto.subscriptionReference), service = Service(dto.service, dto.service)),
-        clientDisplayName = clientPartyName
+        clientDisplayName = dto.clientDisplayName
       )
     }
 
