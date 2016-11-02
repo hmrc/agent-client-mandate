@@ -24,7 +24,8 @@ case class NonUKClientDto(
                            service: String,
                            clientEmail: String,
                            arn: String,
-                           agentEmail: String
+                           agentEmail: String,
+                           clientDisplayName: String
                          )
 
 object NonUKClientDto {
