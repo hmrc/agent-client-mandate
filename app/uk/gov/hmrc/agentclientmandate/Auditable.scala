@@ -14,11 +14,23 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.events
+package uk.gov.hmrc.agentclientmandate
 
-import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.agentclientmandate.config.MicroserviceGlobal
+import uk.gov.hmrc.play.audit.model.{Audit, DataEvent, EventTypes}
+import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions._
 
-abstract class MandateBusinessEvent(auditType: String, detail: Map[String, String])(implicit hc: HeaderCarrier)
-  extends DataEvent(auditSource = "agent-client-mandate", auditType = auditType, detail = detail, tags = hc.toAuditTags("", "N/A"))
+trait Auditable extends AppName {
+
+  // $COVERAGE-OFF$
+  def audit =  new Audit(appName, MicroserviceGlobal.auditConnector)
+  // $COVERAGE-ON$
+
+  def sendDataEvent(auditType: String, detail: Map[String, String])
+                   (implicit hc: HeaderCarrier): Unit =
+    audit.sendDataEvent(DataEvent(appName, auditType,
+      tags = hc.toAuditTags("", "N/A"),
+      detail = hc.toAuditDetails(detail.toSeq: _*)))
+}
