@@ -491,6 +491,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
     reset(mandateRepositoryMock)
     reset(authConnectorMock)
     reset(etmpConnectorMock)
+    reset(relationshipServiceMock)
   }
 
 }
