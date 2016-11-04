@@ -46,7 +46,6 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
         timerContext.stop()
         Logger.info(s"[GovernmentGatewayProxyConnector][allocateAgent] - inputXml - ${input.toXml} " +
           s"\n status: ${response.status} \n output - ${response.body}")
-        metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
         response
       })
   }
@@ -58,7 +57,6 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
         timerContext.stop()
         Logger.info(s"[GovernmentGatewayProxyConnector][deAllocateAgent] - inputXml - ${input.toXml} " +
           s"\n status: ${response.status} \n output - ${response.body}")
-        metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
         response
       })
   }

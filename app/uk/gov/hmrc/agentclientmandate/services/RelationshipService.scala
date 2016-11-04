@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.domain.AtedUtr
@@ -36,6 +37,8 @@ trait RelationshipService {
   def authConnector: AuthConnector
 
   def mandateFetchService: MandateFetchService
+
+  def metrics: Metrics
 
   def maintainRelationship(mandate: Mandate, agentCode: String, action: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
@@ -55,8 +58,12 @@ trait RelationshipService {
                     agentCode,
                     mandate.subscription.service.name.toUpperCase)).map { resp =>
                   resp.status match {
-                    case OK => resp
-                    case _ => throw new RuntimeException("Authorise - GG Proxy call failed")
+                    case OK =>
+                      metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+                      resp
+                    case _ =>
+                      metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
+                      throw new RuntimeException("Authorise - GG Proxy call failed")
                   }
                 }
               case "Deauthorise" =>
@@ -66,8 +73,12 @@ trait RelationshipService {
                     agentCode,
                     mandate.subscription.service.name.toUpperCase)).map { resp =>
                   resp.status match {
-                    case OK => resp
-                    case _ => throw new RuntimeException("Deauthorise - GG Proxy call failed")
+                    case OK =>
+                      metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+                      resp
+                    case _ =>
+                      metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+                      throw new RuntimeException("Deauthorise - GG Proxy call failed")
                   }
                 }
             }
@@ -104,5 +115,6 @@ object RelationshipService extends RelationshipService {
   val etmpConnector: EtmpConnector = EtmpConnector
   val authConnector: AuthConnector = AuthConnector
   val mandateFetchService: MandateFetchService = MandateFetchService
+  val metrics = Metrics
   // $COVERAGE-ON$
 }
