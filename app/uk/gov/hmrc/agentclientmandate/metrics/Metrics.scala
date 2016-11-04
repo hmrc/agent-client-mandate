@@ -60,7 +60,9 @@ object Metrics extends Metrics {
   val failedCounters = Map(
     MetricsEnum.EtmpGetDetails -> MetricsRegistry.defaultRegistry.counter("etmp-get-details-failed-counter"),
     MetricsEnum.MaintainAtedRelationship -> MetricsRegistry.defaultRegistry.counter("etmp-maintain-ated-relationship-failed-counter"),
-    MetricsEnum.AtedSubscriptionDetails -> MetricsRegistry.defaultRegistry.counter("etmp-ated-subscription-details-failed-counter")
+    MetricsEnum.AtedSubscriptionDetails -> MetricsRegistry.defaultRegistry.counter("etmp-ated-subscription-details-failed-counter"),
+    MetricsEnum.GGProxyAllocate -> MetricsRegistry.defaultRegistry.counter("gg-proxy-allocate-failed-counter"),
+    MetricsEnum.GGProxyDeallocate -> MetricsRegistry.defaultRegistry.counter("gg-proxy-deallocate-failed-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()

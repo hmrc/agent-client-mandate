@@ -25,6 +25,7 @@ import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
 import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
@@ -168,6 +169,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     override val etmpConnector = etmpMock
     override val authConnector: AuthConnector = mockAuthConnector
     override val mandateFetchService: MandateFetchService = mockMandateFetchService
+    override val metrics = Metrics
   }
 
   val successResponseJsonAuth = Json.parse(
