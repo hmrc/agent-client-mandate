@@ -27,6 +27,8 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.utils.TestAudit
+import uk.gov.hmrc.play.audit.model.Audit
 import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
@@ -175,7 +177,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         val mandateId = TestClientMandateCreateService.createMandateId
 
         when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
+          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
         }
         when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
           Future.successful(ExistingRelationshipProcessed)
@@ -219,7 +221,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         val mandateId = TestClientMandateCreateService.createMandateId
 
         when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
+          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
         }
         when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
           Future.successful(ExistingRelationshipProcessError)
@@ -373,7 +375,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
              }""")
 
         when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
+          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
         }
 
         when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
@@ -459,6 +461,16 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       clientDisplayName = "client display name"
     )
 
+  def mandateWithClient(id: String, statusTime: DateTime): Mandate =
+    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("clientId", "client name", PartyType.Organisation, ContactDetails("client@test.com", Some("0123456789")))),
+      currentStatus = MandateStatus(Status.New, statusTime, "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
   implicit val hc = HeaderCarrier()
   val agentCode = "ac"
 
@@ -472,12 +484,14 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
     override val authConnector = authConnectorMock
     override val etmpConnector = etmpConnectorMock
     override val relationshipService = relationshipServiceMock
+    override val audit: Audit = new TestAudit
   }
 
   override def beforeEach(): Unit = {
     reset(mandateRepositoryMock)
     reset(authConnectorMock)
     reset(etmpConnectorMock)
+    reset(relationshipServiceMock)
   }
 
 }

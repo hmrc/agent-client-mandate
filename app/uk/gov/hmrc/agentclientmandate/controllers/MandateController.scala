@@ -29,7 +29,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 //scalastyle:off public.methods.have.type
-trait MandateController extends BaseController {
+trait MandateController extends BaseController with Auditable {
 
   def createService: MandateCreateService
 
@@ -69,7 +69,10 @@ trait MandateController extends BaseController {
     request.body.asOpt[Mandate] match {
       case Some(newMandate) =>
         updateService.approveMandate(newMandate) map {
-          case MandateUpdated(y) => Ok(Json.toJson(y))
+          case MandateUpdated(m) => {
+            doAudit("approved", "", m)
+            Ok(Json.toJson(m))
+          }
           case MandateUpdateError => InternalServerError
         }
       case None => Future.successful(BadRequest)
@@ -85,7 +88,10 @@ trait MandateController extends BaseController {
               response.status match {
                 case OK =>
                   updateService.updateStatus(mandate, models.Status.Active).map {
-                    case MandateUpdated(y) => Ok(Json.toJson(y))
+                    case MandateUpdated(m) => {
+                      doAudit("activated", agentCode, m)
+                      Ok(Json.toJson(m))
+                    }
                     case MandateUpdateError => InternalServerError
                   }
                 case BAD_REQUEST => Future.successful(BadRequest)
@@ -111,7 +117,10 @@ trait MandateController extends BaseController {
               response.status match {
                 case OK =>
                   updateService.updateStatus(mandate, models.Status.Cancelled).map {
-                    case MandateUpdated(y) => Ok(Json.toJson(y))
+                    case MandateUpdated(m) => {
+                      doAudit("removed", agentCode, m)
+                      Ok(Json.toJson(m))
+                    }
                     case MandateUpdateError => InternalServerError
                   }
                 case BAD_REQUEST => Future.successful(BadRequest)
@@ -129,8 +138,11 @@ trait MandateController extends BaseController {
 
   def agentRejectsClient(ac: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) => updateService.updateStatus(mandate, models.Status.PendingCancellation).map {
-        case MandateUpdated(y) => Ok
+      case MandateFetched(mandate) => updateService.updateStatus(mandate, models.Status.Cancelled).map {
+        case MandateUpdated(m) => {
+          doAudit("rejected", ac, m)
+          Ok
+        }
         case MandateUpdateError => InternalServerError
       }
       case MandateNotFound => Future.successful(NotFound)

@@ -28,6 +28,8 @@ import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
+import uk.gov.hmrc.agentclientmandate.utils.TestAudit
+import uk.gov.hmrc.play.audit.model.Audit
 import uk.gov.hmrc.play.http.HttpResponse
 
 import scala.concurrent.Future
@@ -401,6 +403,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     override val relationshipService = relationshipServiceMock
     override val updateService = updateServiceMock
     override val agentDetailsService = agentDetailsServiceMock
+    override val audit: Audit = new TestAudit
   }
 
   override def beforeEach(): Unit = {

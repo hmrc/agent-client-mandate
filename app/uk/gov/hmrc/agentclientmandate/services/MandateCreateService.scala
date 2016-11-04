@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
@@ -28,7 +29,7 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait MandateCreateService {
+trait MandateCreateService extends Auditable {
 
   def mandateRepository: MandateRepository
 
@@ -82,7 +83,10 @@ trait MandateCreateService {
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
         mandateRepository.insertMandate(mandate).map {
-          case MandateCreated(m) => m.id
+          case MandateCreated(m) => {
+            doAudit("createMandate", agentCode, m)
+            m.id
+          }
           case _ => throw new RuntimeException("Mandate not created")
         }
       }
@@ -96,11 +100,8 @@ trait MandateCreateService {
       val clientPartyName = (subscriptionJson \ "organisationName").as[String]
 
       etmpConnector.getDetails(ggRelationshipDto.agentPartyId, "arn").flatMap { etmpDetails =>
-
         val isAnIndividual = isIndividual(etmpDetails)
-
         val agentPartyName: String = getPartyName(etmpDetails, isAnIndividual)
-
         val agentPartyType = getPartyType(isAnIndividual)
 
         val mandate = Mandate(
@@ -131,7 +132,11 @@ trait MandateCreateService {
         mandateRepository.insertMandate(mandate).flatMap {
           case MandateCreated(m) =>
             mandateRepository.existingRelationshipProcessed(ggRelationshipDto).map {
-              case ExistingRelationshipProcessed => true
+              case ExistingRelationshipProcessed => {
+                implicit val hc = new HeaderCarrier()
+                doAudit("createExistingRelationshipMandate", "", m)(hc)
+                true
+              }
               case ExistingRelationshipProcessError => false
             }
           case _ => Future.successful(false)
@@ -161,7 +166,6 @@ trait MandateCreateService {
     val agentDetailsJsonFuture = etmpConnector.getDetails(dto.arn, "arn")
     val nonUKClientDetailsJsonFuture = etmpConnector.getDetails(dto.safeId, "safeid")
     val authorityJsonFuture = authConnector.getAuthority()
-    val mandateId = createMandateId
 
     def createMandateToSave(agentDetails: JsValue, clientDetails: JsValue, authorityJson: JsValue): Mandate = {
       val isAgentAnIndividual = isIndividual(agentDetails)
@@ -174,7 +178,7 @@ trait MandateCreateService {
       val clientPartyType = getPartyType(isClientAnIndividual)
 
       Mandate(
-        id = mandateId,
+        id = createMandateId,
         createdBy = User(agentCredId, agentPartyName, groupId = Some(ac)),
         approvedBy = Some(User(agentCredId, agentPartyName, groupId = Some(ac))),
         assignedTo = None,
@@ -200,7 +204,10 @@ trait MandateCreateService {
         mandateRepository.insertMandate(mandateToSave)
       }
     } yield mandateCreate match {
-      case MandateCreated(m) => m.id
+      case MandateCreated(m) => {
+        doAudit("createMandateNonUKClient", ac, m)
+        m.id
+      }
       case _ => throw new RuntimeException("Mandate not created")
     }
   }

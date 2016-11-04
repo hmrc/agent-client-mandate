@@ -20,5 +20,16 @@ object MetricsEnum extends Enumeration {
 
   type MetricsEnum = Value
   val EtmpGetDetails = Value
-
+  val MaintainAtedRelationship = Value
+  val AtedSubscriptionDetails = Value
+  val RepositoryInsertMandate = Value
+  val RepositoryUpdateMandate = Value
+  val RepositoryFetchMandate = Value
+  val RepositoryFetchMandatesByService = Value
+  val RepositoryInsertExistingRelationships = Value
+  val RepositoryAgentAlreadyInserted = Value
+  val RepositoryExistingRelationshipProcessed = Value
+  val RepositoryFindGGRelationshipsToProcess = Value
+  val GGProxyAllocate = Value
+  val GGProxyDeallocate = Value
 }

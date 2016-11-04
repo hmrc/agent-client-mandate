@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
 import play.api.Logger
+import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailStatus, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
@@ -27,7 +28,7 @@ import uk.gov.hmrc.play.http.HeaderCarrier
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait MandateUpdateService {
+trait MandateUpdateService extends Auditable {
 
   def mandateRepository: MandateRepository
 

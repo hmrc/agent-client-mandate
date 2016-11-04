@@ -58,11 +58,15 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     Logger.info(s"[EtmpConnector][maintainAtedRelationship] - POST $postUrl & payload = $jsonData")
+    val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
     http.POST(postUrl, jsonData) map { response =>
+      timerContext.stop()
       response.status match {
         case OK | NO_CONTENT =>
+          metrics.incrementSuccessCounter(MetricsEnum.MaintainAtedRelationship)
           response
         case status =>
+          metrics.incrementFailedCounter(MetricsEnum.MaintainAtedRelationship)
           Logger.warn(s"[EtmpConnector][maintainAtedRelationship] - status: $status Error ${response.body}")
           throw new RuntimeException("ETMP call failed")
       }
@@ -102,11 +106,18 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
   def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
     implicit val headerCarrier = createHeaderCarrier
     val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
+    Logger.info(s"[EtmpConnector][getAtedSubscriptionDetails] - GET $getUrl")
+    val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
     http.GET[HttpResponse](s"$getUrl") map { response =>
+      timerContext.stop()
       Logger.info(s"[EtmpConnector][getAtedSubscriptionDetails] - response.status = ${response.status} && response.body = ${response.body}")
       response.status match {
-        case OK => response.json
-        case status => throw new RuntimeException("Error in getting ATED subscription details from ETMP")
+        case OK =>
+          metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
+          response.json
+        case status =>
+          metrics.incrementFailedCounter(MetricsEnum.AtedSubscriptionDetails)
+          throw new RuntimeException("Error in getting ATED subscription details from ETMP")
       }
     }
   }
