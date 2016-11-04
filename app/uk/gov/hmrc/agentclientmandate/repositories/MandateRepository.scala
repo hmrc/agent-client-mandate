@@ -22,6 +22,7 @@ import reactivemongo.api.DB
 import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.{GGRelationshipDto, Mandate}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
@@ -73,6 +74,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess]
 
   def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
+
+  def metrics: Metrics
 }
 
 object MandateRepository extends MongoDbConnection {
@@ -87,6 +90,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[Mandate, BSONObjectID]("mandates", mongo, Mandate.formats, ReactiveMongoFormats.objectIdFormats)
     with MandateRepository {
 
+  val metrics: Metrics = Metrics
+
   override def indexes: Seq[Index] = {
     Seq(
       Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
@@ -97,7 +102,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
   }
 
   def insertMandate(mandate: Mandate): Future[MandateCreate] = {
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryInsertMandate)
     collection.insert[Mandate](mandate).map { writeResult =>
+      timerContext.stop()
       writeResult.ok match {
         case true => MandateCreated(mandate)
         case _ => MandateCreateError
@@ -105,6 +112,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }.recover {
       // $COVERAGE-OFF$
       case e => Logger.error("Failed to insert mandate", e)
+        timerContext.stop()
         MandateCreateError
       // $COVERAGE-ON$
     }
@@ -114,7 +122,20 @@ class MandateMongoRepository(implicit mongo: () => DB)
     val query = BSONDocument(
       "id" -> mandate.id
     )
-    collection.update(query, mandate, upsert = false).map(writeResult => MandateUpdated(mandate))
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateMandate)
+    collection.update(query, mandate, upsert = false).map { writeResult =>
+      timerContext.stop()
+      writeResult.ok match {
+        case true => MandateUpdated(mandate)
+        case _ => MandateUpdateError
+      }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.error("Failed to update mandate", e)
+        timerContext.stop()
+        MandateUpdateError
+      // $COVERAGE-ON$
+    }
 
   }
 
@@ -122,9 +143,14 @@ class MandateMongoRepository(implicit mongo: () => DB)
     val query = BSONDocument(
       "id" -> mandateId
     )
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandate)
     collection.find(query).one[Mandate] map {
-      case Some(mandate) => MandateFetched(mandate)
-      case _ => MandateNotFound
+      case Some(mandate) =>
+        timerContext.stop()
+        MandateFetched(mandate)
+      case _ =>
+        timerContext.stop()
+        MandateNotFound
     }
   }
 
@@ -133,19 +159,34 @@ class MandateMongoRepository(implicit mongo: () => DB)
       "agentParty.id" -> arn,
       "subscription.service.name" -> serviceName.toLowerCase
     )
-    collection.find(query).cursor[Mandate]().collect[Seq]()
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandatesByService)
+    val result = collection.find(query).cursor[Mandate]().collect[Seq]()
+
+    result onComplete {
+      case _ => timerContext.stop()
+    }
+    result
   }
 
   def insertExistingRelationships(ggRelationshipDtos: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert] = {
 
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryInsertExistingRelationships)
     agentAlreadyInserted(ggRelationshipDtos.head.agentPartyId).flatMap {
-      case ExistingAgentFound => Future.successful(ExistingRelationshipsAlreadyExist)
+      case ExistingAgentFound =>
+        timerContext.stop()
+        Future.successful(ExistingRelationshipsAlreadyExist)
       case ExistingAgentNotFound => {
 
         val insertResult = Try {
           val bulkDocs = ggRelationshipDtos.map(implicitly[collection.ImplicitlyDocumentProducer](_))
 
-          collection.bulkInsert(ordered=false)(bulkDocs: _*)
+          val result = collection.bulkInsert(ordered=false)(bulkDocs: _*)
+
+          result onComplete {
+            case _ => timerContext.stop()
+          }
+
+          result
         }
 
         insertResult match {
@@ -183,6 +224,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
   }
 
   def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess] = {
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryExistingRelationshipProcessed)
     val query = BSONDocument(
       "agentPartyId" -> ggRelationshipDto.agentPartyId,
       "clientSubscriptionId" -> ggRelationshipDto.clientSubscriptionId,
@@ -191,7 +233,15 @@ class MandateMongoRepository(implicit mongo: () => DB)
 
     val modifier = BSONDocument("$set" -> BSONDocument("processed" -> true))
 
-    val updateResult = Try { collection.update(query, modifier, multi = false, upsert = false) }
+    val updateResult = Try {
+      val result = collection.update(query, modifier, multi = false, upsert = false)
+
+      result onComplete {
+        case _ => timerContext.stop()
+      }
+
+      result
+    }
 
     updateResult match {
       case Success(s) => {
@@ -215,14 +265,20 @@ class MandateMongoRepository(implicit mongo: () => DB)
   }
 
   def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]] = {
-
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindGGRelationshipsToProcess)
     val result = Try {
 
       val query = BSONDocument(
         "agentPartyId" -> BSONDocument("$exists" -> true),
         "processed" -> BSONDocument("$exists" -> false)
       )
-      collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
+      val result = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
+
+      result onComplete {
+        case _ => timerContext.stop()
+      }
+
+      result
     }
 
     result match {

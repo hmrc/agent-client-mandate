@@ -22,6 +22,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
 import uk.gov.hmrc.play.http._
 import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
@@ -43,6 +44,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
   object TestGovernmentGatewayProxyConnector extends GovernmentGatewayProxyConnector {
     override val http: HttpGet with HttpPost with HttpPut = mockWSHttp
+    val metrics = Metrics
   }
 
 

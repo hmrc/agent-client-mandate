@@ -20,6 +20,7 @@ import play.api.Logger
 import play.api.http.ContentTypes.XML
 import play.api.http.HeaderNames.CONTENT_TYPE
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
@@ -36,20 +37,28 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 
   def http: HttpGet with HttpPost with HttpPut
 
+  def metrics: Metrics
+
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    val timerContext = metrics.startTimer(MetricsEnum.GGProxyAllocate)
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
+        timerContext.stop()
         Logger.info(s"[GovernmentGatewayProxyConnector][allocateAgent] - inputXml - ${input.toXml} " +
           s"\n status: ${response.status} \n output - ${response.body}")
+        metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
         response
       })
   }
 
   def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
+        timerContext.stop()
         Logger.info(s"[GovernmentGatewayProxyConnector][deAllocateAgent] - inputXml - ${input.toXml} " +
           s"\n status: ${response.status} \n output - ${response.body}")
+        metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
         response
       })
   }
@@ -60,5 +69,6 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 object GovernmentGatewayProxyConnector extends GovernmentGatewayProxyConnector {
   // $COVERAGE-OFF$
   val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val metrics = Metrics
   // $COVERAGE-ON$
 }
