@@ -83,10 +83,9 @@ trait MandateCreateService extends Auditable {
         )
         Logger.info(s"[MandateCreateService][createMandate] - mandate = $mandate")
         mandateRepository.insertMandate(mandate).map {
-          case MandateCreated(m) => {
+          case MandateCreated(m) =>
             doAudit("createMandate", agentCode, m)
             m.id
-          }
           case _ => throw new RuntimeException("Mandate not created")
         }
       }
@@ -132,11 +131,10 @@ trait MandateCreateService extends Auditable {
         mandateRepository.insertMandate(mandate).flatMap {
           case MandateCreated(m) =>
             mandateRepository.existingRelationshipProcessed(ggRelationshipDto).map {
-              case ExistingRelationshipProcessed => {
+              case ExistingRelationshipProcessed =>
                 implicit val hc = new HeaderCarrier()
                 doAudit("createExistingRelationshipMandate", "", m)(hc)
                 true
-              }
               case ExistingRelationshipProcessError => false
             }
           case _ => Future.successful(false)
@@ -204,10 +202,9 @@ trait MandateCreateService extends Auditable {
         mandateRepository.insertMandate(mandateToSave)
       }
     } yield mandateCreate match {
-      case MandateCreated(m) => {
+      case MandateCreated(m) =>
         doAudit("createMandateNonUKClient", ac, m)
         m.id
-      }
       case _ => throw new RuntimeException("Mandate not created")
     }
   }

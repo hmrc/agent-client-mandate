@@ -32,28 +32,41 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 sealed trait MandateCreate
+
 case class MandateCreated(mandate: Mandate) extends MandateCreate
+
 case object MandateCreateError extends MandateCreate
 
 sealed trait MandateUpdate
+
 case class MandateUpdated(mandate: Mandate) extends MandateUpdate
+
 case object MandateUpdateError extends MandateUpdate
 
 sealed trait MandateFetchStatus
+
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
+
 case object MandateNotFound extends MandateFetchStatus
 
 sealed trait ExistingRelationshipsInsert
+
 case object ExistingRelationshipsInserted extends ExistingRelationshipsInsert
+
 case object ExistingRelationshipsInsertError extends ExistingRelationshipsInsert
+
 case object ExistingRelationshipsAlreadyExist extends ExistingRelationshipsInsert
 
 sealed trait ExistingAgentStatus
+
 case object ExistingAgentFound extends ExistingAgentStatus
+
 case object ExistingAgentNotFound extends ExistingAgentStatus
 
 sealed trait ExistingRelationshipProcess
+
 case object ExistingRelationshipProcessed extends ExistingRelationshipProcess
+
 case object ExistingRelationshipProcessError extends ExistingRelationshipProcess
 
 
@@ -149,7 +162,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
         timerContext.stop()
         MandateFetched(mandate)
       case _ =>
+        // $COVERAGE-OFF$
         timerContext.stop()
+        // $COVERAGE-ON$
         MandateNotFound
     }
   }
@@ -163,7 +178,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     val result = collection.find(query).cursor[Mandate]().collect[Seq]()
 
     result onComplete {
-      case _ => timerContext.stop()
+      _ => timerContext.stop()
     }
     result
   }
@@ -175,22 +190,22 @@ class MandateMongoRepository(implicit mongo: () => DB)
       case ExistingAgentFound =>
         timerContext.stop()
         Future.successful(ExistingRelationshipsAlreadyExist)
-      case ExistingAgentNotFound => {
+      case ExistingAgentNotFound =>
 
         val insertResult = Try {
           val bulkDocs = ggRelationshipDtos.map(implicitly[collection.ImplicitlyDocumentProducer](_))
 
-          val result = collection.bulkInsert(ordered=false)(bulkDocs: _*)
+          val result = collection.bulkInsert(ordered = false)(bulkDocs: _*)
 
           result onComplete {
-            case _ => timerContext.stop()
+            _ => timerContext.stop()
           }
 
           result
         }
 
         insertResult match {
-          case Success(s) => {
+          case Success(s) =>
             s.map {
               case x: MultiBulkWriteResult if x.writeErrors == Nil =>
                 Logger.debug(s"[MandateRepository][insertExistingRelationships] $x")
@@ -202,14 +217,11 @@ class MandateMongoRepository(implicit mongo: () => DB)
                 ExistingRelationshipsInsertError
               // $COVERAGE-ON$
             }
-          }
 
-          case Failure(f) => {
+          case Failure(f) =>
             Logger.error(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
             Future.successful(ExistingRelationshipsInsertError)
-          }
         }
-      }
     }
   }
 
@@ -237,14 +249,14 @@ class MandateMongoRepository(implicit mongo: () => DB)
       val result = collection.update(query, modifier, multi = false, upsert = false)
 
       result onComplete {
-        case _ => timerContext.stop()
+        _ => timerContext.stop()
       }
 
       result
     }
 
     updateResult match {
-      case Success(s) => {
+      case Success(s) =>
         s.map {
           case x: WriteResult if x.writeErrors == Nil && !x.hasErrors && x.ok =>
             Logger.debug(s"[MandateRepository][existingRelationshipProcessed] $x")
@@ -256,11 +268,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
             ExistingRelationshipProcessError
           // $COVERAGE-ON$
         }
-      }
-      case Failure(f) => {
+      case Failure(f) =>
         Logger.error(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
         Future.successful(ExistingRelationshipProcessError)
-      }
     }
   }
 
@@ -275,23 +285,21 @@ class MandateMongoRepository(implicit mongo: () => DB)
       val result = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
 
       result onComplete {
-        case _ => timerContext.stop()
+        _ => timerContext.stop()
       }
 
       result
     }
 
     result match {
-      case Success(s) => {
+      case Success(s) =>
         s.map { x =>
           Logger.info(s"[MandateRepository][findGGRelationshipsToProcess] found relationships: ${x.size}")
           x
         }
-      }
-      case Failure(f) => {
+      case Failure(f) =>
         Logger.error(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
         Future.successful(Nil)
-      }
     }
 
   }
