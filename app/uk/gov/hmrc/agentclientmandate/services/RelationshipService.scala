@@ -45,7 +45,7 @@ trait RelationshipService {
     if (mandate.subscription.service.name.toUpperCase == "ATED") {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
-      val clientId = mandate.clientParty.get.id
+      val clientId = mandate.subscription.referenceNumber.getOrElse("")
 
       etmpConnector.maintainAtedRelationship(createEtmpRelationship(clientId, mandate.agentParty.id, action)).flatMap { etmpResponse =>
         etmpResponse.status match {
