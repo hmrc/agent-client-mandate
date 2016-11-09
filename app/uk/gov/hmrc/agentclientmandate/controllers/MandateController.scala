@@ -177,6 +177,18 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
+  def editMandate(agentCode: String) = Action.async(parse.json) { implicit request =>
+    println("I am inside editMandate................")
+    request.body.asOpt[Mandate] match {
+      case Some(newMandate) =>
+        updateService.updateMandate(newMandate, "agent") map {
+          case MandateUpdated(mandate) =>  Ok(Json.toJson(mandate))
+          case MandateUpdateError => InternalServerError
+        }
+      case None => Future.successful(BadRequest)
+    }
+  }
+
 }
 
 object MandateAgentController extends MandateController {
