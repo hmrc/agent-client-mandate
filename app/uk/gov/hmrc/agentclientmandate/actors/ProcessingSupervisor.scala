@@ -60,8 +60,10 @@ class ProcessingSupervisor extends Actor with ActorUtils {
   override def receive: Receive = {
 
     case STOP =>
+      // $COVERAGE-OFF$
       Logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
       lockRepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
+    // $COVERAGE-ON$
     case START =>
       lockKeeper.tryLock {
         context become receiveWhenProcessRunning
@@ -89,10 +91,12 @@ class ProcessingSupervisor extends Actor with ActorUtils {
   }
 
   def receiveWhenProcessRunning: Receive = {
+    // $COVERAGE-OFF$
     case START => Logger.debug("[ProcessingSupervisor][received while processing] START ignored")
     case STOP =>
       Logger.debug("[ProcessingSupervisor][received while processing] STOP received")
       lockRepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
       context unbecome
+    // $COVERAGE-ON$
   }
 }

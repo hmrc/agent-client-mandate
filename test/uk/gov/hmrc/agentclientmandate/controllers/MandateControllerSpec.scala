@@ -346,7 +346,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
     }
 
-    "trying to create mandate for non-uk client by an agent" when {
+      "trying to create mandate for non-uk client by an agent" when {
 
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
@@ -356,6 +356,21 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         status(result) must be(CREATED)
       }
 
+    }
+
+    "edit mandate details" must {
+      "return OK, when mandate is updated in MongoDB" in {
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
+        val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
+        status(result) must be(OK)
+      }
+      "return INTERNAL_SERVER_ERROR, when update fail in MongoDB" in {
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
+        val result = TestMandateController.editMandate(agentCode).apply(fakeRequest)
+        status(result) must be(INTERNAL_SERVER_ERROR)
+      }
     }
 
   }
