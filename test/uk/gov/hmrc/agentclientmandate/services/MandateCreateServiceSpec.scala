@@ -141,8 +141,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
       "a client mandate is created" in {
         val mandateId = TestClientMandateCreateService.createMandateId
-        mandateId.length must be(10)
-        mandateId.take(2) must be("AS")
+        mandateId.length must be(8)
       }
     }
 
