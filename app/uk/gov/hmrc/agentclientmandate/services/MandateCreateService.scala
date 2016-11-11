@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.JsValue
+import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
@@ -40,9 +41,8 @@ trait MandateCreateService extends Auditable {
   def relationshipService: RelationshipService
 
   def createMandateId: String = {
-    val Eight = 8
-    val tsRef = new DateTime().getMillis.toString.takeRight(Eight)
-    s"AS$tsRef"
+
+    BSONObjectID.generate.stringify.take(8).toUpperCase
   }
 
   def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
