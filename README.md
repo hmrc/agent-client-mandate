@@ -13,11 +13,11 @@ identifiers.properties
     ated.ggEnrolment = HMRC_ATED_ORG
 ```
 
- | Name | Example |  Description     |
- |--------|-------------|
- | identifier | ATEDRefNumber | The name of the id field in the gateway enrolments   |
- | serviceId | ATED | The service name          |
- | ggEnrolment | HMRC_ATED_ORG | The gateway enrolment name  |
+| Name | Example |  Description     |
+|--------|-------------|
+| identifier | ATEDRefNumber | The name of the id field in the gateway enrolments   |
+| serviceId | ATED | The service name          |
+| ggEnrolment | HMRC_ATED_ORG | The gateway enrolment name  |
 
 ## Code Change
 Currently RelationshipService.maintainRelationship has only been written to work with ATED. This will have to be refactored to allow it to work for all services.
@@ -52,6 +52,7 @@ Used to create a new Client Mandate
 
 ### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId
 Retrieve the specific mandate
+
 | Status | Message     |
 |--------|-------------|
 | 200    | Ok          |
@@ -72,6 +73,7 @@ Agents Reject the Clients with this mandate Id
 
 ### GET /agent-client-mandate/agent/:ac/mandate/agentDetails
 Fetch Agent Details
+
 | Status | Message     |
 |--------|-------------|
 | 200    | Ok          |
@@ -105,7 +107,6 @@ Import Existing Relationship
 
 ### POST /agent-client-mandate/agent/:ac/mandate/non-uk
 Create relationship for non-uk clients by agent
-
 
 
 
