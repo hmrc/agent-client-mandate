@@ -32,16 +32,16 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
 
       val origSender = sender
       // $COVERAGE-OFF$
-      Logger.info("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
+      Logger.debug("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
       createService.createMandateForExistingRelationships(request).map { result =>
 
-        Logger.info("[ImportExistingRelationshipsActor] - Importing result: " + result)
+        Logger.debug("[ImportExistingRelationshipsActor] - Importing result: " + result)
         origSender ! result // this result is only used in testing
         // $COVERAGE-ON$
       } recover {
         case e =>
           // $COVERAGE-OFF$
-          Logger.error(s"[ImportExistingRelationshipsActor] - Importing existing relationship failed with error :$e")
+          Logger.warn(s"[ImportExistingRelationshipsActor] - Importing existing relationship failed with error :$e")
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }
