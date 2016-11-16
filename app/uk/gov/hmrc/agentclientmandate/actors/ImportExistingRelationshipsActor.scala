@@ -32,10 +32,10 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
 
       val origSender = sender
       // $COVERAGE-OFF$
-      Logger.info("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
+      Logger.debug("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
       createService.createMandateForExistingRelationships(request).map { result =>
 
-        Logger.info("[ImportExistingRelationshipsActor] - Importing result: " + result)
+        Logger.debug("[ImportExistingRelationshipsActor] - Importing result: " + result)
         origSender ! result // this result is only used in testing
         // $COVERAGE-ON$
       } recover {

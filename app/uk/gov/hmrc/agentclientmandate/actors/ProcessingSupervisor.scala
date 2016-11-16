@@ -52,7 +52,7 @@ class ProcessingSupervisor extends Actor with ActorUtils {
   lazy val repository: MandateRepository = MandateRepository()
   lazy val processingActor: ActorRef = context.actorOf(ImportExistingRelationshipsActor.props, "import-existing-relationship-processor")
   lazy val throttler: ActorRef = context.actorOf(Props(classOf[TimerBasedThrottler],
-    ApplicationConfig.etmpTps msgsPer 10.seconds), "throttler")
+    ApplicationConfig.etmpTps msgsPer 2.seconds), "throttler")
   // $COVERAGE-ON$
 
   throttler ! SetTarget(Some(processingActor))

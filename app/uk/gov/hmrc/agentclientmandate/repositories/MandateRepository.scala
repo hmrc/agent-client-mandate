@@ -222,6 +222,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
             Logger.error(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
             Future.successful(ExistingRelationshipsInsertError)
         }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.error("Failed to insert existing relationship", e)
+        timerContext.stop()
+        ExistingRelationshipsInsertError
+      // $COVERAGE-ON$
     }
   }
 
@@ -294,7 +300,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     result match {
       case Success(s) =>
         s.map { x =>
-          Logger.info(s"[MandateRepository][findGGRelationshipsToProcess] found relationships: ${x.size}")
+          Logger.debug(s"[MandateRepository][findGGRelationshipsToProcess] found relationships: ${x.size}")
           x
         }
       case Failure(f) =>

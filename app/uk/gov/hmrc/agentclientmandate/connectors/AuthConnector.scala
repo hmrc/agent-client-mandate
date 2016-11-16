@@ -34,9 +34,9 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
   def getAuthority()(implicit hc: HeaderCarrier): Future[JsValue] = {
 
     val getUrl = s"""$serviceUrl/$authorityUri"""
-    Logger.info(s"[AuthConnector][agentReferenceNo] - GET $getUrl")
+    Logger.debug(s"[AuthConnector][agentReferenceNo] - GET $getUrl")
     http.GET[HttpResponse](getUrl) map { response =>
-      Logger.info(s"[AuthConnector][agentReferenceNo] - RESPONSE status: ${response.status}, body: ${response.body}")
+      Logger.debug(s"[AuthConnector][agentReferenceNo] - RESPONSE status: ${response.status}, body: ${response.body}")
       response.status match {
         case OK => response.json
         case status => throw new RuntimeException("No authority found")

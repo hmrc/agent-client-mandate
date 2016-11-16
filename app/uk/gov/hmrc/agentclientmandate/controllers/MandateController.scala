@@ -158,7 +158,7 @@ trait MandateController extends BaseController with Auditable {
   def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[Seq[GGRelationshipDto]] match {
       case Some(x) =>
-        Logger.info(s"request for migration for ${x.size} clients")
+        Logger.debug(s"request for migration for ${x.size} clients")
         val ggdtoList = x map ( _.copy(agentCode = Some(agentCode)))
         createService.insertExistingRelationships(ggdtoList).map {
           case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
