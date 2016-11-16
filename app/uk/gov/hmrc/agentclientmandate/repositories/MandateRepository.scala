@@ -124,7 +124,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
       }
     }.recover {
       // $COVERAGE-OFF$
-      case e => Logger.error("Failed to insert mandate", e)
+      case e => Logger.warn("Failed to insert mandate", e)
         timerContext.stop()
         MandateCreateError
       // $COVERAGE-ON$
@@ -144,7 +144,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
       }
     }.recover {
       // $COVERAGE-OFF$
-      case e => Logger.error("Failed to update mandate", e)
+      case e => Logger.warn("Failed to update mandate", e)
         timerContext.stop()
         MandateUpdateError
       // $COVERAGE-ON$
@@ -213,18 +213,18 @@ class MandateMongoRepository(implicit mongo: () => DB)
             }.recover {
               case e: Throwable =>
                 // $COVERAGE-OFF$
-                Logger.error("Error inserting document", e)
+                Logger.warn("Error inserting document", e)
                 ExistingRelationshipsInsertError
               // $COVERAGE-ON$
             }
 
           case Failure(f) =>
-            Logger.error(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
+            Logger.warn(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
             Future.successful(ExistingRelationshipsInsertError)
         }
     }.recover {
       // $COVERAGE-OFF$
-      case e => Logger.error("Failed to insert existing relationship", e)
+      case e => Logger.warn("Failed to insert existing relationship", e)
         timerContext.stop()
         ExistingRelationshipsInsertError
       // $COVERAGE-ON$
@@ -270,12 +270,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
         }.recover {
           case e: Throwable =>
             // $COVERAGE-OFF$
-            Logger.error("Error updating document", e)
+            Logger.warn("Error updating document", e)
             ExistingRelationshipProcessError
           // $COVERAGE-ON$
         }
       case Failure(f) =>
-        Logger.error(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
+        Logger.warn(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
         Future.successful(ExistingRelationshipProcessError)
     }
   }
@@ -304,7 +304,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
           x
         }
       case Failure(f) =>
-        Logger.error(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
+        Logger.warn(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
 

@@ -41,7 +41,7 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
       } recover {
         case e =>
           // $COVERAGE-OFF$
-          Logger.error(s"[ImportExistingRelationshipsActor] - Importing existing relationship failed with error :$e")
+          Logger.warn(s"[ImportExistingRelationshipsActor] - Importing existing relationship failed with error :$e")
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }
