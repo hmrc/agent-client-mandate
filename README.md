@@ -2,6 +2,39 @@
 
 [![Build Status](https://travis-ci.org/hmrc/agent-client-mandate.svg)](https://travis-ci.org/hmrc/agent-client-mandate) [ ![Download](https://api.bintray.com/packages/hmrc/releases/agent-client-mandate/images/download.svg) ](https://bintray.com/hmrc/releases/agent-client-mandate/_latestVersion)
 
+### POST /agent-client-mandate/agent/:ac/mandate
+Agents Creates a Mandate that they can send to a client
+
+### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId
+Retrieve the specific mandate
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/approve
+Approvate the mandate for this user
+
+### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/service/:arn/:service
+Fetch all Mandates for this user
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/rejectClient/:mandateId
+Reject the Client with this mandate Id
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/rejectClient/:mandateId
+Reject the Client with this mandate Id
+
+### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/agentDetails
+Fetch Agent Details
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/activate/:mandateId
+Activate Mandate
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/remove/:mandateId
+Remove Mandate
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/importExisting
+Import Existing Relationship
+
+### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/edit/:mandateId
+Edit Mandate
+
 ### POST /agent-client-mandate/mandate
 
 Used to create a new Client Mandate
