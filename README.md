@@ -3,40 +3,6 @@
 [![Build Status](https://travis-ci.org/hmrc/agent-client-mandate.svg)](https://travis-ci.org/hmrc/agent-client-mandate) [ ![Download](https://api.bintray.com/packages/hmrc/releases/agent-client-mandate/images/download.svg) ](https://bintray.com/hmrc/releases/agent-client-mandate/_latestVersion)
 
 ### POST /agent-client-mandate/agent/:ac/mandate
-Agents Creates a Mandate that they can send to a client
-
-### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId
-Retrieve the specific mandate
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/approve
-Approvate the mandate for this user
-
-### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/service/:arn/:service
-Fetch all Mandates for this user
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/rejectClient/:mandateId
-Reject the Client with this mandate Id
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/rejectClient/:mandateId
-Reject the Client with this mandate Id
-
-### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/agentDetails
-Fetch Agent Details
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/activate/:mandateId
-Activate Mandate
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/remove/:mandateId
-Remove Mandate
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/importExisting
-Import Existing Relationship
-
-### POST /agent-client-mandate/{agent/:ac || org/:org}/mandate/edit/:mandateId
-Edit Mandate
-
-### POST /agent-client-mandate/mandate
-
 Used to create a new Client Mandate
 
 | Status | Message     |
@@ -68,6 +34,38 @@ Used to create a new Client Mandate
     "mandateId": "AS12345678"
   }
 ```
+
+### GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId
+Retrieve the specific mandate
+
+### POST /agent-client-mandate/org/:org/mandate/approve
+Client Approves the mandate
+
+### POST /agent-client-mandate/agent/:ac/mandate/activate/:mandateId
+Agent actives/approves Mandate
+
+### GET /agent-client-mandate/agent/:ac/mandate/service/:arn/:service
+Fetch all Mandates for this agent
+
+### POST /agent-client-mandate/agent/:ac/mandate/rejectClient/:mandateId
+Agents Reject the Clients with this mandate Id
+
+### GET /agent-client-mandate/agent/:ac/mandate/agentDetails
+Fetch Agent Details
+
+### POST /agent-client-mandate/agent/:ac/mandate/remove/:mandateId
+Remove Client
+
+### POST /agent-client-mandate/org/:org/mandate/remove/:mandateId
+Remove Agent
+
+### POST /agent-client-mandate/agent/:ac/mandate/importExisting
+Import Existing Relationship
+
+
+### POST /agent-client-mandate/agent/:ac/mandate/non-uk
+Create relationship for non-uk clients by agent
+
 
 
 ### License
