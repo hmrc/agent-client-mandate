@@ -14,7 +14,7 @@ identifiers.properties
 ```
 
 | Name | Example |  Description     |
-|--------|-------------|
+|--------|-------------|-------------|
 | identifier | ATEDRefNumber | The name of the id field in the gateway enrolments   |
 | serviceId | ATED | The service name          |
 | ggEnrolment | HMRC_ATED_ORG | The gateway enrolment name  |
@@ -36,8 +36,8 @@ Used to create a new Client Mandate
 
 ```json
   {
-    "email": "a@b.c"
-    "serviceName": "ATED"
+    "email": "a@b.c",
+    "serviceName": "ATED",
     "displayName": "ACME Ltd."
   }
 ```
@@ -83,7 +83,7 @@ Fetch Agent Details
 
 ```json
   {
-    "agentName": "abc agency"
+    "agentName": "abc agency",
     "addressDetails": {
         "addressLine1": "mandatory line 1",
         "addressLine2": "mandatory line 2",
