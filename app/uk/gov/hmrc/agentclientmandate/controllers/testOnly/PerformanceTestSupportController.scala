@@ -26,7 +26,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 //scalastyle:off public.methods.have.type
 trait PerformanceTestSupportController extends BaseController {
-
+  // $COVERAGE-OFF$
   def mandateRepository: MandateRepository
 
   def createMandate() = Action.async(parse.json) { implicit request =>
@@ -43,6 +43,7 @@ trait PerformanceTestSupportController extends BaseController {
       }
     }
   }
+  // $COVERAGE-ON$
 }
 
 
