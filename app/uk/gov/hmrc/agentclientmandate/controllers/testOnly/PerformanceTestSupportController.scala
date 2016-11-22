@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentclientmandate.controllers.testOnly
 import play.api.Logger
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateCreateError, MandateCreated, MandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -40,6 +40,19 @@ trait PerformanceTestSupportController extends BaseController {
           case MandateCreateError =>
             BadRequest
         }
+      }
+    }
+  }
+
+  def deleteMandate(mandateId: String) = Action.async { implicit request =>
+    Logger.debug(s"deleting mandate: $mandateId")
+    mandateRepository.removeMandate(mandateId).map { mandateStatus =>
+      mandateStatus match {
+        case MandateRemoved =>
+          Logger.debug("deleted test mandate")
+          Created
+        case MandateRemoveError =>
+          BadRequest
       }
     }
   }

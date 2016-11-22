@@ -11,7 +11,8 @@
 
 # Add all the application routes to the prod.routes file
 
-POST        /test-only/mandate/create      uk.gov.hmrc.agentclientmandate.controllers.testOnly.PerformanceTestSupportController.createMandate()
+POST        /test-only/mandate/create                 uk.gov.hmrc.agentclientmandate.controllers.testOnly.PerformanceTestSupportController.createMandate()
+DELETE      /test-only/mandate/delete/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.testOnly.PerformanceTestSupportController.deleteMandate(mandateId: String)
 
 ->         /                               prod.Routes
 
