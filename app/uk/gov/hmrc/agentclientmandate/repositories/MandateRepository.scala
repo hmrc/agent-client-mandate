@@ -32,43 +32,33 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 sealed trait MandateCreate
-
 case class MandateCreated(mandate: Mandate) extends MandateCreate
-
 case object MandateCreateError extends MandateCreate
 
 sealed trait MandateUpdate
-
 case class MandateUpdated(mandate: Mandate) extends MandateUpdate
-
 case object MandateUpdateError extends MandateUpdate
 
 sealed trait MandateFetchStatus
-
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
-
 case object MandateNotFound extends MandateFetchStatus
 
 sealed trait ExistingRelationshipsInsert
-
 case object ExistingRelationshipsInserted extends ExistingRelationshipsInsert
-
 case object ExistingRelationshipsInsertError extends ExistingRelationshipsInsert
-
 case object ExistingRelationshipsAlreadyExist extends ExistingRelationshipsInsert
 
 sealed trait ExistingAgentStatus
-
 case object ExistingAgentFound extends ExistingAgentStatus
-
 case object ExistingAgentNotFound extends ExistingAgentStatus
 
 sealed trait ExistingRelationshipProcess
-
 case object ExistingRelationshipProcessed extends ExistingRelationshipProcess
-
 case object ExistingRelationshipProcessError extends ExistingRelationshipProcess
 
+sealed trait MandateRemove
+case object MandateRemoved extends MandateRemove
+case object MandateRemoveError extends MandateRemove
 
 trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
@@ -87,6 +77,10 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess]
 
   def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
+
+  // $COVERAGE-OFF$
+  def removeMandate(mandateId: String): Future[MandateRemove]
+  // $COVERAGE-ON$
 
   def metrics: Metrics
 }
@@ -149,7 +143,6 @@ class MandateMongoRepository(implicit mongo: () => DB)
         MandateUpdateError
       // $COVERAGE-ON$
     }
-
   }
 
   def fetchMandate(mandateId: String): Future[MandateFetchStatus] = {
@@ -307,6 +300,24 @@ class MandateMongoRepository(implicit mongo: () => DB)
         Logger.warn(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
-
   }
+
+  // $COVERAGE-OFF$
+  // used for test-only
+  def removeMandate(mandateId: String): Future[MandateRemove] = {
+    val query = BSONDocument("id" -> mandateId)
+
+    collection.remove(query).map { writeResult =>
+      writeResult.ok match {
+        case true => MandateRemoved
+        case _ => MandateRemoveError
+      }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.warn("Failed to delete mandate", e)
+        MandateRemoveError
+      // $COVERAGE-ON$
+    }
+  }
+  // $COVERAGE-ON$
 }
