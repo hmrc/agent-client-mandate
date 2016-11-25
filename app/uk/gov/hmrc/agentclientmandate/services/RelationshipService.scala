@@ -66,7 +66,7 @@ trait RelationshipService {
                       throw new RuntimeException("Authorise - GG Proxy call failed")
                   }
                 }
-              case "Deauthorise" =>
+              case "De-Authorise" =>
                 ggProxyConnector.deAllocateAgent(
                   GsoAdminDeallocateAgentXmlInput(
                     List(Identifier(identifier, clientId)),
@@ -78,7 +78,7 @@ trait RelationshipService {
                       resp
                     case _ =>
                       metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-                      throw new RuntimeException("Deauthorise - GG Proxy call failed")
+                      throw new RuntimeException("De-Authorise - GG Proxy call failed")
                   }
                 }
             }

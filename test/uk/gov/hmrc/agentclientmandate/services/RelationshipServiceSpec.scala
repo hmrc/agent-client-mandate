@@ -92,7 +92,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
 
         val response = the[RuntimeException] thrownBy await(TestRelationshipService.maintainRelationship(mandate, agentCode, deAuthoriseAction)(hc))
-        response.getMessage must be("Deauthorise - GG Proxy call failed")
+        response.getMessage must be("De-Authorise - GG Proxy call failed")
       }
 
       "if service not ATED, throw bad request exception" in {
@@ -134,7 +134,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
   val agentCode = "ABC"
   val authoriseAction = "Authorise"
-  val deAuthoriseAction = "Deauthorise"
+  val deAuthoriseAction = "De-Authorise"
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
   val atedUtr2: AtedUtr = new Generator().nextAtedUtr
 
