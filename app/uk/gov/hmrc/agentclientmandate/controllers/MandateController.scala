@@ -113,7 +113,7 @@ trait MandateController extends BaseController with Auditable {
         updateService.updateStatus(mandate, models.Status.PendingCancellation).flatMap {
           case MandateUpdated(x) =>
             val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
-            relationshipService.maintainRelationship(mandate, agentCode, "Deauthorise").flatMap { response =>
+            relationshipService.maintainRelationship(mandate, agentCode, "De-Authorise").flatMap { response =>
               response.status match {
                 case OK =>
                   updateService.updateStatus(mandate, models.Status.Cancelled).map {
