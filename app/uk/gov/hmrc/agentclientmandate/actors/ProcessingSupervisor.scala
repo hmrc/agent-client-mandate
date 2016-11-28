@@ -26,6 +26,7 @@ import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 class ProcessingSupervisor extends Actor with ActorUtils {
@@ -46,6 +47,16 @@ class ProcessingSupervisor extends Actor with ActorUtils {
     val FiveMinutes = 5
 
     override val forceLockReleaseAfter: org.joda.time.Duration = org.joda.time.Duration.standardMinutes(FiveMinutes)
+
+    // $COVERAGE-OFF$
+    override def tryLock[T](body: => Future[T])(implicit ec : ExecutionContext): Future[Option[T]] = {
+      repo.lock(lockId, serverId, forceLockReleaseAfter)
+        .flatMap { acquired =>
+          if (acquired) { body.map { case x => Some(x) } }
+          else Future.successful(None)
+        }.recoverWith { case ex => repo.releaseLock(lockId, serverId).flatMap(_ => Future.failed(ex)) }
+    }
+    // $COVERAGE-ON$
   }
 
   // $COVERAGE-OFF$
@@ -67,23 +78,24 @@ class ProcessingSupervisor extends Actor with ActorUtils {
     case START =>
       lockKeeper.tryLock {
         context become receiveWhenProcessRunning
-        Logger.debug("Starting Existing Relationship Processing")
+        Logger.debug("[ProcessingSupervisor] Starting Existing Relationship Processing")
 
         repository.findGGRelationshipsToProcess().map { result =>
           if (result.nonEmpty) {
             for (ggRelationship <- result) {
+              Logger.debug("[ProcessingSupervisor] Sending request through")
               throttler ! ggRelationship
             }
             throttler ! STOP
           }
           else {
+            Logger.debug("[ProcessingSupervisor] processing nothing")
             throttler ! STOP
-            context unbecome
           }
         }
       }.map {
         // $COVERAGE-OFF$
-        case Some(thing) => Logger.debug(s"[ProcessingSupervisor][receive] obtained mongo lock")
+        case Some(thing) => Logger.debug(s"[ProcessingSupervisor][receive] finished processing, released lock")
         case _ => Logger.debug(s"[ProcessingSupervisor][receive] failed to obtain mongo lock")
         // $COVERAGE-ON$
       }
