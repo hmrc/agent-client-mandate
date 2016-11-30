@@ -1,42 +1,45 @@
 # microservice specific routes
 
 ## Auth call for agent-client relationship ##
-GET    /ated/agent/:ac/client/:ated             uk.gov.hmrc.agentclientmandate.controllers.auth.AgentDelegationForAtedController.isAuthorisedForAted(ac: uk.gov.hmrc.domain.AgentCode, ated: uk.gov.hmrc.domain.AtedUtr)
+GET    /ated/agent/:ac/client/:ated                 uk.gov.hmrc.agentclientmandate.controllers.auth.AgentDelegationForAtedController.isAuthorisedForAted(ac: uk.gov.hmrc.domain.AgentCode, ated: uk.gov.hmrc.domain.AtedUtr)
 
 # get agent details
-GET    /agent/:ac/mandate/agentDetails          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getAgentDetails(ac: String)
+GET    /agent/:ac/mandate/agentDetails              uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getAgentDetails(ac: String)
 
 #create mandate
-POST   /agent/:ac/mandate                        uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.create(ac: String)
+POST   /agent/:ac/mandate                           uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.create(ac: String)
 
 # fetch mandate
-GET    /agent/:ac/mandate/:mandateId             uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetch(ac: String, mandateId: String)
+GET    /agent/:ac/mandate/:mandateId                uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetch(ac: String, mandateId: String)
 
-GET    /org/:org/mandate/:mandateId              uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetch(org: String, mandateId: String)
+GET    /org/:org/mandate/:mandateId                 uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetch(org: String, mandateId: String)
 
 # fetch mandate for service
-GET    /agent/:ac/mandate/service/:arn/:service  uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetchAll(ac: String, arn: String, service: String)
+GET    /agent/:ac/mandate/service/:arn/:service     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetchAll(ac: String, arn: String, service: String)
 
 # update mandate as client approves it
-POST   /org/:org/mandate/approve                 uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.approve(org: String)
+POST   /org/:org/mandate/approve                    uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.approve(org: String)
 
 # agent activates/approves client
-POST   /agent/:ac/mandate/activate/:mandateId    uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.activate(ac: String, mandateId: String)
+POST   /agent/:ac/mandate/activate/:mandateId       uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.activate(ac: String, mandateId: String)
 
 # agent rejects client
-POST   /agent/:ac/mandate/rejectClient/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.agentRejectsClient(ac: String, mandateId: String)
+POST   /agent/:ac/mandate/rejectClient/:mandateId   uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.agentRejectsClient(ac: String, mandateId: String)
 
 # remove client
-POST   /agent/:ac/mandate/remove/:mandateId      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.remove(ac: String, mandateId: String)
+POST   /agent/:ac/mandate/remove/:mandateId         uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.remove(ac: String, mandateId: String)
 
 # remove agent
-POST   /org/:org/mandate/remove/:mandateId        uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.remove(org: String, mandateId: String)
+POST   /org/:org/mandate/remove/:mandateId          uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.remove(org: String, mandateId: String)
 
 # import existing relationships
-POST   /agent/:ac/mandate/importExisting          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.importExistingRelationships(ac: String)
+POST   /agent/:ac/mandate/importExisting            uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.importExistingRelationships(ac: String)
 
 # create relationship for non-uk clients by agent
-POST  /agent/:ac/mandate/non-uk                   uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.createRelationship(ac: String)
+POST  /agent/:ac/mandate/non-uk                     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.createRelationship(ac: String)
 
 #edit-mandate
-POST   /agent/:ac/mandate/edit                 uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.editMandate(ac: String)
+POST   /agent/:ac/mandate/edit                      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.editMandate(ac: String)
+
+# fetch mandate for client
+GET    /org/:org/mandate/:clientId/:service       uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetchByClient(org: String, clientId: String, service: String)

@@ -40,6 +40,7 @@ object Metrics extends Metrics {
     MetricsEnum.RepositoryInsertMandate -> MetricsRegistry.defaultRegistry.timer("repository-insert-mandate-timer"),
     MetricsEnum.RepositoryUpdateMandate -> MetricsRegistry.defaultRegistry.timer("repository-update-mandate-timer"),
     MetricsEnum.RepositoryFetchMandate -> MetricsRegistry.defaultRegistry.timer("repository-fetch-mandate-timer"),
+    MetricsEnum.RepositoryFetchMandateByClient -> MetricsRegistry.defaultRegistry.timer("repository-fetch-mandate-by-client-timer"),
     MetricsEnum.RepositoryFetchMandatesByService -> MetricsRegistry.defaultRegistry.timer("repository-fetch-mandates-service-timer"),
     MetricsEnum.RepositoryAgentAlreadyInserted -> MetricsRegistry.defaultRegistry.timer("repository-agent-already-inserted-timer"),
     MetricsEnum.RepositoryFindGGRelationshipsToProcess -> MetricsRegistry.defaultRegistry.timer("repository-find-gg-relationships-process-timer"),

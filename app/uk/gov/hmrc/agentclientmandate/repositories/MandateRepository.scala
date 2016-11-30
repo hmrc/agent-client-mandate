@@ -23,7 +23,7 @@ import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.agentclientmandate.models.{GGRelationshipDto, Mandate}
+import uk.gov.hmrc.agentclientmandate.models.{GGRelationshipDto, Mandate, Status}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -68,6 +68,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def fetchMandate(mandateId: String): Future[MandateFetchStatus]
 
+  def fetchMandateByClient(clientId: String, service: String): Future[MandateFetchStatus]
+
   def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]]
 
   def insertExistingRelationships(ggRelationshipDto: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert]
@@ -104,7 +106,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
       Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
       Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true),
       Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending,
-        "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true)
+        "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true),
+      Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending, "clientParty.id" -> IndexType.Ascending), name = Some("compoundClientFetchIndex"), sparse = true)
     )
   }
 
@@ -150,6 +153,26 @@ class MandateMongoRepository(implicit mongo: () => DB)
       "id" -> mandateId
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandate)
+    collection.find(query).one[Mandate] map {
+      case Some(mandate) =>
+        timerContext.stop()
+        MandateFetched(mandate)
+      case _ =>
+        // $COVERAGE-OFF$
+        timerContext.stop()
+        // $COVERAGE-ON$
+        MandateNotFound
+    }
+  }
+
+  def fetchMandateByClient(clientId: String, service: String): Future[MandateFetchStatus] = {
+    val query = BSONDocument(
+      "clientParty.id" -> clientId,
+      "currentStatus.status" -> Status.Active.toString,
+      "subscription.service.id" -> service.toUpperCase
+    )
+
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
     collection.find(query).one[Mandate] map {
       case Some(mandate) =>
         timerContext.stop()
