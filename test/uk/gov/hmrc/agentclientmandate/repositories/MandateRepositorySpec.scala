@@ -199,6 +199,39 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
+    "fetch a mandate from the repo by client" when {
+
+      "find the mandate when the correct client id and service is passed in" in {
+        await(testMandateRepository.insertMandate(updatedMandate))
+
+        await(testMandateRepository.count) must be(1)
+        await(testMandateRepository.fetchMandateByClient(updatedMandate.clientParty.get.id, updatedMandate.subscription.service.id)) must be(MandateFetched(updatedMandate))
+      }
+
+      "cannot find the mandate with incorrect client id passed in" in {
+        await(testMandateRepository.insertMandate(updatedMandate2))
+
+        await(testMandateRepository.count) must be(1)
+        await(testMandateRepository.fetchMandateByClient("XYZ", updatedMandate2.subscription.service.id)) must be(MandateNotFound)
+      }
+
+      "cannot find the mandate with correct client but not active" in {
+        await(testMandateRepository.insertMandate(updatedMandate3))
+
+        await(testMandateRepository.count) must be(1)
+        await(testMandateRepository.fetchMandateByClient(updatedMandate3.clientParty.get.id, updatedMandate3.subscription.service.id)) must be(MandateNotFound)
+      }
+
+      "find the mandate with same client but different service" in {
+        await(testMandateRepository.insertMandate(updatedMandate4))
+        await(testMandateRepository.insertMandate(updatedMandate2))
+
+        await(testMandateRepository.count) must be(2)
+        await(testMandateRepository.fetchMandateByClient(updatedMandate4.clientParty.get.id, updatedMandate4.subscription.service.id)) must be(MandateFetched(updatedMandate4))
+        await(testMandateRepository.fetchMandateByClient(updatedMandate2.clientParty.get.id, updatedMandate2.subscription.service.id)) must be(MandateFetched(updatedMandate2))
+      }
+    }
+
   }
 
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
@@ -209,7 +242,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ated")),
+      subscription = Subscription(None, Service("ATED", "ated")),
       clientDisplayName = "client display name"
     )
 
@@ -219,7 +252,37 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = Some(Party("XBAT00000123456", "Joe Ated", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
-      subscription = Subscription(Some("XBAT00000123456"), Service("ated", "ATED")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
+      clientDisplayName = "client display name"
+    )
+
+  def updatedMandate2: Mandate =
+    Mandate("AS12345678", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
+      currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("AWRS", "awrs")),
+      clientDisplayName = "client display name"
+    )
+
+  def updatedMandate3: Mandate =
+    Mandate("AS12345679", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
+      currentStatus = MandateStatus(Status.Approved, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
+      clientDisplayName = "client display name"
+    )
+
+  def updatedMandate4: Mandate =
+    Mandate("AS12345679", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
+      currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
       clientDisplayName = "client display name"
     )
 
@@ -229,7 +292,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
+      subscription = Subscription(None, Service("ATED", "ated")),
       clientDisplayName = "client display name"
     )
 

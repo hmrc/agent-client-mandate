@@ -29,6 +29,10 @@ trait MandateFetchService {
     mandateRepository.fetchMandate(mandateId)
   }
 
+  def fetchClientMandate(clientId: String, service: String): Future[MandateFetchStatus] = {
+    mandateRepository.fetchMandateByClient(clientId, service)
+  }
+
   def getAllMandates(arn: String, serviceName: String): Future[Seq[Mandate]] = {
     mandateRepository.getAllMandatesByServiceName(arn, serviceName)
   }

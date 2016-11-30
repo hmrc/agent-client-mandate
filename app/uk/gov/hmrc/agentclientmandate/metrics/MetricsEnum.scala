@@ -25,6 +25,7 @@ object MetricsEnum extends Enumeration {
   val RepositoryInsertMandate = Value
   val RepositoryUpdateMandate = Value
   val RepositoryFetchMandate = Value
+  val RepositoryFetchMandateByClient = Value
   val RepositoryFetchMandatesByService = Value
   val RepositoryInsertExistingRelationships = Value
   val RepositoryAgentAlreadyInserted = Value

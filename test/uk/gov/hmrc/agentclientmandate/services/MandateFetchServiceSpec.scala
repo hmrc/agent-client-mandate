@@ -56,6 +56,15 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     }
 
+    "a mandate is found for a valid client id and service" in {
+
+      when(mockMandateRepository.fetchMandateByClient(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
+
+      val response = TestFetchMandateService.fetchClientMandate("clientId", "service")
+      await(response) must be(MandateFetched(clientMandate))
+
+    }
+
   }
 
   val clientMandate =

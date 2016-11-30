@@ -228,12 +228,24 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(mandate))
       }
-    }
 
-    "return Not Found" when {
-      "an invalid or non-existing mandateId is passed" in {
+      "return not found with invalid or non-existing mandateId is passed" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
         val result = TestMandateController.fetch(agentCode, mandateId).apply(FakeRequest())
+        status(result) must be(NOT_FOUND)
+      }
+
+      "mandate found when fetching by client and valid clientId" in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateFetched(mandate))
+        val result = TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest())
+        status(result) must be(OK)
+        contentAsJson(result) must be(Json.toJson(mandate))
+      }
+
+      "mandate not found when fetching by client using invalid clientId" in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateNotFound)
+
+        val result = TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
     }
@@ -434,6 +446,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
   val mandateId = "123"
   val agentCode = "ABC"
+  val clientId = "XYZ"
   val orgId = "ORG"
   val arn = "JARN123456"
   val service = "ated"
