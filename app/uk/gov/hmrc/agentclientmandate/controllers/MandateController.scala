@@ -23,6 +23,7 @@ import uk.gov.hmrc.agentclientmandate._
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate, NonUKClientDto}
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
+import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -91,7 +92,7 @@ trait MandateController extends BaseController with Auditable {
       case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
         updateService.updateStatus(mandate, models.Status.PendingActivation).flatMap {
           case MandateUpdated(x) =>
-            relationshipService.maintainRelationship(mandate, agentCode, "Authorise").flatMap { response =>
+            relationshipService.maintainRelationship(mandate, agentCode, MandateConstants.Authorise).flatMap { response =>
               response.status match {
                 case OK =>
                   updateService.updateStatus(mandate, models.Status.Active).map {
@@ -120,7 +121,7 @@ trait MandateController extends BaseController with Auditable {
         updateService.updateStatus(mandate, models.Status.PendingCancellation).flatMap {
           case MandateUpdated(x) =>
             val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
-            relationshipService.maintainRelationship(mandate, agentCode, "De-Authorise").flatMap { response =>
+            relationshipService.maintainRelationship(mandate, agentCode, MandateConstants.DeAuthorise).flatMap { response =>
               response.status match {
                 case OK =>
                   updateService.updateStatus(mandate, models.Status.Cancelled).map {

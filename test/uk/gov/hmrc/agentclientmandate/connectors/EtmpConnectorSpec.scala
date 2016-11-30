@@ -94,7 +94,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
-        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = true)
+        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
         val response = await(TestEtmpConnector.maintainAtedRelationship(agentClientRelationship))
         response.status must be(OK)
@@ -107,7 +107,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
 
-        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = true)
+        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
         val result = TestEtmpConnector.maintainAtedRelationship(agentClientRelationship)
         val response = the[RuntimeException] thrownBy await(result)
