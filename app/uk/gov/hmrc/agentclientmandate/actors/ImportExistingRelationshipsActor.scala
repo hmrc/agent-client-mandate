@@ -45,6 +45,7 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
           origSender ! akka.actor.Status.Failure(e)
         // $COVERAGE-ON$
       }
+    // $COVERAGE-OFF$
     case STOP =>
       Logger.debug(s"[ImportExistingRelationshipsActor] stop message")
       sender ! STOP
@@ -52,6 +53,7 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
       Logger.debug(s"[ImportExistingRelationshipsActor] Invalid Message : { message : $e}")
       sender ! akka.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
   }
+  // $COVERAGE-ON$
 
 }
 

@@ -24,6 +24,7 @@ import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -51,7 +52,7 @@ trait RelationshipService {
         etmpResponse.status match {
           case OK =>
             action match {
-              case "Authorise" =>
+              case  Authorise =>
                 ggProxyConnector.allocateAgent(
                   GsoAdminAllocateAgentXmlInput(
                     List(Identifier(identifier, clientId)),
@@ -66,7 +67,7 @@ trait RelationshipService {
                       throw new RuntimeException("Authorise - GG Proxy call failed")
                   }
                 }
-              case "De-Authorise" =>
+              case DeAuthorise =>
                 ggProxyConnector.deAllocateAgent(
                   GsoAdminDeallocateAgentXmlInput(
                     List(Identifier(identifier, clientId)),
@@ -103,8 +104,12 @@ trait RelationshipService {
   }
 
   private def createEtmpRelationship(clientId: String, agentId: String, action: String) = {
-    val etmpRelationship = EtmpRelationship(action = action, isExclusiveAgent = true)
-    EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, etmpRelationship)
+    action match {
+      case Authorise => EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId,
+        EtmpRelationship(action = action, isExclusiveAgent = Some(true)))
+      case DeAuthorise => EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId,
+        EtmpRelationship(action = action, isExclusiveAgent = None))
+    }
   }
 
 }

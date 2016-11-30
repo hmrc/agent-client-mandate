@@ -18,14 +18,14 @@ package uk.gov.hmrc.agentclientmandate.models
 
 import play.api.libs.json.Json
 
-case class EtmpRelationship(action: String, isExclusiveAgent: Boolean)
+case class EtmpRelationship(action: String, isExclusiveAgent: Option[Boolean])
 
 object EtmpRelationship {
   implicit val formats = Json.format[EtmpRelationship]
 }
 
 case class EtmpAtedAgentClientRelationship(
-                                            acknowledgementReference: String,
+                                            acknowledgmentReference: String,
                                             atedRefNumber: String,
                                             agentReferenceNumber: String,
                                             authorisation: EtmpRelationship
