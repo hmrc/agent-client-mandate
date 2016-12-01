@@ -21,4 +21,8 @@ object MandateConstants {
   val Authorise = "Authorise"
   val DeAuthorise = "De-Authorise"
 
+  val AtedService = "ATED"
+
+  val AtedServiceContractName = "HMRC-ATED-ORG"
+
 }

@@ -43,7 +43,7 @@ trait RelationshipService {
 
   def maintainRelationship(mandate: Mandate, agentCode: String, action: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
-    if (mandate.subscription.service.name.toUpperCase == "ATED") {
+    if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
@@ -57,7 +57,7 @@ trait RelationshipService {
                   GsoAdminAllocateAgentXmlInput(
                     List(Identifier(identifier, clientId)),
                     agentCode,
-                    mandate.subscription.service.name.toUpperCase)).map { resp =>
+                    AtedServiceContractName)).map { resp =>
                   resp.status match {
                     case OK =>
                       metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
@@ -72,7 +72,7 @@ trait RelationshipService {
                   GsoAdminDeallocateAgentXmlInput(
                     List(Identifier(identifier, clientId)),
                     agentCode,
-                    mandate.subscription.service.name.toUpperCase)).map { resp =>
+                    AtedServiceContractName)).map { resp =>
                   resp.status match {
                     case OK =>
                       metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
