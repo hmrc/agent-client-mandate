@@ -230,6 +230,14 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.fetchMandateByClient(updatedMandate4.clientParty.get.id, updatedMandate4.subscription.service.id)) must be(MandateFetched(updatedMandate4))
         await(testMandateRepository.fetchMandateByClient(updatedMandate2.clientParty.get.id, updatedMandate2.subscription.service.id)) must be(MandateFetched(updatedMandate2))
       }
+
+      "find the newest mandate" in {
+        await(testMandateRepository.insertMandate(updatedMandate5))
+        await(testMandateRepository.insertMandate(updatedMandate4))
+
+        await(testMandateRepository.count) must be(2)
+        await(testMandateRepository.fetchMandateByClient(updatedMandate4.clientParty.get.id, updatedMandate4.subscription.service.id)) must be(MandateFetched(updatedMandate4))
+      }
     }
 
   }
@@ -256,6 +264,16 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientDisplayName = "client display name"
     )
 
+  def mandate1: Mandate =
+    Mandate("AS12345678", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ATED", "ated")),
+      clientDisplayName = "client display name"
+    )
+
   def updatedMandate2: Mandate =
     Mandate("AS12345678", createdBy = User("credid", "name", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
@@ -270,8 +288,8 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     Mandate("AS12345679", createdBy = User("credid", "name", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
-      currentStatus = MandateStatus(Status.Approved, new DateTime(1472631805678L), "credidclientupdate"),
-      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      currentStatus = MandateStatus(Status.New, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Nil,
       subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
       clientDisplayName = "client display name"
     )
@@ -286,13 +304,13 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientDisplayName = "client display name"
     )
 
-  def mandate1: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ATED", "ated")),
+  def updatedMandate5: Mandate =
+    Mandate("AS12345670", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
+      currentStatus = MandateStatus(Status.Cancelled, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
       clientDisplayName = "client display name"
     )
 

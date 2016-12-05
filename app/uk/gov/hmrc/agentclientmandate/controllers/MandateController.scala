@@ -117,7 +117,7 @@ trait MandateController extends BaseController with Auditable {
 
   def remove(authCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
+      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active || mandate.currentStatus.status == models.Status.Approved =>
         updateService.updateStatus(mandate, models.Status.PendingCancellation).flatMap {
           case MandateUpdated(x) =>
             val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
@@ -146,7 +146,7 @@ trait MandateController extends BaseController with Auditable {
 
   def agentRejectsClient(ac: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) => updateService.updateStatus(mandate, models.Status.Cancelled).map {
+      case MandateFetched(mandate) => updateService.updateStatus(mandate, models.Status.Rejected).map {
         case MandateUpdated(m) => {
           doAudit("rejected", ac, m)
           Ok

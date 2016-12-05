@@ -162,11 +162,11 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "status of mandate returned is not ACTIVE" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
 
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest()))
 
-        thrown.getMessage must include("Mandate with status Approved cannot be removed")
+        thrown.getMessage must include("Mandate with status New cannot be removed")
       }
 
       "no mandate is fetched" in {
