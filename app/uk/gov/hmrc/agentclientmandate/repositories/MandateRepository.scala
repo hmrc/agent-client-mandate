@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.repositories
 
 import play.api.Logger
+import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
 import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
@@ -166,14 +167,14 @@ class MandateMongoRepository(implicit mongo: () => DB)
   }
 
   def fetchMandateByClient(clientId: String, service: String): Future[MandateFetchStatus] = {
-    val query = BSONDocument(
+    val query = Json.obj(
       "clientParty.id" -> clientId,
-      "currentStatus.status" -> Status.Active.toString,
-      "subscription.service.id" -> service.toUpperCase
+      "subscription.service.id" -> service.toUpperCase,
+      "$or" -> Json.arr(Json.obj("currentStatus.status" -> Status.Active.toString), Json.obj("currentStatus.status" -> Status.Approved.toString), Json.obj("currentStatus.status" -> Status.Rejected.toString), Json.obj("currentStatus.status" -> Status.Cancelled.toString))
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
-    collection.find(query).one[Mandate] map {
+    collection.find(query).sort(Json.obj("_id" -> -1)).one[Mandate] map {
       case Some(mandate) =>
         timerContext.stop()
         MandateFetched(mandate)
