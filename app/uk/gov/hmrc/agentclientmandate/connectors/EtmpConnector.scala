@@ -57,7 +57,6 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
 
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
-    Logger.debug(s"[EtmpConnector][maintainAtedRelationship] - POST $postUrl & payload = $jsonData")
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
     http.POST(postUrl, jsonData) map { response =>
       timerContext.stop()
@@ -76,11 +75,9 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
   def getDetails(identifier: String, identifierType: String): Future[JsValue] = {
     def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
       implicit val hc = createHeaderCarrier
-      Logger.debug(s"[EtmpConnector][getDetailsFromEtmp] - GET $getUrl")
       val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)
       http.GET[HttpResponse](getUrl).map { response =>
         timerContext.stop()
-        Logger.debug(s"[EtmpConnector][getDetails] - response.status = ${response.status} && response.body = ${response.body}")
         response.status match {
           case OK =>
             metrics.incrementSuccessCounter(MetricsEnum.EtmpGetDetails)
@@ -106,11 +103,9 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
   def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
     implicit val headerCarrier = createHeaderCarrier
     val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
-    Logger.debug(s"[EtmpConnector][getAtedSubscriptionDetails] - GET $getUrl")
     val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
     http.GET[HttpResponse](s"$getUrl") map { response =>
       timerContext.stop()
-      Logger.debug(s"[EtmpConnector][getAtedSubscriptionDetails] - response.status = ${response.status} && response.body = ${response.body}")
       response.status match {
         case OK =>
           metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)

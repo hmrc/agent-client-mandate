@@ -72,24 +72,20 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
     case STOP =>
       // $COVERAGE-OFF$
-      Logger.debug("[ProcessingSupervisor] received while not processing: STOP received")
       lockRepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
     // $COVERAGE-ON$
     case START =>
       lockKeeper.tryLock {
         context become receiveWhenProcessRunning
-        Logger.debug("[ProcessingSupervisor] Starting Existing Relationship Processing")
 
         repository.findGGRelationshipsToProcess().map { result =>
           if (result.nonEmpty) {
             for (ggRelationship <- result) {
-              Logger.debug("[ProcessingSupervisor] Sending request through")
               throttler ! ggRelationship
             }
             throttler ! STOP
           }
           else {
-            Logger.debug("[ProcessingSupervisor] processing nothing")
             throttler ! STOP
           }
         }
@@ -104,9 +100,8 @@ class ProcessingSupervisor extends Actor with ActorUtils {
 
   def receiveWhenProcessRunning: Receive = {
     // $COVERAGE-OFF$
-    case START => Logger.debug("[ProcessingSupervisor][received while processing] START ignored")
+    case START =>
     case STOP =>
-      Logger.debug("[ProcessingSupervisor][received while processing] STOP received")
       lockRepo.releaseLock(lockKeeper.lockId, lockKeeper.serverId)
       context unbecome
     // $COVERAGE-ON$

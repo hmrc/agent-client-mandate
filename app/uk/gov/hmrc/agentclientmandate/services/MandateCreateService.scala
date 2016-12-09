@@ -19,7 +19,6 @@ package uk.gov.hmrc.agentclientmandate.services
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.JsValue
-import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
@@ -41,8 +40,7 @@ trait MandateCreateService extends Auditable {
   def relationshipService: RelationshipService
 
   def createMandateId: String = {
-
-    BSONObjectID.generate.stringify.take(8).toUpperCase
+    java.util.UUID.randomUUID.toString.take(8)
   }
 
   def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
@@ -81,7 +79,7 @@ trait MandateCreateService extends Auditable {
           statusHistory = Nil,
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
-        Logger.debug(s"[MandateCreateService][createMandate] - mandate = $mandate")
+        Logger.debug(s"[MandateCreateService][createMandate] - mandate = ${mandate.id}")
         mandateRepository.insertMandate(mandate).map {
           case MandateCreated(m) =>
             doAudit("createMandate", agentCode, m)
@@ -127,7 +125,7 @@ trait MandateCreateService extends Auditable {
           )
         )
 
-        Logger.debug(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = $mandate")
+        Logger.debug(s"[MandateCreateService][createMandateForExistingRelationships] - mandate = ${mandate.id}")
         mandateRepository.insertMandate(mandate).flatMap {
           case MandateCreated(m) =>
             mandateRepository.existingRelationshipProcessed(ggRelationshipDto).map {

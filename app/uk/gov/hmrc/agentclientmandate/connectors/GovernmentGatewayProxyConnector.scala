@@ -44,8 +44,6 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()
-        Logger.debug(s"[GovernmentGatewayProxyConnector][allocateAgent] - inputXml - ${input.toXml} " +
-          s"\n status: ${response.status} \n output - ${response.body}")
         response
       })
   }
@@ -55,8 +53,6 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()
-        Logger.debug(s"[GovernmentGatewayProxyConnector][deAllocateAgent] - inputXml - ${input.toXml} " +
-          s"\n status: ${response.status} \n output - ${response.body}")
         response
       })
   }

@@ -36,7 +36,6 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
     val getUrl = s"""$serviceUrl/$authorityUri"""
     Logger.debug(s"[AuthConnector][agentReferenceNo] - GET $getUrl")
     http.GET[HttpResponse](getUrl) map { response =>
-      Logger.debug(s"[AuthConnector][agentReferenceNo] - RESPONSE status: ${response.status}, body: ${response.body}")
       response.status match {
         case OK => response.json
         case status => throw new RuntimeException("No authority found")

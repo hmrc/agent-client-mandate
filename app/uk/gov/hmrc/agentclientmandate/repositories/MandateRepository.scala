@@ -225,7 +225,6 @@ class MandateMongoRepository(implicit mongo: () => DB)
           case Success(s) =>
             s.map {
               case x: MultiBulkWriteResult if x.writeErrors == Nil =>
-                Logger.debug(s"[MandateRepository][insertExistingRelationships] $x")
                 ExistingRelationshipsInserted
             }.recover {
               case e: Throwable =>
@@ -282,7 +281,6 @@ class MandateMongoRepository(implicit mongo: () => DB)
       case Success(s) =>
         s.map {
           case x: WriteResult if x.writeErrors == Nil && !x.hasErrors && x.ok =>
-            Logger.debug(s"[MandateRepository][existingRelationshipProcessed] $x")
             ExistingRelationshipProcessed
         }.recover {
           case e: Throwable =>
@@ -317,7 +315,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     result match {
       case Success(s) =>
         s.map { x =>
-          Logger.debug(s"[MandateRepository][findGGRelationshipsToProcess] found relationships: ${x.size}")
+          Logger.debug(s"[MandateRepository][findGGRelationshipsToProcess] found ${x.size} relationships to process")
           x
         }
       case Failure(f) =>

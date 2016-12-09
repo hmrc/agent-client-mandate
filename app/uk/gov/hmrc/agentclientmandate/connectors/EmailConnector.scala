@@ -50,8 +50,6 @@ trait EmailConnector extends ServicesConfig with RawResponseReads {
     val postUrl = s"$serviceUrl/$sendEmailUri"
     val jsonData = Json.toJson(sendEmailReq)
 
-    Logger.debug(s"[EmailConnector][sendTemplatedEmail] - POST - $postUrl and JSON Data - $jsonData")
-
     http.POST(postUrl, jsonData).map { response =>
       response.status match {
         case ACCEPTED => EmailSent
