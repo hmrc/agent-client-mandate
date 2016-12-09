@@ -32,10 +32,8 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
 
       val origSender = sender
       // $COVERAGE-OFF$
-      Logger.debug("Importing relationship for agent- " + request.agentPartyId + ", client- " + request.clientSubscriptionId)
       createService.createMandateForExistingRelationships(request).map { result =>
 
-        Logger.debug("[ImportExistingRelationshipsActor] - Importing result: " + result)
         origSender ! result // this result is only used in testing
         // $COVERAGE-ON$
       } recover {
@@ -47,10 +45,9 @@ class ImportExistingRelationshipsActor extends Actor with ActorUtils {
       }
     // $COVERAGE-OFF$
     case STOP =>
-      Logger.debug(s"[ImportExistingRelationshipsActor] stop message")
       sender ! STOP
     case e =>
-      Logger.debug(s"[ImportExistingRelationshipsActor] Invalid Message : { message : $e}")
+      Logger.warn(s"[ImportExistingRelationshipsActor] Invalid Message : { message : $e}")
       sender ! akka.actor.Status.Failure(new RuntimeException(s"invalid message: $e"))
   }
   // $COVERAGE-ON$

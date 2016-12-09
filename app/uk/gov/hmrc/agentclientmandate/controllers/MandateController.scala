@@ -109,7 +109,6 @@ trait MandateController extends BaseController with Auditable {
           case MandateUpdateError => Future.successful(NotFound)
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Approved =>
-        Logger.warn(s"[MandateController][remove] - mandate status not APPROVED")
         throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be activated")
       case MandateNotFound => Future.successful(NotFound)
     }
@@ -138,7 +137,6 @@ trait MandateController extends BaseController with Auditable {
           case MandateUpdateError => Future.successful(NotFound)
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Active =>
-        Logger.warn(s"[MandateController][remove] - mandate status not ACTIVE")
         throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be removed")
       case MandateNotFound => Future.successful(NotFound)
     }
