@@ -40,7 +40,7 @@ trait MandateCreateService extends Auditable {
   def relationshipService: RelationshipService
 
   def createMandateId: String = {
-    java.util.UUID.randomUUID.toString.take(8)
+    java.util.UUID.randomUUID.toString.take(8).toUpperCase()
   }
 
   def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
