@@ -20,7 +20,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.contrib.throttle.Throttler._
 import akka.contrib.throttle.TimerBasedThrottler
 import play.api.Logger
-import play.modules.reactivemongo.ReactiveMongoPlugin
+import play.modules.reactivemongo.MongoDbConnection
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepository
 import uk.gov.hmrc.lock.{LockKeeper, LockMongoRepository, LockRepository}
@@ -29,12 +29,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-class ProcessingSupervisor extends Actor with ActorUtils {
+class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection {
 
-  val connection = {
-    import play.api.Play.current
-    ReactiveMongoPlugin.mongoConnector.db
-  }
+  val connection = db
 
   val lockRepo = LockMongoRepository(connection)
 

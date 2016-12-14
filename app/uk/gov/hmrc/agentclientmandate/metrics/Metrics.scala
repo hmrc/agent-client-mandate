@@ -20,6 +20,7 @@ import com.codahale.metrics.Timer
 import com.codahale.metrics.Timer.Context
 import com.kenshoo.play.metrics.MetricsRegistry
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum.MetricsEnum
+import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
 trait Metrics {
 
@@ -31,39 +32,39 @@ trait Metrics {
 
 }
 
-object Metrics extends Metrics {
-
+object Metrics extends Metrics with MicroserviceMetrics{
+  val registry = metrics.defaultRegistry
   val timers = Map(
-    MetricsEnum.EtmpGetDetails -> MetricsRegistry.defaultRegistry.timer("etmp-get-details-response-timer"),
-    MetricsEnum.MaintainAtedRelationship -> MetricsRegistry.defaultRegistry.timer("etmp-maintain-ated-relationship-response-timer"),
-    MetricsEnum.AtedSubscriptionDetails -> MetricsRegistry.defaultRegistry.timer("etmp-ated-subscription-details-response-timer"),
-    MetricsEnum.RepositoryInsertMandate -> MetricsRegistry.defaultRegistry.timer("repository-insert-mandate-timer"),
-    MetricsEnum.RepositoryUpdateMandate -> MetricsRegistry.defaultRegistry.timer("repository-update-mandate-timer"),
-    MetricsEnum.RepositoryFetchMandate -> MetricsRegistry.defaultRegistry.timer("repository-fetch-mandate-timer"),
-    MetricsEnum.RepositoryFetchMandateByClient -> MetricsRegistry.defaultRegistry.timer("repository-fetch-mandate-by-client-timer"),
-    MetricsEnum.RepositoryFetchMandatesByService -> MetricsRegistry.defaultRegistry.timer("repository-fetch-mandates-service-timer"),
-    MetricsEnum.RepositoryAgentAlreadyInserted -> MetricsRegistry.defaultRegistry.timer("repository-agent-already-inserted-timer"),
-    MetricsEnum.RepositoryFindGGRelationshipsToProcess -> MetricsRegistry.defaultRegistry.timer("repository-find-gg-relationships-process-timer"),
-    MetricsEnum.RepositoryInsertExistingRelationships -> MetricsRegistry.defaultRegistry.timer("repository-insert-existing-relationships-timer"),
-    MetricsEnum.RepositoryExistingRelationshipProcessed -> MetricsRegistry.defaultRegistry.timer("repository-existing-relationships-processed-timer"),
-    MetricsEnum.GGProxyAllocate -> MetricsRegistry.defaultRegistry.timer("gg-proxy-allocate-timer"),
-    MetricsEnum.GGProxyDeallocate -> MetricsRegistry.defaultRegistry.timer("gg-proxy-deallocate-timer")
+    MetricsEnum.EtmpGetDetails -> registry.timer("etmp-get-details-response-timer"),
+    MetricsEnum.MaintainAtedRelationship -> registry.timer("etmp-maintain-ated-relationship-response-timer"),
+    MetricsEnum.AtedSubscriptionDetails -> registry.timer("etmp-ated-subscription-details-response-timer"),
+    MetricsEnum.RepositoryInsertMandate -> registry.timer("repository-insert-mandate-timer"),
+    MetricsEnum.RepositoryUpdateMandate -> registry.timer("repository-update-mandate-timer"),
+    MetricsEnum.RepositoryFetchMandate -> registry.timer("repository-fetch-mandate-timer"),
+    MetricsEnum.RepositoryFetchMandateByClient -> registry.timer("repository-fetch-mandate-by-client-timer"),
+    MetricsEnum.RepositoryFetchMandatesByService -> registry.timer("repository-fetch-mandates-service-timer"),
+    MetricsEnum.RepositoryAgentAlreadyInserted -> registry.timer("repository-agent-already-inserted-timer"),
+    MetricsEnum.RepositoryFindGGRelationshipsToProcess -> registry.timer("repository-find-gg-relationships-process-timer"),
+    MetricsEnum.RepositoryInsertExistingRelationships -> registry.timer("repository-insert-existing-relationships-timer"),
+    MetricsEnum.RepositoryExistingRelationshipProcessed -> registry.timer("repository-existing-relationships-processed-timer"),
+    MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-timer"),
+    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-timer")
   )
 
   val successCounters = Map(
-    MetricsEnum.EtmpGetDetails -> MetricsRegistry.defaultRegistry.counter("etmp-get-details-success-counter"),
-    MetricsEnum.MaintainAtedRelationship -> MetricsRegistry.defaultRegistry.counter("etmp-maintain-ated-relationship-success-counter"),
-    MetricsEnum.AtedSubscriptionDetails -> MetricsRegistry.defaultRegistry.counter("etmp-ated-subscription-details-success-counter"),
-    MetricsEnum.GGProxyAllocate -> MetricsRegistry.defaultRegistry.counter("gg-proxy-allocate-success-counter"),
-    MetricsEnum.GGProxyDeallocate -> MetricsRegistry.defaultRegistry.counter("gg-proxy-deallocate-success-counter")
+    MetricsEnum.EtmpGetDetails -> registry.counter("etmp-get-details-success-counter"),
+    MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-success-counter"),
+    MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-success-counter"),
+    MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-success-counter"),
+    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-success-counter")
   )
 
   val failedCounters = Map(
-    MetricsEnum.EtmpGetDetails -> MetricsRegistry.defaultRegistry.counter("etmp-get-details-failed-counter"),
-    MetricsEnum.MaintainAtedRelationship -> MetricsRegistry.defaultRegistry.counter("etmp-maintain-ated-relationship-failed-counter"),
-    MetricsEnum.AtedSubscriptionDetails -> MetricsRegistry.defaultRegistry.counter("etmp-ated-subscription-details-failed-counter"),
-    MetricsEnum.GGProxyAllocate -> MetricsRegistry.defaultRegistry.counter("gg-proxy-allocate-failed-counter"),
-    MetricsEnum.GGProxyDeallocate -> MetricsRegistry.defaultRegistry.counter("gg-proxy-deallocate-failed-counter")
+    MetricsEnum.EtmpGetDetails -> registry.counter("etmp-get-details-failed-counter"),
+    MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-failed-counter"),
+    MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
+    MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
+    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()
