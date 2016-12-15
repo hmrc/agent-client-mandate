@@ -20,7 +20,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import org.specs2.specification.BeforeAfterEach
+import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 import scala.concurrent.Future
 
 
-class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAfterEach {
+class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   class MockHttp extends WSGet with WSPost with WSPut {
     override val hooks = NoneRequired
@@ -94,7 +94,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
 
   }
 
-  override def before: Any = {
+  override def beforeEach() {
     reset(mockWSHttp)
   }
 }
