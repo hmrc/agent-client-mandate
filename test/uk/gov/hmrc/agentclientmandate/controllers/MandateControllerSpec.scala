@@ -205,7 +205,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "an agent request it and passes valid DTO" in {
         when(createServiceMock.createMandate(Matchers.eq(agentCode), Matchers.eq(createMandateDto))(Matchers.any())).thenReturn(Future.successful(mandateId))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(createMandateDto))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(createMandateDto))
         val result = TestMandateController.create(agentCode).apply(fakeRequest)
         status(result) must be(CREATED)
         contentAsJson(result) must be(Json.parse("""{"mandateId":"123"}"""))
@@ -215,7 +215,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "return bad-request" when {
       "invalid dto is passed by agent" in {
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse("""{}"""))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse("""{}"""))
         val result = TestMandateController.create(agentCode).apply(fakeRequest)
         status(result) must be(BAD_REQUEST)
       }
@@ -270,7 +270,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "update mandate for a client" when {
       "client provided valid payload and mandate has been successfully updated in mongo" in {
         when(updateServiceMock.approveMandate(Matchers.eq(mandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(mandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(OK)
       }
@@ -279,7 +279,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "throw error while trying to update mandate for a client" when {
       "client provided valid payload but mandate wasn't successfully updated in mongo" in {
         when(updateServiceMock.approveMandate(Matchers.eq(mandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(mandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
@@ -287,7 +287,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "return bad-request while trying to update mandate for a client" when {
       "client provided invalid payload and" in {
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse("""{}"""))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse("""{}"""))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(BAD_REQUEST)
       }
@@ -326,7 +326,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "import existing relationships" must {
       "sending incorrect data" must {
         "return Bad Request" in {
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(incorrectJson))
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(incorrectJson))
           val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
           status(result) must be(BAD_REQUEST)
         }
@@ -335,21 +335,21 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       "sending correct data" must {
         "return Ok when insert relationships ok" in {
           when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInserted))
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
           val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
           status(result) must be(OK)
         }
 
         "return Ok when relationships already exist" in {
           when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsAlreadyExist))
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
           val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
           status(result) must be(OK)
         }
 
         "exception thrown when there is an error inserting relationships" in {
           when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInsertError))
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.parse(correctJson))
+          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
 
           val thrown = the[RuntimeException] thrownBy await(TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest))
 
@@ -362,7 +362,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(dto))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
         when(createServiceMock.createMandateForNonUKClient(Matchers.any(), Matchers.eq(dto))(Matchers.any())).thenReturn(Future.successful("mandateId"))
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
@@ -373,13 +373,13 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "edit mandate details" must {
       "return OK, when mandate is updated in MongoDB" in {
         when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(mandate))
         val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
         status(result) must be(OK)
       }
       "return INTERNAL_SERVER_ERROR, when update fail in MongoDB" in {
         when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
-        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> Seq("application/json"))), body = Json.toJson(mandate))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(mandate))
         val result = TestMandateController.editMandate(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
