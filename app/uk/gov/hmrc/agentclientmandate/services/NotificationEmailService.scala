@@ -17,7 +17,8 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailNotSent, EmailStatus}
-import uk.gov.hmrc.agentclientmandate.models.Mandate
+import uk.gov.hmrc.agentclientmandate.models.{Mandate, Status}
+import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateNotFound}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -31,15 +32,23 @@ trait NotificationEmailService {
 
   def emailConnector: EmailConnector
 
-  def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    def emailAddress(userType: String, mandate: Mandate): String = {
+  def sendMail(mandateId: String, toEmail: String, action: Status)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    def getEmailAddress(userType: String, mandate: Mandate): String = {
       if (userType == "client") mandate.clientParty.map(_.contactDetails.email).getOrElse("")
       else mandate.agentParty.contactDetails.email
     }
 
+    def getTemplate(toEmail: String, action: Status): String = {
+      (action, toEmail) match {
+        case (Status.Approved, "agent") => "client_approves_mandate"
+        case (Status.Active, "client") => "agent_activates_mandate"
+      }
+    }
+
     fetchMandateDetails(mandateId) flatMap {
       case MandateFetched(clientMandate) =>
-        emailConnector.sendTemplatedEmail(emailAddress(userType, clientMandate))
+        emailConnector.sendTemplatedEmail(getEmailAddress(toEmail, clientMandate),
+          getTemplate(toEmail, action))
       case MandateNotFound => Future.successful(EmailNotSent)
     }
   }

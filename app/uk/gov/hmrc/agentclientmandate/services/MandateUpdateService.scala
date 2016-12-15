@@ -62,7 +62,7 @@ trait MandateUpdateService extends Auditable {
                   statusHistory = Seq(approvedMandate.currentStatus),
                   subscription = subscription
                 )
-                updateMandate(updatedMandate, "agent")
+                updateMandate(updatedMandate, "agent", Status.Approved)
               }
             }
           case MandateNotFound =>
@@ -77,28 +77,33 @@ trait MandateUpdateService extends Auditable {
 
   private def createApprovedStatus(credId: String): MandateStatus = MandateStatus(Status.Approved, DateTime.now(), credId)
 
-  def updateMandate(updatedMandate: Mandate, userType: String)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+  def updateMandate(updatedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     for {
       update <- mandateRepository.updateMandate(updatedMandate)
-      _ <- sendNotificationEmail(updatedMandate, userType)
     } yield update
   }
 
-  def sendNotificationEmail(mandate: Mandate, userType: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    userType match {
-      case "agent" => emailNotificationService.sendMail(mandate.id, "client")
-      case "client" => emailNotificationService.sendMail(mandate.id, "agent")
-    }
+  def updateMandate(updatedMandate: Mandate, toEmail: String, action: Status)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+    for {
+      update <- mandateRepository.updateMandate(updatedMandate)
+      _ <- sendNotificationEmail(updatedMandate, toEmail, action)
+    } yield update
   }
+
+  def sendNotificationEmail(mandate: Mandate, toEmail: String, action: Status)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+     emailNotificationService.sendMail(mandate.id, toEmail, action)
+  }
+
+  def toMailAddress(loggedInUser: String): String = if(loggedInUser == "agent") "client" else "agent"
 
   def updateStatus(mandate: Mandate, status: Status)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     authConnector.getAuthority() flatMap { authority =>
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
-      val userType = {
+      val userLoggedIn = {
         authority \ "accounts" \ "agent" \ "agentBusinessUtr"
       }.asOpt[String].fold("client")(a => "agent")
       val updatedMandate = mandate.updateStatus(MandateStatus(status, DateTime.now, credId))
-      updateMandate(updatedMandate, userType)
+      updateMandate(updatedMandate, toMailAddress(userLoggedIn), status)
     }
   }
 

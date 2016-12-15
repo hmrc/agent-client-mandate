@@ -40,12 +40,11 @@ trait EmailConnector extends ServicesConfig with RawResponseReads {
 
   def http: HttpGet with HttpPost with HttpPut
 
-  def sendTemplatedEmail(emailString: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+  def sendTemplatedEmail(emailString: String, templateName: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
 
-    val templateId = "agentClientNotification"
     val params = Map("emailAddress" -> emailString)
 
-    val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, force = true)
+    val sendEmailReq = SendEmailRequest(List(emailString), templateName, params, force = true)
 
     val postUrl = s"$serviceUrl/$sendEmailUri"
     val jsonData = Json.toJson(sendEmailReq)
