@@ -53,16 +53,14 @@ trait MandateUpdateService extends Auditable {
                 val approvedBy = User(credId, clientPartyName)
                 val clientParty = approvedMandate.clientParty.getOrElse(throw new RuntimeException("Client party not found"))
                 val clientPartyUpdated = clientParty.copy(id = clientPartyId, name = clientPartyName)
-                val currentStatus = createApprovedStatus(credId)
                 val subscription = approvedMandate.subscription.copy(referenceNumber = Some(subscriptionId))
                 val updatedMandate = approvedMandate.copy(
                   approvedBy = Some(approvedBy),
                   clientParty = Some(clientPartyUpdated),
-                  currentStatus = currentStatus, // TODO :: Fix here to call updateStatus
                   statusHistory = Seq(approvedMandate.currentStatus),
                   subscription = subscription
                 )
-                updateMandate(updatedMandate, "agent", Status.Approved)
+                updateMandate(updatedMandate, Some(Status.Approved))
               }
             }
           case MandateNotFound =>
@@ -75,35 +73,14 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
-  private def createApprovedStatus(credId: String): MandateStatus = MandateStatus(Status.Approved, DateTime.now(), credId)
-
-  def updateMandate(updatedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
-    for {
-      update <- mandateRepository.updateMandate(updatedMandate)
-    } yield update
-  }
-
-  def updateMandate(updatedMandate: Mandate, toEmail: String, action: Status)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
-    for {
-      update <- mandateRepository.updateMandate(updatedMandate)
-      _ <- sendNotificationEmail(updatedMandate, toEmail, action)
-    } yield update
-  }
-
-  def sendNotificationEmail(mandate: Mandate, toEmail: String, action: Status)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-     emailNotificationService.sendMail(mandate.id, toEmail, action)
-  }
-
-  def toMailAddress(loggedInUser: String): String = if(loggedInUser == "agent") "client" else "agent"
-
-  def updateStatus(mandate: Mandate, status: Status)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+  def updateMandate(mandate: Mandate, setStatus: Option[Status] = None)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     authConnector.getAuthority() flatMap { authority =>
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
-      val userLoggedIn = {
-        authority \ "accounts" \ "agent" \ "agentBusinessUtr"
-      }.asOpt[String].fold("client")(a => "agent")
-      val updatedMandate = mandate.updateStatus(MandateStatus(status, DateTime.now, credId))
-      updateMandate(updatedMandate, toMailAddress(userLoggedIn), status)
+      setStatus map { s =>
+        val updatedMandate = mandate.updateStatus(MandateStatus(s, DateTime.now, credId))
+        mandateRepository.updateMandate(updatedMandate)
+      }
+      mandateRepository.updateMandate(mandate)
     }
   }
 

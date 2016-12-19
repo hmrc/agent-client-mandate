@@ -51,7 +51,7 @@ trait EmailConnector extends ServicesConfig with RawResponseReads {
 
     http.POST(postUrl, jsonData).map { response =>
       response.status match {
-        case ACCEPTED => EmailSent
+        case ACCEPTED =>  Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: sent"); EmailSent
         case status =>
           Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: $status Error ${response.body}")
           EmailNotSent

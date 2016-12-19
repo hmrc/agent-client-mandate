@@ -32,25 +32,15 @@ trait NotificationEmailService {
 
   def emailConnector: EmailConnector
 
-  def sendMail(mandateId: String, toEmail: String, action: Status)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    def getEmailAddress(userType: String, mandate: Mandate): String = {
-      if (userType == "client") mandate.clientParty.map(_.contactDetails.email).getOrElse("")
-      else mandate.agentParty.contactDetails.email
-    }
-
-    def getTemplate(toEmail: String, action: Status): String = {
-      (action, toEmail) match {
-        case (Status.Approved, "agent") => "client_approves_mandate"
-        case (Status.Active, "client") => "agent_activates_mandate"
+  def sendMail(emailString: String, action: Status)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    def getTemplate(action: Status): String = {
+      action match {
+        case Status.Approved => "client_approves_mandate"
+        case Status.Active => "agent_activates_mandate"
+        case Status.Rejected => "agent_rejects_mandate"
       }
     }
-
-    fetchMandateDetails(mandateId) flatMap {
-      case MandateFetched(clientMandate) =>
-        emailConnector.sendTemplatedEmail(getEmailAddress(toEmail, clientMandate),
-          getTemplate(toEmail, action))
-      case MandateNotFound => Future.successful(EmailNotSent)
-    }
+    emailConnector.sendTemplatedEmail(emailString, getTemplate(action))
   }
 
   private def fetchMandateDetails(mandateId: String): Future[MandateFetchStatus] = {
