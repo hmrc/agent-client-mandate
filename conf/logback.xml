@@ -34,6 +34,9 @@
         </encoder>
     </appender>
 
+    <logger name="com.ning.http.client" level="WARN"/>
+    <logger name="org.asynchttpclient.netty.channel.DefaultChannelPool" level="WARN"/>
+    <logger name="org.asynchttpclient.netty" level="WARN"/>
 
     <logger name="accesslog" level="INFO" additivity="false">
         <appender-ref ref="ACCESS_LOG_FILE" />

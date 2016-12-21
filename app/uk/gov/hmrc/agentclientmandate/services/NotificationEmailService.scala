@@ -32,15 +32,23 @@ trait NotificationEmailService {
 
   def emailConnector: EmailConnector
 
-  def sendMail(emailString: String, action: Status)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    def getTemplate(action: Status): String = {
-      action match {
-        case Status.Approved => "client_approves_mandate"
-        case Status.Active => "agent_activates_mandate"
-        case Status.Rejected => "agent_rejects_mandate"
+  def sendMail(emailString: String, action: Status, userType: Option[String] = None, service: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    def getTemplate: String = {
+      (action, userType) match {
+        case (Status.Approved, _) => "client_approves_mandate"
+        case (Status.Active, _) => "agent_activates_mandate"
+        case (Status.Rejected, _) => "agent_rejects_mandate"
+        case (Status.Cancelled, Some("agent")) => "agent_removes_mandate"
+        case (Status.Cancelled, Some("client")) => "client_removes_mandate"
       }
     }
-    emailConnector.sendTemplatedEmail(emailString, getTemplate(action))
+    def createServiceString: String = {
+      service.toUpperCase match {
+        case "ATED" => "Annual Tax Enveloped Dwelling"
+        case _ => "[Service Name]"
+      }
+    }
+    emailConnector.sendTemplatedEmail(emailString, getTemplate, createServiceString)
   }
 
   private def fetchMandateDetails(mandateId: String): Future[MandateFetchStatus] = {

@@ -83,7 +83,8 @@ trait MandateController extends BaseController with Auditable {
         updateService.approveMandate(newMandate) map {
           case MandateUpdated(m) => {
             val agentEmail = m.agentParty.contactDetails.email
-            emailNotificationService.sendMail(agentEmail, models.Status.Approved)
+            val service = m.subscription.service.id
+            emailNotificationService.sendMail(agentEmail, models.Status.Approved, service = service)
             doAudit("approved", "", m)
             Ok(Json.toJson(m))
           }
@@ -104,7 +105,8 @@ trait MandateController extends BaseController with Auditable {
                   updateService.updateMandate(mandate,Some(models.Status.Active)).map {
                     case MandateUpdated(m) => {
                       val clientEmail = mandate.clientParty.map(_.contactDetails.email).getOrElse("")
-                      emailNotificationService.sendMail(clientEmail, models.Status.Active)
+                      val service = m.subscription.service.id
+                      emailNotificationService.sendMail(clientEmail, models.Status.Active, service = service)
                       doAudit("activated", agentCode, m)
                       Ok(Json.toJson(m))
                     }
@@ -136,12 +138,12 @@ trait MandateController extends BaseController with Auditable {
                       userType match {
                         case "agent" =>
                           val clientEmail = mandate.clientParty.map(_.contactDetails.email).getOrElse("")
-                          println("remove clinet.............+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                          emailNotificationService.sendMail(clientEmail, models.Status.Cancelled)
+                          val service = m.subscription.service.id
+                          emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(userType), service)
                         case "client" =>
                           val agentEmail = m.agentParty.contactDetails.email
-                          println("remove agent............++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                          emailNotificationService.sendMail(agentEmail, models.Status.Cancelled)
+                          val service = m.subscription.service.id
+                          emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(userType), service)
                       }
                       doAudit("removed", agentCode, m)
                       Ok(Json.toJson(m))
@@ -165,7 +167,8 @@ trait MandateController extends BaseController with Auditable {
       case MandateFetched(mandate) => updateService.updateMandate(mandate, Some(models.Status.Rejected)).map {
         case MandateUpdated(m) => {
           val clientEmail = mandate.clientParty.map(_.contactDetails.email).getOrElse("")
-          emailNotificationService.sendMail(clientEmail, models.Status.Rejected)
+          val service = m.subscription.service.id
+          emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service)
           doAudit("rejected", ac, m)
           Ok
         }
@@ -184,7 +187,6 @@ trait MandateController extends BaseController with Auditable {
   def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[Seq[GGRelationshipDto]] match {
       case Some(x) =>
-        Logger.debug(s"request for migration for ${x.size} clients")
         val ggdtoList = x map ( _.copy(agentCode = Some(agentCode)))
         createService.insertExistingRelationships(ggdtoList).map {
           case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok

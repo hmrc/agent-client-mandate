@@ -31,11 +31,9 @@ trait PerformanceTestSupportController extends BaseController {
 
   def createMandate() = Action.async(parse.json) { implicit request =>
     withJsonBody[Mandate] { x =>
-      Logger.debug("inserting test mandate")
       mandateRepository.insertMandate(x).map { mandateStatus =>
         mandateStatus match {
           case MandateCreated(mandate) =>
-            Logger.debug("inserted test mandate")
             Created
           case MandateCreateError =>
             BadRequest
@@ -45,11 +43,9 @@ trait PerformanceTestSupportController extends BaseController {
   }
 
   def deleteMandate(mandateId: String) = Action.async { implicit request =>
-    Logger.debug(s"deleting mandate: $mandateId")
     mandateRepository.removeMandate(mandateId).map { mandateStatus =>
       mandateStatus match {
         case MandateRemoved =>
-          Logger.debug("deleted test mandate")
           Created
         case MandateRemoveError =>
           BadRequest

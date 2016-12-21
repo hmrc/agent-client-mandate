@@ -39,9 +39,9 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
       "requested to do so - updateMandate" in {
        when(mockMandateRepository.updateMandate(Matchers.eq(clientApprovedMandate))).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
-        when(mockEmailService.sendMail(Matchers.eq("AS12345678"), Matchers.eq("agent"))(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailService.sendMail(Matchers.eq("AS12345678"), Matchers.any(), Matchers.eq(Some("agent")), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        await(TestMandateUpdateService.updateMandate(clientApprovedMandate, "client")(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
+        await(TestMandateUpdateService.updateMandate(clientApprovedMandate, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
       }
     }
 
@@ -49,9 +49,9 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
       "Status is approved" in {
         val mandateToUse = mandate.copy(currentStatus = MandateStatus(Status.Approved, mandate.currentStatus.timestamp, mandate.currentStatus.updatedBy))
-        when(mockEmailService.sendMail(Matchers.eq(mandateToUse.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailService.sendMail(Matchers.eq(mandateToUse.id), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
         when(mockMandateRepository.updateMandate(Matchers.eq(mandateToUse))).thenReturn(Future.successful(MandateUpdated(mandateToUse)))
-        await(TestMandateUpdateService.updateMandate(mandateToUse, "agent")(new HeaderCarrier())) must be(MandateUpdated(mandateToUse))
+        await(TestMandateUpdateService.updateMandate(mandateToUse, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(mandateToUse))
       }
 
     }
@@ -63,7 +63,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
         when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
         val result = await(TestMandateUpdateService.approveMandate(clientApprovedMandate))
         result must be(MandateUpdated(updatedMandate))
       }
@@ -74,7 +74,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
         when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
         val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandate))
         thrown.getMessage must be("Client party not found")
       }
@@ -97,18 +97,18 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       "change madate status and send email for client" in {
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val result = await(TestMandateUpdateService.updateStatus(updatedMandate, Status.PendingCancellation))
+        val result = await(TestMandateUpdateService.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "change madate status and send email for agent" in {
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val result = await(TestMandateUpdateService.updateStatus(updatedMandate, Status.PendingCancellation))
+        val result = await(TestMandateUpdateService.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
       }
     }

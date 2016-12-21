@@ -44,6 +44,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
     val serviceUrl: String = "email"
   }
 
+  val serviceString = "AA bb cc dd"
 
   "EmailConnector" must {
 
@@ -55,16 +56,18 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
 
       "correct emailId Id is passed" in {
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        val emailString = "test@test.com"
-        val templateId = "agentClientNotification"
-        val params = Map("emailAddress" -> emailString)
+        val emailString = "test@mail.com"
+        val templateId = "client_approves_mandate"
+        val params = Map("emailAddress" -> emailString, "service" -> serviceString)
 
         val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, true)
         val sendEmailReqJson = Json.toJson(sendEmailReq)
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.eq(sendEmailReqJson), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.eq(sendEmailReqJson),
+          Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(202, responseJson = None)))
 
-        val response = TestEmailConnector.sendTemplatedEmail(emailString)
+        val response = TestEmailConnector.sendTemplatedEmail(emailString, "test-template-name", "ATED")
         await(response) must be(EmailSent)
 
       }
@@ -76,16 +79,17 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
       "incorrect email Id are passed" in {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val invalidEmailString = "test@test1.com"
-        val templateId = "agentClientNotification"
-        val params = Map("emailAddress" -> invalidEmailString)
+        val templateId = "client_approves_mandate"
+        val params = Map("emailAddress" -> invalidEmailString, "service" -> serviceString)
 
         val sendEmailReq = SendEmailRequest(List(invalidEmailString), templateId, params, true)
         val sendEmailReqJson = Json.toJson(sendEmailReq)
 
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.eq(sendEmailReqJson), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.eq(sendEmailReqJson),
+          Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(404, responseJson = None)))
 
-        val response = TestEmailConnector.sendTemplatedEmail(invalidEmailString)
+        val response = TestEmailConnector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED")
         await(response) must be(EmailNotSent)
 
       }

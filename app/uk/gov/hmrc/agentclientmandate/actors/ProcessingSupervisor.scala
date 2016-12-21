@@ -86,11 +86,6 @@ class ProcessingSupervisor extends Actor with ActorUtils with MongoDbConnection 
             throttler ! STOP
           }
         }
-      }.map {
-        // $COVERAGE-OFF$
-        case Some(thing) => Logger.debug(s"[ProcessingSupervisor][receive] finished processing, released lock")
-        case _ => Logger.debug(s"[ProcessingSupervisor][receive] failed to obtain mongo lock")
-        // $COVERAGE-ON$
       }
 
   }
