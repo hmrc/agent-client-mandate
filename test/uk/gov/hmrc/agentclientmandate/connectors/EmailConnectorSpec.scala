@@ -60,14 +60,15 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
         val templateId = "client_approves_mandate"
         val params = Map("emailAddress" -> emailString, "service" -> serviceString)
 
-        val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, true)
+
+        val sendEmailReq = SendEmailRequest(List(emailString), templateId, params, force = true)
         val sendEmailReqJson = Json.toJson(sendEmailReq)
 
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.eq(sendEmailReqJson),
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(),
           Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(202, responseJson = None)))
 
-        val response = TestEmailConnector.sendTemplatedEmail(emailString, "test-template-name", "ATED")
+        val response = TestEmailConnector.sendTemplatedEmail(emailString, templateId, "ATED")
         await(response) must be(EmailSent)
 
       }
@@ -85,7 +86,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
         val sendEmailReq = SendEmailRequest(List(invalidEmailString), templateId, params, true)
         val sendEmailReqJson = Json.toJson(sendEmailReq)
 
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.eq(sendEmailReqJson),
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(),
           Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(404, responseJson = None)))
 

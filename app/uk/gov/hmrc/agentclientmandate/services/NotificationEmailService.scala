@@ -51,10 +51,6 @@ trait NotificationEmailService {
     emailConnector.sendTemplatedEmail(emailString, getTemplate, createServiceString)
   }
 
-  private def fetchMandateDetails(mandateId: String): Future[MandateFetchStatus] = {
-    mandateFetchService.fetchClientMandate(mandateId)
-  }
-
 }
 
 object NotificationEmailService extends NotificationEmailService {

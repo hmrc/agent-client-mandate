@@ -38,23 +38,13 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "update data in mongo with given data provided" when {
 
       "requested to do so - updateMandate" in {
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
        when(mockMandateRepository.updateMandate(Matchers.eq(clientApprovedMandate))).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
-        when(mockEmailService.sendMail(Matchers.eq("AS12345678"), Matchers.any(), Matchers.eq(Some("agent")), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         await(TestMandateUpdateService.updateMandate(clientApprovedMandate, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
       }
     }
 
-    "send a notification email" when {
-
-      "Status is approved" in {
-        val mandateToUse = mandate.copy(currentStatus = MandateStatus(Status.Approved, mandate.currentStatus.timestamp, mandate.currentStatus.updatedBy))
-        when(mockEmailService.sendMail(Matchers.eq(mandateToUse.id), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
-        when(mockMandateRepository.updateMandate(Matchers.eq(mandateToUse))).thenReturn(Future.successful(MandateUpdated(mandateToUse)))
-        await(TestMandateUpdateService.updateMandate(mandateToUse, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(mandateToUse))
-      }
-
-    }
 
     "approveMandate" must {
       "change status of mandate to approve, if all calls are successful and service name is ated" in {

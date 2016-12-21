@@ -104,7 +104,7 @@ trait MandateController extends BaseController with Auditable {
                 case OK =>
                   updateService.updateMandate(mandate,Some(models.Status.Active)).map {
                     case MandateUpdated(m) => {
-                      val clientEmail = mandate.clientParty.map(_.contactDetails.email).getOrElse("")
+                      val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
                       val service = m.subscription.service.id
                       emailNotificationService.sendMail(clientEmail, models.Status.Active, service = service)
                       doAudit("activated", agentCode, m)
@@ -137,10 +137,10 @@ trait MandateController extends BaseController with Auditable {
                     case MandateUpdated(m) => {
                       userType match {
                         case "agent" =>
-                          val clientEmail = mandate.clientParty.map(_.contactDetails.email).getOrElse("")
+                          val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
                           val service = m.subscription.service.id
                           emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(userType), service)
-                        case "client" =>
+                        case _ =>
                           val agentEmail = m.agentParty.contactDetails.email
                           val service = m.subscription.service.id
                           emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(userType), service)
@@ -166,7 +166,7 @@ trait MandateController extends BaseController with Auditable {
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) => updateService.updateMandate(mandate, Some(models.Status.Rejected)).map {
         case MandateUpdated(m) => {
-          val clientEmail = mandate.clientParty.map(_.contactDetails.email).getOrElse("")
+          val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
           val service = m.subscription.service.id
           emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service)
           doAudit("rejected", ac, m)

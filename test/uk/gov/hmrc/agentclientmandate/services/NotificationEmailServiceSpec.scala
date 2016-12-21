@@ -58,7 +58,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
 
-        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Rejected, None, "ATED")
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Approved, None, "ABCD")
         await(response) must be(EmailSent)
 
       }
@@ -67,7 +67,17 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
 
-        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Rejected, None, "ATED")
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Active, None, "ATED")
+        await(response) must be(EmailSent)
+
+      }
+
+
+      "matching mandateId is found, email is sent successfully to client" in {
+
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Active, None, "ATED")
         await(response) must be(EmailSent)
 
       }
