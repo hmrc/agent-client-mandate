@@ -315,7 +315,6 @@ class MandateMongoRepository(implicit mongo: () => DB)
     result match {
       case Success(s) =>
         s.map { x =>
-          Logger.debug(s"[MandateRepository][findGGRelationshipsToProcess] found ${x.size} relationships to process")
           x
         }
       case Failure(f) =>

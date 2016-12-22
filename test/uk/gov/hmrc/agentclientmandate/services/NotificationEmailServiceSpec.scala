@@ -43,33 +43,58 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       "no matching mandate is found" in {
 
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(MandateNotFound)
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailNotSent)
 
-        val response = TestNotificationEmailService.sendMail(invalidMandateId, "client")
+        val response = TestNotificationEmailService.sendMail(invalidEmail, Status.Rejected, Some("agent"), "ATED")
         await(response) must be(EmailNotSent)
 
       }
 
+      "no matching mandate is found that Canceled for an agent" in {
+
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailNotSent)
+
+        val response = TestNotificationEmailService.sendMail(invalidEmail, Status.Cancelled, Some("agent"), "ATED")
+        await(response) must be(EmailNotSent)
+
+      }
+
+      "no matching mandate is found that Canceled for a client" in {
+
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailNotSent)
+
+        val response = TestNotificationEmailService.sendMail(invalidEmail, Status.Cancelled, Some("client"), "ATED")
+        await(response) must be(EmailNotSent)
+
+      }
     }
 
     "return 202" when {
 
       "matching mandateId is found and email is sent successfully to agent" in {
 
-        when(mockMandateFetchService.fetchClientMandate(Matchers.eq(validMandateId))) thenReturn Future.successful(MandateFetched(clientMandate))
-        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("test@test.com"))(Matchers.any())) thenReturn Future.successful(EmailSent)
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
 
-        val response = TestNotificationEmailService.sendMail(validMandateId, "agent")
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Approved, None, "ABCD")
         await(response) must be(EmailSent)
 
       }
 
       "matching mandateId is found and email is sent successfully to client" in {
 
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
-        when(mockEmailConnector.sendTemplatedEmail(Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
 
-        val response = TestNotificationEmailService.sendMail(validMandateId, "client")
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Active, None, "ATED")
+        await(response) must be(EmailSent)
+
+      }
+
+
+      "matching mandateId is found, email is sent successfully to client" in {
+
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Active, None, "ATED")
         await(response) must be(EmailSent)
 
       }

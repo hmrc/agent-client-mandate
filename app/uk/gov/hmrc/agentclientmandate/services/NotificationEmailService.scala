@@ -17,7 +17,8 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailNotSent, EmailStatus}
-import uk.gov.hmrc.agentclientmandate.models.Mandate
+import uk.gov.hmrc.agentclientmandate.models.{Mandate, Status}
+import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateNotFound}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -31,21 +32,23 @@ trait NotificationEmailService {
 
   def emailConnector: EmailConnector
 
-  def sendMail(mandateId: String, userType: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    def emailAddress(userType: String, mandate: Mandate): String = {
-      if (userType == "client") mandate.clientParty.map(_.contactDetails.email).getOrElse("")
-      else mandate.agentParty.contactDetails.email
+  def sendMail(emailString: String, action: Status, userType: Option[String] = None, service: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    def getTemplate: String = {
+      (action, userType) match {
+        case (Status.Approved, _) => "client_approves_mandate"
+        case (Status.Active, _) => "agent_activates_mandate"
+        case (Status.Rejected, _) => "agent_rejects_mandate"
+        case (Status.Cancelled, Some("agent")) => "agent_removes_mandate"
+        case (Status.Cancelled, Some("client")) => "client_removes_mandate"
+      }
     }
-
-    fetchMandateDetails(mandateId) flatMap {
-      case MandateFetched(clientMandate) =>
-        emailConnector.sendTemplatedEmail(emailAddress(userType, clientMandate))
-      case MandateNotFound => Future.successful(EmailNotSent)
+    def createServiceString: String = {
+      service.toUpperCase match {
+        case "ATED" => "Annual Tax Enveloped Dwelling"
+        case _ => "[Service Name]"
+      }
     }
-  }
-
-  private def fetchMandateDetails(mandateId: String): Future[MandateFetchStatus] = {
-    mandateFetchService.fetchClientMandate(mandateId)
+    emailConnector.sendTemplatedEmail(emailString, getTemplate, createServiceString)
   }
 
 }

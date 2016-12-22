@@ -34,7 +34,6 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
   def getAuthority()(implicit hc: HeaderCarrier): Future[JsValue] = {
 
     val getUrl = s"""$serviceUrl/$authorityUri"""
-    Logger.debug(s"[AuthConnector][agentReferenceNo] - GET $getUrl")
     http.GET[HttpResponse](getUrl) map { response =>
       response.status match {
         case OK => response.json
