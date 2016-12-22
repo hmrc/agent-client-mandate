@@ -50,6 +50,23 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       }
 
+      "no matching mandate is found that Canceled for an agent" in {
+
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailNotSent)
+
+        val response = TestNotificationEmailService.sendMail(invalidEmail, Status.Cancelled, Some("agent"), "ATED")
+        await(response) must be(EmailNotSent)
+
+      }
+
+      "no matching mandate is found that Canceled for a client" in {
+
+        when(mockEmailConnector.sendTemplatedEmail(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailNotSent)
+
+        val response = TestNotificationEmailService.sendMail(invalidEmail, Status.Cancelled, Some("client"), "ATED")
+        await(response) must be(EmailNotSent)
+
+      }
     }
 
     "return 202" when {

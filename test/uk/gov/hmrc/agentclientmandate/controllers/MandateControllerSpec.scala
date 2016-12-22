@@ -109,7 +109,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     }
 
 
-    "try to remove the client" when {
+    "try to remove the mandate" when {
 
       "request is valid and client mandate found " in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
@@ -118,6 +118,17 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         when(notificationServiceMock.sendMail(Matchers.any(), Matchers.eq(Status.Rejected), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
+
+        status(result) must be(OK)
+      }
+
+      "request is valid and it's an agent performing this " in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(mandate))
+        when(relationshipServiceMock.maintainRelationship(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
+        when(notificationServiceMock.sendMail(Matchers.any(), Matchers.eq(Status.Rejected), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+
+        val result = TestAgentMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
         status(result) must be(OK)
       }
@@ -141,6 +152,12 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
+    }
+
+    "try to remove the mandate as an agent" when {
+
+
+
     }
 
     "fail to remove client" when {
@@ -431,6 +448,17 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
   val agentDetailsServiceMock = mock[AgentDetailsService]
   val notificationServiceMock = mock[NotificationEmailService]
 
+  object TestAgentMandateController extends MandateController {
+    override val fetchService = fetchServiceMock
+    override val createService = createServiceMock
+    override val relationshipService = relationshipServiceMock
+    override val updateService = updateServiceMock
+    override val agentDetailsService = agentDetailsServiceMock
+    override val emailNotificationService = notificationServiceMock
+    override val audit: Audit = new TestAudit
+    override val userType = "agent"
+  }
+
   object TestMandateController extends MandateController {
     override val fetchService = fetchServiceMock
     override val createService = createServiceMock
@@ -439,7 +467,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     override val agentDetailsService = agentDetailsServiceMock
     override val emailNotificationService = notificationServiceMock
     override val audit: Audit = new TestAudit
-    override val userType = "user"
+    override val userType = "client"
   }
 
   override def beforeEach(): Unit = {
