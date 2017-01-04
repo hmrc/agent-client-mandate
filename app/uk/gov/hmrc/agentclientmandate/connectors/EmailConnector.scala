@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ trait EmailConnector extends ServicesConfig with RawResponseReads {
 
 object EmailConnector extends EmailConnector {
   // $COVERAGE-OFF$
-  val sendEmailUri: String = "send-templated-email"
+  val sendEmailUri: String = "hmrc/email"
   val serviceUrl = baseUrl("email")
   val http: HttpGet with HttpPost with HttpPut = WSHttp
   // $COVERAGE-OFF$
