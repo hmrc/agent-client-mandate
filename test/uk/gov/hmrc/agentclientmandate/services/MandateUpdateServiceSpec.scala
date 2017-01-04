@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,10 +38,10 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "update data in mongo with given data provided" when {
 
       "requested to do so - updateMandate" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
-       when(mockMandateRepository.updateMandate(Matchers.eq(clientApprovedMandate))).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
+       when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
 
-        await(TestMandateUpdateService.updateMandate(clientApprovedMandate, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
+        await(TestMandateUpdateService.updateMandate(mandate, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
       }
     }
 

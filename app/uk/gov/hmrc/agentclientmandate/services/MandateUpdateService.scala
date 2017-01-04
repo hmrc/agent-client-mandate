@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HM Revenue & Customs
+ * Copyright 2017 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,11 +76,11 @@ trait MandateUpdateService extends Auditable {
   def updateMandate(mandate: Mandate, setStatus: Option[Status] = None)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     authConnector.getAuthority() flatMap { authority =>
       val credId = (authority \ "credentials" \ "gatewayId").as[String]
-      setStatus map { s =>
-        val updatedMandate = mandate.updateStatus(MandateStatus(s, DateTime.now, credId))
-        mandateRepository.updateMandate(updatedMandate)
+      val updatedMandate = setStatus match {
+        case Some(x) => mandate.updateStatus(MandateStatus(x, DateTime.now, credId))
+        case None => mandate
       }
-      mandateRepository.updateMandate(mandate)
+      mandateRepository.updateMandate(updatedMandate)
     }
   }
 
