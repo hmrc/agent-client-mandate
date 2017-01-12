@@ -142,7 +142,7 @@ trait MandateController extends BaseController with Auditable {
                         case _ =>
                           val agentEmail = m.agentParty.contactDetails.email
                           val service = m.subscription.service.id
-                          emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(userType), service)
+                          emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(userType), service, Some(mandate.currentStatus.status))
                       }
                       doAudit("removed", agentCode, m)
                       Ok(Json.toJson(m))

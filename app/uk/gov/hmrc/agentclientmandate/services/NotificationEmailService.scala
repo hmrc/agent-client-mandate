@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailNotSent, EmailStatus}
-import uk.gov.hmrc.agentclientmandate.models.{Mandate, Status}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailStatus}
+import uk.gov.hmrc.agentclientmandate.models.Status
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateNotFound}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,27 +27,26 @@ import scala.concurrent.Future
 
 trait NotificationEmailService {
 
-  def mandateFetchService: MandateFetchService
-
   def emailConnector: EmailConnector
 
-  def sendMail(emailString: String, action: Status, userType: Option[String] = None, service: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    def getTemplate: String = {
-      (action, userType) match {
-        case (Status.Approved, _) => "client_approves_mandate"
-        case (Status.Active, _) => "agent_activates_mandate"
-        case (Status.Rejected, _) => "agent_rejects_mandate"
-        case (Status.Cancelled, Some("agent")) => "agent_removes_mandate"
-        case (Status.Cancelled, Some("client")) => "client_removes_mandate"
+  def sendMail(emailString: String, action: Status, userType: Option[String] = None, service: String, prevStatus: Option[Status] = None)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+    def template: String = {
+      (action, userType, prevStatus) match {
+        case (Status.Approved, _, _) => "client_approves_mandate"
+        case (Status.Active, _, _) => "agent_activates_mandate"
+        case (Status.Rejected, _, _) => "agent_rejects_mandate"
+        case (Status.Cancelled, Some("agent"), _) => "agent_removes_mandate"
+        case (Status.Cancelled, Some("client"), Some(Status.Approved)) => "client_removes_mandate"
+        case (Status.Cancelled, Some("client"), Some(Status.Active)) => "client_cancels_active_mandate"
       }
     }
-    def createServiceString: String = {
+    def serviceString: String = {
       service.toUpperCase match {
-        case "ATED" => "Annual Tax Enveloped Dwelling"
+        case "ATED" => "Annual Tax on Enveloped Dwellings"
         case _ => "[Service Name]"
       }
     }
-    emailConnector.sendTemplatedEmail(emailString, getTemplate, createServiceString)
+    emailConnector.sendTemplatedEmail(emailString, template, serviceString)
   }
 
 }
@@ -56,6 +54,5 @@ trait NotificationEmailService {
 object NotificationEmailService extends NotificationEmailService {
   // $COVERAGE-OFF$
   val emailConnector = EmailConnector
-  val mandateFetchService = MandateFetchService
   // $COVERAGE-ON$
 }

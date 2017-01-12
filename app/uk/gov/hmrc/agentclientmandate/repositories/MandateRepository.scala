@@ -90,7 +90,9 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
 object MandateRepository extends MongoDbConnection {
 
+  // $COVERAGE-OFF$
   private lazy val mandateRepository = new MandateMongoRepository
+  // $COVERAGE-ON$
 
   def apply(): MandateRepository = mandateRepository
 
