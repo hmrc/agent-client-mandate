@@ -34,11 +34,15 @@ trait TaskExecutor extends Actor {
         case StageComplete(sig) => executeStage(sig)
         case Retrying(sig, retryState) => executeStage(sig, Some(retryState))
         case TaskFailed(sig) => handleFailure(sig)
+        // $COVERAGE-OFF$
         case other => throw new RuntimeException("Unexpected status " + other)
+        // $COVERAGE-ON$
       }
     }
 
+    // $COVERAGE-OFF$
     case x  => throw new RuntimeException("Unexpected message " + x)
+    // $COVERAGE-ON$
   }
 
   private def executeStage(signal:Signal, retryStateOpt: Option[RetryState] = None): Unit = {
@@ -66,5 +70,7 @@ trait TaskExecutor extends Actor {
 
   }
 
+  // $COVERAGE-OFF$
   protected def currentTime = System.currentTimeMillis
+  // $COVERAGE-ON$
 }

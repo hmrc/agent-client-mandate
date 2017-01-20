@@ -46,7 +46,9 @@ protected class TaskManager[A <: Actor] (config:ConfigProvider[A]) extends Actor
 
     case cmd: TaskCommand =>
       cmd.status match {
+        // $COVERAGE-OFF$
         case _: New => throw new RuntimeException("[TaskManager] - Unexpected command New")
+        // $COVERAGE-ON$
         case StageComplete(_) => router ! cmd
         case _: StageFailed => failureMgr ! cmd
         case _: Retrying => router ! cmd

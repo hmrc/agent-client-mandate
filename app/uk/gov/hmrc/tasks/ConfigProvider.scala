@@ -26,24 +26,32 @@ trait ConfigProvider[A <: Actor] {
   def retryPolicy: RetryPolicy
 
   def newTaskManager(system: ActorSystem): ActorRef = {
+    // $COVERAGE-OFF$
     system.actorOf(Props(new TaskManager(this)), name = taskType + "-mgr")
+    // $COVERAGE-ON$
   }
 
   def newRouter(context:ActorContext):ActorRef = {
+    // $COVERAGE-OFF$
     context.actorOf(Props(new TaskRouter(this)), name = taskType + "-router")
+    // $COVERAGE-ON$
   }
 
   def newExecutor(context:ActorContext):ActorRef = {
+    // $COVERAGE-OFF$
     context.actorOf(Props(executorType))
+    // $COVERAGE-ON$
   }
 
   def newFailureManager(context:ActorContext):ActorRef = {
+    // $COVERAGE-OFF$
     context.actorOf(Props(new FailureManager(retryPolicy)), name = taskType + "-fmgr")
+    // $COVERAGE-ON$
   }
 }
 
-case class Config[A <: Actor](val taskType:String,
-                              val executorType:Class[A],
-                              val instances:Int,
-                              val retryPolicy:RetryPolicy
-                             ) extends ConfigProvider[A]
+case class TaskConfig[A <: Actor](val taskType:String,
+                                  val executorType:Class[A],
+                                  val instances:Int,
+                                  val retryPolicy:RetryPolicy
+                                 ) extends ConfigProvider[A]

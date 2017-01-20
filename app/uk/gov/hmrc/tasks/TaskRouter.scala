@@ -45,10 +45,12 @@ protected class TaskRouter[A <: Actor] (config:ConfigProvider[A]) extends Actor 
     case cmd: TaskCommand =>
       router.route(cmd, sender())
 
+    // $COVERAGE-OFF$
     case Terminated(a) =>
       router = router.removeRoutee(a)
       val r = config.newExecutor(context)
       context watch r
       router = router.addRoutee(r)
+    // $COVERAGE-ON$
   }
 }

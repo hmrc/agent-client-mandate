@@ -27,13 +27,15 @@ trait TaskControllerT {
   protected def system: ActorSystem
 
   //collection for TaskManagers, once for each task type
-  private val taskManagers: Map[String, ActorRef] = Map()
+  val taskManagers: Map[String, ActorRef] = Map()
 
   // Client calls this once to set up the execution subsystem for a specific task type
-  def setupExecutor[A <: Actor](config:ConfigProvider[A]): Unit = {
+  def setupTask[A <: Actor](config:ConfigProvider[A]): Unit = {
 
     val taskType = config.taskType
+    // $COVERAGE-OFF$
     if(taskManagers.contains(taskType)) throw new Exception(s"Executor '$taskType' already set up")
+    // $COVERAGE-ON$
 
     val taskMgr = config.newTaskManager(system)
     taskManagers += (taskType -> taskMgr)
@@ -41,7 +43,9 @@ trait TaskControllerT {
 
   // Client calls this each time a task needs to be executed
   def execute(task:Task): Unit = {
+    // $COVERAGE-OFF$
     if(! taskManagers.contains(task.`type`)) throw new Exception(s"Executor not set up for task of type '${task.`type`}'")
+    // $COVERAGE-ON$
     val taskMgr = taskManagers(task.`type`)
     taskMgr ! task
   }
@@ -56,6 +60,7 @@ trait TaskControllerT {
     }
   }
 
+  // $COVERAGE-OFF$
   //Shut down the entire task execution framewok
   def shutdown() : Unit = {
 
@@ -63,6 +68,7 @@ trait TaskControllerT {
     //This cancels further Ticks to be sent
     cancellable.cancel()
   }
+  // $COVERAGE-ON$
 }
 
 // Akka message. Represents a clock tick

@@ -51,7 +51,9 @@ protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
       def extractStatus(tc:TaskCommand):StageFailed = {
         tc.status match {
           case s:StageFailed => s
+          // $COVERAGE-OFF$
           case _ => throw new RuntimeException("[FailureManager] Unexpected extract status " + tc)
+          // $COVERAGE-ON$
         }
       }
 

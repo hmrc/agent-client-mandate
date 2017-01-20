@@ -25,5 +25,7 @@ sealed trait Signal {
 case class Start(args: Map[String, String]) extends Signal
 case class Next(next:String, args: Map[String, String]) extends Signal
 case object Finish extends Signal {
+  // $COVERAGE-OFF$
   override def args = Map()
+  // $COVERAGE-ON$
 }
