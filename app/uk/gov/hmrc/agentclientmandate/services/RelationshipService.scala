@@ -35,10 +35,6 @@ trait RelationshipService {
 
   def etmpConnector: EtmpConnector
 
-  def authConnector: AuthConnector
-
-  def mandateFetchService: MandateFetchService
-
   def metrics: Metrics
 
   def maintainRelationship(mandate: Mandate, agentCode: String, action: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
@@ -92,17 +88,6 @@ trait RelationshipService {
     }
   }
 
-  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    authConnector.getAuthority().flatMap { authority =>
-      val agentRefNumberOpt = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").asOpt[String]
-      agentRefNumberOpt match {
-        case Some(arn) =>
-          mandateFetchService.getAllMandates(arn, "ated").map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
-        case None => Future.successful(false)
-      }
-    }
-  }
-
   private def createEtmpRelationship(clientId: String, agentId: String, action: String) = {
     action match {
       case Authorise => EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId,
@@ -119,7 +104,7 @@ object RelationshipService extends RelationshipService {
   val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
   val etmpConnector: EtmpConnector = EtmpConnector
   val authConnector: AuthConnector = AuthConnector
-  val mandateFetchService: MandateFetchService = MandateFetchService
+
   val metrics = Metrics
   // $COVERAGE-ON$
 }

@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.Logger
 import play.api.http.ContentTypes.XML
 import play.api.http.HeaderNames.CONTENT_TYPE
+import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
@@ -44,7 +45,15 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()
-        response
+        response.status match {
+          case OK =>
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+            response
+          case status =>
+            metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
+            Logger.warn(s"[GovernmentGatewayProxyConnector][allocateAgent] - status: $status Error ${response.body}")
+            response
+        }
       })
   }
 

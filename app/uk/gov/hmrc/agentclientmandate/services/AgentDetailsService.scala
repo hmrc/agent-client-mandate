@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models.{AgentDetails, RegisteredAddressDetails}
+import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,6 +30,9 @@ trait AgentDetailsService {
   def etmpConnector: EtmpConnector
 
   def authConnector: AuthConnector
+
+  def mandateFetchService: MandateFetchService
+
 
   def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier): Future[AgentDetails] = {
 
@@ -56,11 +60,23 @@ trait AgentDetailsService {
       }
     }
   }
+
+  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    authConnector.getAuthority().flatMap { authority =>
+      val agentRefNumberOpt = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").asOpt[String]
+      agentRefNumberOpt match {
+        case Some(arn) =>
+          mandateFetchService.getAllMandates(arn, "ated").map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
+        case None => Future.successful(false)
+      }
+    }
+  }
 }
 
 object AgentDetailsService extends AgentDetailsService {
   // $COVERAGE-OFF$
   val authConnector = AuthConnector
   val etmpConnector = EtmpConnector
+  val mandateFetchService: MandateFetchService = MandateFetchService
   // $COVERAGE-ON$
 }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
@@ -24,6 +25,8 @@ import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.domain.{AtedUtr, Generator}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -126,18 +129,77 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       val result = await(TestAgentDetailsService.getAgentDetails("ac"))
       result.agentName must be("ABC Limited")
     }
+
+    "returns true - for delegation authorization check for Ated" when {
+      "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
+        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandate)))
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
+      }
+    }
+
+    "returns false - for delegation authorization check for Ated" when {
+      "authority doesn't return registered Agents" in {
+        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+      "mandate subscription doesn't have subscription reference" in {
+        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
+        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+      "mandate doesn't have the same AtedRefNumber" in {
+        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
+        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
+      }
+    }
   }
+
+  val atedUtr: AtedUtr = new Generator().nextAtedUtr
+  val atedUtr2: AtedUtr = new Generator().nextAtedUtr
+
+  val mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val notRegisteredAgentJsonAuth = Json.parse(
+    """
+      {
+        "accounts": {
+          "agent": {
+            "agentCode":"AGENT-123"
+          }
+        }
+      }
+    """
+  )
+
+  implicit val hc = new HeaderCarrier()
 
   val authConnectorMock = mock[AuthConnector]
   val etmpConnectorMock = mock[EtmpConnector]
+  val mockMandateFetchService = mock[MandateFetchService]
 
   override def beforeEach(): Unit = {
     reset(authConnectorMock)
     reset(etmpConnectorMock)
+    reset(mockMandateFetchService)
   }
 
   object TestAgentDetailsService extends AgentDetailsService {
     override val authConnector = authConnectorMock
     override val etmpConnector = etmpConnectorMock
+    override val mandateFetchService: MandateFetchService = mockMandateFetchService
   }
 }

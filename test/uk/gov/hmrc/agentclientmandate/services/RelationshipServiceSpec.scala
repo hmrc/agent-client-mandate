@@ -102,43 +102,16 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       }
     }
 
-    "returns true - for delegation authorization check for Ated" when {
-      "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandate)))
-        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(true)
-      }
-    }
-
-    "returns false - for delegation authorization check for Ated" when {
-      "authority doesn't return registered Agents" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
-        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
-      }
-      "mandate subscription doesn't have subscription reference" in {
-        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
-        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
-      }
-      "mandate doesn't have the same AtedRefNumber" in {
-        val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
-        await(TestRelationshipService.isAuthorisedForAted(atedUtr)) must be(false)
-      }
-    }
-
-
   }
 
   val agentCode = "ABC"
   val authoriseAction = "Authorise"
   val deAuthoriseAction = "De-Authorise"
-  val atedUtr: AtedUtr = new Generator().nextAtedUtr
-  val atedUtr2: AtedUtr = new Generator().nextAtedUtr
+
 
   implicit val hc = new HeaderCarrier()
+
+  val atedUtr: AtedUtr = new Generator().nextAtedUtr
 
   val mandate =
     Mandate(
@@ -156,19 +129,15 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     reset(ggProxyMock)
     reset(etmpMock)
     reset(mockAuthConnector)
-    reset(mockMandateFetchService)
   }
 
   val ggProxyMock = mock[GovernmentGatewayProxyConnector]
   val etmpMock = mock[EtmpConnector]
   val mockAuthConnector = mock[AuthConnector]
-  val mockMandateFetchService = mock[MandateFetchService]
 
   object TestRelationshipService extends RelationshipService {
     override val ggProxyConnector = ggProxyMock
     override val etmpConnector = etmpMock
-    override val authConnector: AuthConnector = mockAuthConnector
-    override val mandateFetchService: MandateFetchService = mockMandateFetchService
     override val metrics = Metrics
   }
 
@@ -184,18 +153,5 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       }
     """
   )
-
-  val notRegisteredAgentJsonAuth = Json.parse(
-    """
-      {
-        "accounts": {
-          "agent": {
-            "agentCode":"AGENT-123"
-          }
-        }
-      }
-    """
-  )
-
 
 }

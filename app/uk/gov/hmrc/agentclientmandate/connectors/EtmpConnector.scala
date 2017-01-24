@@ -67,7 +67,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
         case status =>
           metrics.incrementFailedCounter(MetricsEnum.MaintainAtedRelationship)
           Logger.warn(s"[EtmpConnector][maintainAtedRelationship] - status: $status Error ${response.body}")
-          throw new RuntimeException("ETMP call failed")
+          response
       }
     }
   }
