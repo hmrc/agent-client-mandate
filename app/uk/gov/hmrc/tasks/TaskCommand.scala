@@ -33,16 +33,16 @@ protected case class New(signal:Start) extends ExecutionStatus
 // When an intermediate stage of the task got completed successfully by
 // the TaskExecutor it sends this (to itself via the TaskManager), so that
 // the next stage, as specified by the contained Signal (Next), can be executed
-protected case class StageComplete(signal:Signal) extends ExecutionStatus
+protected case class StageComplete(signal:Signal, phase: Phase.Phase) extends ExecutionStatus
 
 //When a stage of the task throws an exception the TaskExecutor sends this
 // to the FailureManager. Includes the original Signal well as the RetryState.
-protected case class StageFailed(signal:Signal, retryState:RetryState) extends ExecutionStatus
+protected case class StageFailed(signal:Signal, phase: Phase.Phase, retryState:RetryState) extends ExecutionStatus
 
 //When FailureManager determines that this TaskCommand can be retried
 // it sends it to the TaskExecutor. It contains the Signal for the last
 // failed Stage as well as the last RetryState.
-protected case class Retrying(signal:Signal, retryState:RetryState) extends ExecutionStatus
+protected case class Retrying(signal:Signal, phase: Phase.Phase, retryState:RetryState) extends ExecutionStatus
 
 //When the TaskExecutor has successfully completes the last stage
 // i.e. when the Signal returned is Finish, it sends this to the
@@ -64,3 +64,9 @@ protected case class TaskFailureHandled(args: Map[String, String]) extends Execu
 //Captures the state of retry for a task at the end of each retry. Used
 // by failure manager to work out if and when to retry the task
 protected case class RetryState(firstTryAt:Long, retryCount:Int, lastTryAt:Long)
+
+
+object Phase extends Enumeration {
+  type Phase = Value
+  val Commit, Rollback = Value
+}
