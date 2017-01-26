@@ -17,57 +17,57 @@
 package uk.gov.hmrc.tasks
 
 import akka.actor.Actor
+import Phase._
 
 import scala.util.{Failure, Success, Try}
 
 trait TaskExecutor extends Actor {
 
   def execute(signal: Signal): Try[Signal]
-  def onFailed(lastSignal: Signal): Unit
+  def rollback(signal: Signal): Try[Signal]
 
   override def receive: Receive = {
     case cmd: TaskCommand => {
 
       cmd.status match {
 
-        case New(startSig) => executeStage(startSig)
-        case StageComplete(sig) => executeStage(sig)
-        case Retrying(sig, retryState) => executeStage(sig, Some(retryState))
-        case TaskFailed(sig) => handleFailure(sig)
+        case New(startSig) => doTaskCommand(startSig, Commit)
+        case StageComplete(sig, phase) => doTaskCommand(sig, phase)
+        case Retrying(sig, phase, retryState) => doTaskCommand(sig, phase, Some(retryState))
+        case TaskFailed(lastSig) => doTaskCommand(StartRollback(lastSig), Rollback)
         // $COVERAGE-OFF$
         case other => throw new RuntimeException("Unexpected status " + other)
         // $COVERAGE-ON$
       }
     }
-
     // $COVERAGE-OFF$
     case x  => throw new RuntimeException("Unexpected message " + x)
     // $COVERAGE-ON$
   }
 
-  private def executeStage(signal:Signal, retryStateOpt: Option[RetryState] = None): Unit = {
-    val newSignalTry = execute(signal)
+
+  private def doTaskCommand(signal:Signal, phase:Phase, retryStateOpt: Option[RetryState] = None): Unit = {
+
+    val newSignalTry = if(phase == Commit) execute(signal) else rollback(signal)
 
     newSignalTry match {
       case Success(newSignal) => {
-        if(newSignal == Finish) sender() ! TaskCommand(TaskComplete(signal.args))
-        else sender() ! TaskCommand(StageComplete(newSignal))
+        if(newSignal == Finish) {
+          val ts = if(phase == Commit) TaskComplete(signal.args) else TaskFailureHandled(signal.args)
+          sender() ! TaskCommand(ts)
+        }
+        else sender() ! TaskCommand(StageComplete(newSignal, phase))
       }
       case Failure(ex) => {
         val ct = currentTime
-        val retryState = retryStateOpt match {
-          case Some(rs) => RetryState(rs.firstTryAt, rs.retryCount + 1, ct)
-          case None => RetryState(ct, 1, ct)
-        }
-        sender() ! TaskCommand(StageFailed(signal, retryState))
+        val retryState =
+          retryStateOpt match {
+            case Some(rs) => RetryState(rs.firstTryAt, rs.retryCount + 1, ct)
+            case None => RetryState(ct, 1, ct)
+          }
+        sender() ! TaskCommand(StageFailed(signal, phase, retryState))
       }
     }
-  }
-
-  private def handleFailure(signal:Signal) : Unit = {
-    onFailed(signal)
-    sender() ! TaskCommand(TaskFailureHandled(signal.args))
-
   }
 
   // $COVERAGE-OFF$
