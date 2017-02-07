@@ -69,14 +69,14 @@ protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
 
       //For retries, send a new TaskCommand with status Retrying
       retryList.foreach { cmd =>
-        val st = extractStatus(cmd)
-        context.parent ! TaskCommand(Retrying(st.signal, st.phase, st.retryState))
+        val sfStatus = extractStatus(cmd)
+        context.parent ! TaskCommand(Retrying(sfStatus.signal, sfStatus.phase, sfStatus.retryState))
       }
 
       //For failures, send a new TaskCommand with status Failed
       failedList.foreach { cmd =>
-        val st = extractStatus(cmd)
-        context.parent ! TaskCommand(TaskFailed(st.signal))
+        val sfStatus = extractStatus(cmd)
+        context.parent ! TaskCommand(Failed(sfStatus.signal, sfStatus.phase))
       }
     }
   }

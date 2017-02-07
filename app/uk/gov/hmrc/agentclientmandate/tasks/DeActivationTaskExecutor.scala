@@ -17,8 +17,6 @@
 package uk.gov.hmrc.agentclientmandate.tasks
 
 import org.joda.time.DateTime
-import play.api.Logger
-import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
@@ -31,9 +29,11 @@ import uk.gov.hmrc.tasks._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import play.api.Logger
+import play.api.http.Status._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
-class ActivationTaskExecutor extends TaskExecutor with Auditable {
+class DeActivationTaskExecutor extends TaskExecutor with Auditable {
 
   val etmpConnector: EtmpConnector = EtmpConnector
   val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
@@ -47,53 +47,58 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
   override def execute(signal: Signal): Try[Signal] = {
     signal match {
       case Start(args) => {
-        val request = createRelationship(args("clientId"), args("agentPartyId"))
+        val request = breakRelationship(args("clientId"), args("agentPartyId"))
         val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
         result.status match {
           case OK => Success(Next("gg-proxy", args))
           case _ => {
-            Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} with body ${result.body}")
+            Logger.warn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} with body ${result.body}")
             Failure(new Exception("ETMP call failed, status: " + result.status))
           }
         }
       }
-
       case Next("gg-proxy", args) => {
-        val request = GsoAdminAllocateAgentXmlInput(
-                    List(Identifier(args("serviceIdentifier"), args("clientId"))),
-                    args("agentCode"), AtedServiceContractName)
-        val result = Await.result(ggProxyConnector.allocateAgent(request), 5 seconds)
+        val request = GsoAdminDeallocateAgentXmlInput(
+          List(Identifier(args("serviceIdentifier"), args("clientId"))),
+          args("agentCode"), AtedServiceContractName)
+        val result = Await.result(ggProxyConnector.deAllocateAgent(request), 5 seconds)
         result.status match {
           case OK => Success(Next("finalize", args))
           case _ => {
-            Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${result.status} with body ${result.body}")
+            Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${result.status} with body ${result.body}")
             Failure(new Exception("GG Proxy call failed, status: " + result.status))
           }
         }
       }
-
       case Next("finalize", args) => {
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) => {
-            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
+            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Cancelled, DateTime.now, args("credId")))
             val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 3 seconds)
             updateResult match {
               case MandateUpdated(m) => {
-                val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
-                val service = m.subscription.service.id
-                emailNotificationService.sendMail(clientEmail, models.Status.Active, service = service)
-                doAudit("activated", args("agentCode"), m)
+                args("userType") match {
+                  case "agent" =>
+                    val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
+                    val service = m.subscription.service.id
+                    emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(args("userType")), service)
+                  case _ =>
+                    val agentEmail = m.agentParty.contactDetails.email
+                    val service = m.subscription.service.id
+                    emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))
+                }
+                doAudit("removed", args("agentCode"), m)
                 Success(Finish)
               }
               case MandateUpdateError => {
-                Logger.warn(s"[ActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
+                Logger.warn(s"[DeActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
                 Failure(new Exception("Could not update mandate to activate"))
               }
             }
           }
           case MandateNotFound => {
-            Logger.warn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
+            Logger.warn(s"[DeActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
             Failure(new Exception("Could not find mandate to activate"))
           }
         }
@@ -104,12 +109,12 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
   override def rollback(signal: Signal): Try[Signal] = {
     signal match {
       case Start(args) => {
-        Logger.warn("[ActivationTaskExecutor] start failed")
-        // setting back to Approved from PendingActivation status so agent can try again
+        Logger.warn("[DeActivationTaskExecutor] start failed")
+        // setting back to Active from PendingCancellation status so agent can try again
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) => {
-            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Approved, DateTime.now, args("credId")))
+            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
             Await.result(mandateRepository.updateMandate(updatedMandate), 1 second)
             Success(Finish)
           }
@@ -117,15 +122,15 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       }
       //failed doing allocate agent in GG
       case Next("gg-proxy", args) => {
-        Logger.warn("[ActivationTaskExecutor] gg-proxy allocate failed")
+        Logger.warn("[DeActivationTaskExecutor] gg-proxy de-allocate agent failed")
         // rolling back ETMP as we have failed GG proxy call
-        val request = breakRelationship(args("clientId"), args("agentPartyId"))
+        val request = createRelationship(args("clientId"), args("agentPartyId"))
         val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
         Success(Start(args))
       }
-      //failed to update the status in Mongo from PendingActivation to Active
+      //failed to update the status in Mongo from PendingCancellation to Cancelled
       case Next("finalize", args) => {
-        Logger.error("[ActivationTaskExecutor] Mongo update failed")
+        Logger.error("[DeActivationTaskExecutor] Mongo update failed")
         // leaving for manual intervention as etmp and gg proxy were successful
         Success(Next("gg-proxy", args))
       }
@@ -133,7 +138,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
   }
 
   override def onRollbackFailure(lastSignal: Signal) = {
-    Logger.error("[ActivationTaskExecutor] Rollback action failed")
+    Logger.error("[DeActivationTaskExecutor] Rollback action failed")
   }
 
 }

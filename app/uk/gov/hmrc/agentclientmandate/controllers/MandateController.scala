@@ -98,7 +98,7 @@ trait MandateController extends BaseController with Auditable {
       case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
         updateService.updateMandate(mandate, Some(models.Status.PendingActivation)).flatMap {
           case MandateUpdated(x) =>
-            relationshipService.maintainRelationship(mandate, agentCode, MandateConstants.Authorise)
+            relationshipService.createAgentClientRelationship(x, agentCode)
             Future.successful(Ok)
           case MandateUpdateError => Future.successful(NotFound)
         }
@@ -114,7 +114,7 @@ trait MandateController extends BaseController with Auditable {
         val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
         updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
           case MandateUpdated(x) =>
-            relationshipService.maintainRelationship(mandate, agentCode, MandateConstants.DeAuthorise)
+            relationshipService.breakAgentClientRelationship(x, agentCode, userType)
             Future.successful(Ok)
           case MandateUpdateError => Future.successful(NotFound)
         }
@@ -162,7 +162,7 @@ trait MandateController extends BaseController with Auditable {
   def createRelationship(ac: String) = Action.async(parse.json) { implicit request =>
     withJsonBody[NonUKClientDto] { nonUKClientDto =>
       createService.createMandateForNonUKClient(ac, nonUKClientDto) map { mandateId =>
-        Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
+        Created
       }
     }
   }

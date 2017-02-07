@@ -39,8 +39,8 @@ class TaskControllerSpec extends TestKit(ActorSystem("test"))
       val config2 = TestRouterConfig_TaskController("test2", classOf[TestExecutor_TaskController], 1, retryPolicy, testTaskManager.ref)
 
       object TestTaskController extends TaskController(system, 5)
-      TestTaskController.setupTask(config1)
-      TestTaskController.setupTask(config2)
+      TestTaskController.setupExecutor(config1)
+      TestTaskController.setupExecutor(config2)
 
       TestTaskController.taskManagers.size shouldBe 2
       TestTaskController.taskManagers.keys should contain("test1")
@@ -56,7 +56,7 @@ class TaskControllerSpec extends TestKit(ActorSystem("test"))
       object TestTaskController extends TaskController(system, 5) {
         override def startClock(intervalSecs:Int): Unit = {}
       }
-      TestTaskController.setupTask(config1)
+      TestTaskController.setupExecutor(config1)
 
       val task = Task("test1", Map())
       TestTaskController.execute(task)
@@ -82,6 +82,8 @@ class TestExecutor_TaskController extends TaskExecutor {
     Success(signal)
   }
 
-  override def onFailed(lastSignal: Signal): Unit = { }
+  //override def onFailed(lastSignal: Signal): Unit = { }
+  override def rollback(signal: Signal): Try[Signal] = ???
 
+  override def onRollbackFailure(lastSignal: Signal): Unit = ???
 }

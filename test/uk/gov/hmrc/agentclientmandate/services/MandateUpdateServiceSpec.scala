@@ -33,6 +33,8 @@ import scala.concurrent.Future
 
 class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
+  implicit val hc = HeaderCarrier()
+
   "MandateUpdateService" should {
 
     "update data in mongo with given data provided" when {
@@ -194,6 +196,6 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     reset(mockAuthConnector)
   }
 
-  implicit val hc = HeaderCarrier()
+
 
 }

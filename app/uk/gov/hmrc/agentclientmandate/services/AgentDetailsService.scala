@@ -35,7 +35,6 @@ trait AgentDetailsService {
 
 
   def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier): Future[AgentDetails] = {
-
     authConnector.getAuthority().flatMap { authority =>
 
       val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]

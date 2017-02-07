@@ -41,7 +41,6 @@ trait EmailConnector extends ServicesConfig with RawResponseReads {
   def http: HttpGet with HttpPost with HttpPut
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-
     val params = Map("emailAddress" -> emailString,
                      "service" -> serviceString)
 

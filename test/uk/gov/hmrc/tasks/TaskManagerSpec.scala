@@ -39,7 +39,9 @@ class TaskManagerSpec extends TestKit(ActorSystem("test"))
   val taskManagerActorRef = TestActorRef[TaskManager[TestExecutor_TaskManager]](Props(new TaskManager(config)))
   val actor = taskManagerActorRef.underlyingActor
   val args1 = Map("a" -> "1", "b" -> "2")
-  val retryState1 = RetryState(1000L,1,1000L)
+  val retryState1 = RetryState(1000L, 1, 1000L)
+
+  val phaseCommit = Phase.Commit
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
@@ -49,53 +51,37 @@ class TaskManagerSpec extends TestKit(ActorSystem("test"))
 
     "send task command to router on receiving a task" in {
       taskManagerActorRef ! Task("test", args1)
-      router.cmds(0) shouldBe(TaskCommand(New(Start(args1))))
+      router.cmds(0) shouldBe (TaskCommand(New(Start(args1))))
       router.cmds.clear()
     }
 
     "forward any StageComplete task command to router" in {
-      val msg = TaskCommand(StageComplete(Next("1", args1)))
+      val msg = TaskCommand(StageComplete(Next("1", args1), phaseCommit))
       taskManagerActorRef ! msg
       router.cmds(0) shouldBe msg
       router.cmds.clear()
     }
 
     "forward any StageFailed task command to failure manager" in {
-      val msg = TaskCommand(StageFailed(Next("1", args1), retryState1))
+      val msg = TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1))
       taskManagerActorRef ! msg
       fmgr.cmds(0) shouldBe msg
       fmgr.cmds.clear()
     }
 
     "forward any Retrying task command to router" in {
-      val msg = TaskCommand(Retrying(Next("1", args1), retryState1))
+      val msg = TaskCommand(Retrying(Next("1", args1), phaseCommit, retryState1))
       taskManagerActorRef ! msg
       router.cmds(0) shouldBe msg
       router.cmds.clear()
     }
 
     "forward any TaskFailed task command to router" in {
-      val msg = TaskCommand(TaskFailed(Next("1", args1)))
+      val msg = TaskCommand(Failed(Next("1", args1), phaseCommit))
       taskManagerActorRef ! msg
       router.cmds(0) shouldBe msg
       router.cmds.clear()
     }
-
-    "accept any TaskFailureHandled and TaskComplete task command and perform cleanup" in {
-      val msg1 = TaskCommand(TaskFailureHandled(args1))
-      taskManagerActorRef ! msg1
-      expectMsg("cleaned_up")
-
-      val msg2 = TaskCommand(TaskComplete(args1))
-      taskManagerActorRef ! msg2
-      expectMsg("cleaned_up")
-    }
-
-//    "throw exception for New Status" in {
-//      val msg1 = TaskCommand(New(Start(Map())))
-//      val x = intercept[RuntimeException] { taskManagerActorRef ! msg1 }
-//      x.getMessage should contain("[TaskManager] - Unexpected command New")
-//    }
 
     "send a Tick to failure manager" in {
       taskManagerActorRef ! Tick
@@ -124,13 +110,13 @@ class TestFailureManager_TaskManager extends Actor {
   }
 }
 
-case class TestConfig_TaskManager[A <: Actor](val taskType:String,
-                                          val executorType:Class[A],
-                                          val instances:Int,
-                                          val retryPolicy:RetryPolicy,
-                                          val router:ActorRef,
-                                          val failureMgr:ActorRef
-                                         ) extends ConfigProvider[A]{
+case class TestConfig_TaskManager[A <: Actor](val taskType: String,
+                                              val executorType: Class[A],
+                                              val instances: Int,
+                                              val retryPolicy: RetryPolicy,
+                                              val router: ActorRef,
+                                              val failureMgr: ActorRef
+                                             ) extends ConfigProvider[A] {
 
   override def newRouter(context: ActorContext): ActorRef = router
 
@@ -143,6 +129,10 @@ class TestExecutor_TaskManager extends TaskExecutor {
     Success(signal)
   }
 
-  override def onFailed(lastSignal: Signal): Unit = {}
+  override def rollback(signal: Signal): Try[Signal] = {
+    Success(signal)
+  }
+
+  override def onRollbackFailure(lastSignal: Signal) = {}
 
 }

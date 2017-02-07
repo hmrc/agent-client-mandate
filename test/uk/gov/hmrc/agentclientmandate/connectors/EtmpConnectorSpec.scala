@@ -105,13 +105,12 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
         when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
-          .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
+          .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = Some(failureResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
-        val result = TestEtmpConnector.maintainAtedRelationship(agentClientRelationship)
-        val response = the[RuntimeException] thrownBy await(result)
-        response.getMessage must be("ETMP call failed")
+        val response = await(TestEtmpConnector.maintainAtedRelationship(agentClientRelationship))
+        response.status must be(INTERNAL_SERVER_ERROR)
       }
     }
 

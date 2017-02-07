@@ -43,13 +43,11 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "activate the client" when {
 
       "request is valid and client mandate found " in {
+
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(mandate))
-        when(relationshipServiceMock.maintainRelationship(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-
+        when(updateServiceMock.updateMandate(Matchers.eq(approvedMandate), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(pendingActmandate))
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
-
-        status(result) must be(OK)
+        status(result) must be (OK)
       }
     }
 
@@ -57,9 +55,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "status of mandate returned is not ACTIVE" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
-
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.activate(agentCode, mandateId).apply(FakeRequest()))
-
         thrown.getMessage must include("Mandate with status New cannot be activated")
       }
 
@@ -88,11 +84,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       "request is valid and client mandate found " in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
         when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(mandate))
-        when(relationshipServiceMock.maintainRelationship(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(200, None))
-        when(notificationServiceMock.sendMail(Matchers.any(), Matchers.eq(Status.Rejected), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
-
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
-
         status(result) must be(OK)
       }
     }
@@ -132,18 +124,6 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         status(result) must be(NOT_FOUND)
       }
     }
-
-
-//    "when client mandate not found return not found" when {
-//
-//      "client mandate not found" in {
-//
-//        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
-//
-//        val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
-//        status(result) must be(NOT_FOUND)
-//      }
-//    }
 
     "create a mandate and return mandate Id" when {
 
@@ -307,9 +287,10 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.createMandateForNonUKClient(Matchers.any(), Matchers.eq(dto))(Matchers.any())).thenReturn(Future.successful("mandateId"))
+        when(createServiceMock.createMandateForNonUKClient(Matchers.any(), Matchers.eq(dto))(Matchers.any())).thenReturn(Future.successful())
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
+        verify(createServiceMock, times(1)).createMandateForNonUKClient(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
     }
@@ -416,6 +397,18 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val pendingActmandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"

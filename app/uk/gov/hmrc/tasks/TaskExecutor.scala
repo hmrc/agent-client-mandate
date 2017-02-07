@@ -25,6 +25,7 @@ trait TaskExecutor extends Actor {
 
   def execute(signal: Signal): Try[Signal]
   def rollback(signal: Signal): Try[Signal]
+  def onRollbackFailure(lastSignal: Signal): Unit
 
   override def receive: Receive = {
     case cmd: TaskCommand => {
@@ -34,7 +35,8 @@ trait TaskExecutor extends Actor {
         case New(startSig) => doTaskCommand(startSig, Commit)
         case StageComplete(sig, phase) => doTaskCommand(sig, phase)
         case Retrying(sig, phase, retryState) => doTaskCommand(sig, phase, Some(retryState))
-        case TaskFailed(lastSig) => doTaskCommand(StartRollback(lastSig), Rollback)
+        case Failed(sig, Commit) => doTaskCommand(sig, Rollback)
+        case Failed(sig, Rollback) => handleRollbackFailure(sig)
         // $COVERAGE-OFF$
         case other => throw new RuntimeException("Unexpected status " + other)
         // $COVERAGE-ON$
@@ -52,10 +54,7 @@ trait TaskExecutor extends Actor {
 
     newSignalTry match {
       case Success(newSignal) => {
-        if(newSignal == Finish) {
-          val ts = if(phase == Commit) TaskComplete(signal.args) else TaskFailureHandled(signal.args)
-          sender() ! TaskCommand(ts)
-        }
+        if(newSignal == Finish) sender() ! TaskCommand(Complete(signal.args, phase))
         else sender() ! TaskCommand(StageComplete(newSignal, phase))
       }
       case Failure(ex) => {
@@ -68,6 +67,11 @@ trait TaskExecutor extends Actor {
         sender() ! TaskCommand(StageFailed(signal, phase, retryState))
       }
     }
+  }
+
+  private def handleRollbackFailure(lastSignal:Signal): Unit ={
+    onRollbackFailure(lastSignal)
+    sender() ! TaskCommand(RollbackFailureHandled(lastSignal.args))
   }
 
   // $COVERAGE-OFF$

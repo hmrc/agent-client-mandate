@@ -29,7 +29,3 @@ case object Finish extends Signal {
   override def args = Map()
   // $COVERAGE-ON$
 }
-case class StartRollback(lastSignal: Signal) extends Signal {
-  override def args = lastSignal.args
-
-}
