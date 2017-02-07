@@ -20,7 +20,7 @@ import org.mockito.Matchers
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import uk.gov.hmrc.agentclientmandate.services.RelationshipService
+import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr, Generator}
 import uk.gov.hmrc.play.http.HeaderCarrier
 import org.mockito.Mockito._
@@ -55,10 +55,10 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with OneServerPerSui
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
   implicit val hc = HeaderCarrier()
 
-  val mockRelationshipService = mock[RelationshipService]
+  val mockRelationshipService = mock[AgentDetailsService]
 
   object TestAgentDelegationForAtedController extends AgentDelegationForAtedController {
-    override val relationshipService: RelationshipService = mockRelationshipService
+    override val agentDetailsService: AgentDetailsService = mockRelationshipService
   }
 
 }

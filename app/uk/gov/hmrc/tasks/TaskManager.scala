@@ -47,13 +47,14 @@ protected class TaskManager[A <: Actor] (config:ConfigProvider[A]) extends Actor
     case cmd: TaskCommand =>
       cmd.status match {
         // $COVERAGE-OFF$
-        case _: New => throw new RuntimeException("[TaskManager] - Unexpected command New")
-        // $COVERAGE-ON$
-        case StageComplete(_) => router ! cmd
+        case _: New => throw new RuntimeException("Unexpected command New")
+        case _: StageComplete => router ! cmd
         case _: StageFailed => failureMgr ! cmd
         case _: Retrying => router ! cmd
-        case TaskFailed(_) => router ! cmd
-        case TaskComplete(_) | TaskFailureHandled(_) => cleanUp(cmd)
+        case _ : Failed => router ! cmd
+        case _ : Complete => cleanUp(cmd)
+        case _ : RollbackFailureHandled => cleanUp(cmd)
+        // $COVERAGE-ON$
       }
 
     case Tick =>
@@ -61,9 +62,15 @@ protected class TaskManager[A <: Actor] (config:ConfigProvider[A]) extends Actor
 
   }
 
-  def cleanUp(cmd: TaskCommand): Unit = {
+  //--------------------------------------
+  // Clean up after these 3 scenarios here
+  //  1. Execution completed successfully
+  //  2. Rollback completed successfully
+  //  3. Rollback failure was handled
+  // $COVERAGE-OFF$
+  def cleanUp(cmd: TaskCommand): String = {
     //TODO: perform clean up
-    sender() ! "cleaned_up"
+    "Clean Up Completed..."
   }
-
+  // $COVERAGE-ON$
 }

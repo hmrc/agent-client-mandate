@@ -41,6 +41,7 @@ protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
     // Enqueue them for retry later
     case cmd: TaskCommand => {
       retryQueue += cmd
+      println("Queued errored command " + cmd +" Size="+retryQueue.size)
     }
 
     //Tick from the clock. Wake up to evaluate if any TaskCommands
@@ -52,7 +53,7 @@ protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
         tc.status match {
           case s:StageFailed => s
           // $COVERAGE-OFF$
-          case _ => throw new RuntimeException("[FailureManager] Unexpected extract status " + tc)
+          case _ => throw new RuntimeException("Unexpected command "+tc)
           // $COVERAGE-ON$
         }
       }
@@ -68,14 +69,14 @@ protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
 
       //For retries, send a new TaskCommand with status Retrying
       retryList.foreach { cmd =>
-        val st = extractStatus(cmd)
-        context.parent ! TaskCommand(Retrying(st.signal, st.retryState))
+        val sfStatus = extractStatus(cmd)
+        context.parent ! TaskCommand(Retrying(sfStatus.signal, sfStatus.phase, sfStatus.retryState))
       }
 
       //For failures, send a new TaskCommand with status Failed
       failedList.foreach { cmd =>
-        val st = extractStatus(cmd)
-        context.parent ! TaskCommand(TaskFailed(st.signal))
+        val sfStatus = extractStatus(cmd)
+        context.parent ! TaskCommand(Failed(sfStatus.signal, sfStatus.phase))
       }
     }
   }

@@ -17,8 +17,8 @@
 package uk.gov.hmrc.tasks
 
 import akka.actor.ActorSystem
-import akka.testkit._
-import org.scalatest._
+import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
+import org.scalatest.BeforeAndAfterAll
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.{Failure, Success, Try}
@@ -31,6 +31,9 @@ class TaskExecutorSpec extends TestKit(ActorSystem("test"))
   val args1 = Map("a" -> "1", "b" -> "2")
   val retryState1 = RetryState(1000L,1,1000L)
 
+  val phaseCommit = Phase.Commit
+  val phaseRollback = Phase.Rollback
+
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
@@ -39,34 +42,34 @@ class TaskExecutorSpec extends TestKit(ActorSystem("test"))
     "execute with a Start signal when sent a task command when status is New" in {
       executorRef ! TaskCommand(New(Start(args1)))
       executorActor.execSignal shouldBe Start(args1)
-      expectMsg(TaskCommand(StageComplete(Next("2", Map("c"->"3")))))
+      expectMsg(TaskCommand(StageComplete(Next("2", Map("c"->"3")), phaseCommit)))
     }
 
     "execute with the given signal when status is StageComplete" in {
-      executorRef ! TaskCommand(StageComplete(Next("1", args1)))
+      executorRef ! TaskCommand(StageComplete(Next("1", args1), phaseCommit))
       executorActor.execSignal shouldBe Next("1", args1)
-      expectMsg(TaskCommand(StageComplete(Next("1",args1))))
+      expectMsg(TaskCommand(StageComplete(Next("1",args1), phaseCommit)))
     }
 
     "send back StageFailed when there is an error" in {
-      executorRef ! TaskCommand(StageComplete(Next("error", args1)))
-      expectMsg(TaskCommand(StageFailed(Next("error",args1),retryState1)))
+      executorRef ! TaskCommand(StageComplete(Next("error", args1), phaseCommit))
+      expectMsg(TaskCommand(StageFailed(Next("error",args1), phaseCommit, retryState1)))
     }
 
     "update the retry state when a Retrying call results in a error" in {
-      executorRef ! TaskCommand(Retrying(Next("error", args1), retryState1))
-      expectMsg(TaskCommand(StageFailed(Next("error", args1),RetryState(1000,2,2000))))
+      executorRef ! TaskCommand(Retrying(Next("error", args1), phaseCommit, retryState1))
+      expectMsg(TaskCommand(StageFailed(Next("error", args1), phaseCommit, RetryState(1000,2,2000))))
     }
 
     "handle failure when sent a Failed" in {
-      executorRef ! TaskCommand( TaskFailed(Next("1", args1)) )
-      executorActor.failedSignal shouldBe Next("1", args1)
-      expectMsg(TaskCommand(TaskFailureHandled(args1)))
+      executorRef ! TaskCommand(Failed(Next("1", args1), phaseCommit))
+     // executorActor.failedSignal shouldBe Next("1", args1)
+      expectMsg(TaskCommand(StageComplete(Next("1", args1), phaseRollback)))
     }
 
     "send back Finish for task completion" in {
-      executorRef ! TaskCommand(StageComplete(Next("finish", args1)))
-      expectMsg(TaskCommand(TaskComplete(args1)))
+      executorRef ! TaskCommand(StageComplete(Next("finish", args1), phaseCommit))
+      expectMsg(TaskCommand(Complete(args1, phaseCommit)))
     }
   }
 
@@ -88,13 +91,15 @@ class TestExecutorA extends TaskExecutor {
     }
   }
 
-  override def onFailed(lastSignal: Signal): Unit = {
-    failedSignal = lastSignal
-  }
-
   var ct = 0
   override def currentTime: Long = {
     ct = ct + 1000
     ct
   }
+
+  override def rollback(signal: Signal): Try[Signal] = {
+    Success(signal)
+  }
+
+  override def onRollbackFailure(lastSignal: Signal) = {}
 }

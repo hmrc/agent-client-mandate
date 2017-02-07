@@ -33,15 +33,17 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
   val routerActor = routerRef.underlyingActor
   val args1 = Map("a" -> "1", "b" -> "2")
 
+  val phaseCommit = Phase.Commit
+
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
 
   "TaskRouter" must {
     "receive a task and route to an executor" in {
-      routerRef ! TaskCommand(StageComplete(Next("1", args1)))
+      routerRef ! TaskCommand(StageComplete(Next("1", args1), phaseCommit))
 
-      expectMsg(TaskCommand(StageComplete(Next("1",args1))))
+      expectMsg(TaskCommand(StageComplete(Next("1",args1), phaseCommit)))
     }
   }
 
@@ -62,6 +64,10 @@ class TestExecutor_TaskRouter extends TaskExecutor {
     Success(signal)
   }
 
-  override def onFailed(lastSignal: Signal): Unit = { }
+  override def rollback(signal: Signal): Try[Signal] = {
+    Success(signal)
+  }
+
+  override def onRollbackFailure(lastSignal: Signal) = {}
 
 }

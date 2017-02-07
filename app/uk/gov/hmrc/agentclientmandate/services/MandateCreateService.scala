@@ -155,7 +155,7 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[String] = {
+  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[Unit] = {
 
     val agentDetailsJsonFuture = etmpConnector.getDetails(dto.arn, "arn")
     val nonUKClientDetailsJsonFuture = etmpConnector.getDetails(dto.safeId, "safeid")
@@ -178,7 +178,7 @@ trait MandateCreateService extends Auditable {
         assignedTo = None,
         agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
         clientParty = Some(Party(dto.safeId, clientPartyName, clientPartyType, ContactDetails(dto.clientEmail))),
-        currentStatus = MandateStatus(Status.Active, DateTime.now(), updatedBy = agentCredId),
+        currentStatus = MandateStatus(Status.PendingActivation, DateTime.now(), updatedBy = agentCredId),
         statusHistory = Nil,
         subscription = Subscription(referenceNumber = Some(dto.subscriptionReference), service = Service(dto.service, dto.service)),
         clientDisplayName = dto.clientDisplayName
@@ -187,21 +187,10 @@ trait MandateCreateService extends Auditable {
 
     for {
       agentDetails <- agentDetailsJsonFuture
-      clientDetails <- nonUKClientDetailsJsonFuture
-      authorityJson <- authorityJsonFuture
-      etmpRelationshipResponse <- {
-        val mandateToSave = createMandateToSave(agentDetails, clientDetails, authorityJson)
-        relationshipService.maintainRelationship(mandateToSave, ac, "Authorise")
-      }
-      mandateCreate <- {
-        val mandateToSave = createMandateToSave(agentDetails, clientDetails, authorityJson)
-        mandateRepository.insertMandate(mandateToSave)
-      }
-    } yield mandateCreate match {
-      case MandateCreated(m) =>
-        doAudit("createMandateNonUKClient", ac, m)
-        m.id
-      case _ => throw new RuntimeException("Mandate not created")
+      nonUKClientDetails <- nonUKClientDetailsJsonFuture
+      authority <- authorityJsonFuture
+    } yield {
+      relationshipService.createAgentClientRelationship(createMandateToSave(agentDetails, nonUKClientDetails, authority), ac)
     }
   }
 

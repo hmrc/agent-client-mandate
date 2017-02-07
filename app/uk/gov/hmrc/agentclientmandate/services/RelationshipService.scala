@@ -19,107 +19,93 @@ package uk.gov.hmrc.agentclientmandate.services
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
-import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
+import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
-import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
+import uk.gov.hmrc.tasks._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
+import akka.actor.ActorSystem
+import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
+// $COVERAGE-OFF$
 trait RelationshipService {
-
-  def ggProxyConnector: GovernmentGatewayProxyConnector
-
-  def etmpConnector: EtmpConnector
 
   def authConnector: AuthConnector
 
-  def mandateFetchService: MandateFetchService
-
   def metrics: Metrics
 
-  def maintainRelationship(mandate: Mandate, agentCode: String, action: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Unit = {
 
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
+      val credId = getCredId()
 
-      etmpConnector.maintainAtedRelationship(createEtmpRelationship(clientId, mandate.agentParty.id, action)).flatMap { etmpResponse =>
-        etmpResponse.status match {
-          case OK =>
-            action match {
-              case  Authorise =>
-                ggProxyConnector.allocateAgent(
-                  GsoAdminAllocateAgentXmlInput(
-                    List(Identifier(identifier, clientId)),
-                    agentCode,
-                    AtedServiceContractName)).map { resp =>
-                  resp.status match {
-                    case OK =>
-                      metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-                      resp
-                    case _ =>
-                      metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
-                      throw new RuntimeException("Authorise - GG Proxy call failed")
-                  }
-                }
-              case DeAuthorise =>
-                ggProxyConnector.deAllocateAgent(
-                  GsoAdminDeallocateAgentXmlInput(
-                    List(Identifier(identifier, clientId)),
-                    agentCode,
-                    AtedServiceContractName)).map { resp =>
-                  resp.status match {
-                    case OK =>
-                      metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-                      resp
-                    case _ =>
-                      metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-                      throw new RuntimeException("De-Authorise - GG Proxy call failed")
-                  }
-                }
-            }
-          case _ => throw new RuntimeException("ETMP call failed")
-        }
+      for {
+        updatedBy <- credId
+      } yield {
+        //Then do this each time a 'create' needs to be done
+        val task = Task("create", Map("clientId" -> clientId,
+          "agentPartyId" -> mandate.agentParty.id,
+          "serviceIdentifier" -> identifier,
+          "agentCode" -> agentCode,
+          "mandateId" -> mandate.id,
+          "credId" -> updatedBy))
+        //execute asynchronously
+        TaskController.execute(task)
       }
-    }
-    else {
+    } else {
       throw new BadRequestException("This is only defined for ATED")
     }
   }
 
-  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    authConnector.getAuthority().flatMap { authority =>
-      val agentRefNumberOpt = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").asOpt[String]
-      agentRefNumberOpt match {
-        case Some(arn) =>
-          mandateFetchService.getAllMandates(arn, "ated").map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
-        case None => Future.successful(false)
+  def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier): Unit = {
+
+    if (mandate.subscription.service.name.toUpperCase == AtedService) {
+      val serviceId = mandate.subscription.service.id
+      val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
+      val clientId = mandate.subscription.referenceNumber.getOrElse("")
+      val credId = getCredId()
+
+      for {
+        updatedBy <- credId
+      } yield {
+        //Then do this each time a 'break' needs to be done
+        val task = Task("break", Map("clientId" -> clientId,
+          "agentPartyId" -> mandate.agentParty.id,
+          "serviceIdentifier" -> identifier,
+          "agentCode" -> agentCode,
+          "mandateId" -> mandate.id,
+          "credId" -> updatedBy,
+          "userType" -> userType))
+        //execute asynchronously
+        TaskController.execute(task)
       }
+    } else {
+      throw new BadRequestException("This is only defined for ATED")
     }
   }
 
-  private def createEtmpRelationship(clientId: String, agentId: String, action: String) = {
-    action match {
-      case Authorise => EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId,
-        EtmpRelationship(action = action, isExclusiveAgent = Some(true)))
-      case DeAuthorise => EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId,
-        EtmpRelationship(action = action, isExclusiveAgent = None))
+  private def getCredId()(implicit hc: HeaderCarrier): Future[String] = {
+      authConnector.getAuthority() map { authority =>
+      (authority \ "credentials" \ "gatewayId").as[String]
     }
   }
 
 }
 
 object RelationshipService extends RelationshipService {
-  // $COVERAGE-OFF$
-  val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
-  val etmpConnector: EtmpConnector = EtmpConnector
+ 
   val authConnector: AuthConnector = AuthConnector
-  val mandateFetchService: MandateFetchService = MandateFetchService
+  //val taskController: TaskControllerT = TaskController
+
   val metrics = Metrics
-  // $COVERAGE-ON$
+
+  TaskController.setupExecutor(TaskConfig("create", classOf[ActivationTaskExecutor], 5, RetryUptoCount(10, true)))
+  TaskController.setupExecutor(TaskConfig("break", classOf[DeActivationTaskExecutor], 5, RetryUptoCount(10, true)))
+
 }
+// $COVERAGE-ON$

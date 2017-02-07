@@ -30,11 +30,11 @@ trait TaskControllerT {
   val taskManagers: Map[String, ActorRef] = Map()
 
   // Client calls this once to set up the execution subsystem for a specific task type
-  def setupTask[A <: Actor](config:ConfigProvider[A]): Unit = {
+  def setupExecutor[A <: Actor](config: ConfigProvider[A]): Unit = {
 
     val taskType = config.taskType
     // $COVERAGE-OFF$
-    if(taskManagers.contains(taskType)) throw new Exception(s"Executor '$taskType' already set up")
+    if (taskManagers.contains(taskType)) throw new Exception(s"Executor '$taskType' already set up")
     // $COVERAGE-ON$
 
     val taskMgr = config.newTaskManager(system)
@@ -42,32 +42,34 @@ trait TaskControllerT {
   }
 
   // Client calls this each time a task needs to be executed
-  def execute(task:Task): Unit = {
+  def execute(task: Task): Unit = {
     // $COVERAGE-OFF$
-    if(! taskManagers.contains(task.`type`)) throw new Exception(s"Executor not set up for task of type '${task.`type`}'")
+    if (!taskManagers.contains(task.`type`)) throw new Exception(s"Executor not set up for task of type '${task.`type`}'")
     // $COVERAGE-ON$
     val taskMgr = taskManagers(task.`type`)
     taskMgr ! task
   }
 
   // Set up the clock to sends a periodic tick to the ErrorManager
-  private var cancellable:Cancellable = _
-  protected def startClock(intervalSecs:Int): Unit = {
+  private var cancellable: Cancellable = _
+
+  protected def startClock(intervalSecs: Int): Unit = {
     implicit val ec = system.dispatcher
     cancellable =
-    system.scheduler.schedule(0 seconds, intervalSecs seconds) {
-      taskManagers.values.foreach(tm => tm ! Tick)
-    }
+      system.scheduler.schedule(0 seconds, intervalSecs seconds) {
+        taskManagers.values.foreach(tm => tm ! Tick)
+      }
   }
 
   // $COVERAGE-OFF$
   //Shut down the entire task execution framewok
-  def shutdown() : Unit = {
+  def shutdown(): Unit = {
 
     //TODO send poison pill
     //This cancels further Ticks to be sent
     cancellable.cancel()
   }
+
   // $COVERAGE-ON$
 }
 
@@ -77,9 +79,9 @@ private case object Tick
 
 case class TaskController(
                            val system: ActorSystem,
-                           intervalSecs:Int
-                         ) extends TaskControllerT{
+                           intervalSecs: Int
+                         ) extends TaskControllerT {
   startClock(intervalSecs)
 }
 
-object TaskController extends TaskController(ActorSystem("task-control-system"),5)
+object TaskController extends TaskController(ActorSystem("task-control-system"), 10)

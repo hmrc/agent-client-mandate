@@ -98,23 +98,8 @@ trait MandateController extends BaseController with Auditable {
       case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
         updateService.updateMandate(mandate, Some(models.Status.PendingActivation)).flatMap {
           case MandateUpdated(x) =>
-            relationshipService.maintainRelationship(mandate, agentCode, MandateConstants.Authorise).flatMap { response =>
-              response.status match {
-                case OK =>
-                  updateService.updateMandate(mandate,Some(models.Status.Active)).map {
-                    case MandateUpdated(m) => {
-                      val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
-                      val service = m.subscription.service.id
-                      emailNotificationService.sendMail(clientEmail, models.Status.Active, service = service)
-                      doAudit("activated", agentCode, m)
-                      Ok(Json.toJson(m))
-                    }
-                    case MandateUpdateError => InternalServerError
-                  }
-                case BAD_REQUEST => Future.successful(BadRequest)
-                case _ => Future.successful(InternalServerError)
-              }
-            }
+            relationshipService.createAgentClientRelationship(x, agentCode)
+            Future.successful(Ok)
           case MandateUpdateError => Future.successful(NotFound)
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Approved =>
@@ -126,33 +111,11 @@ trait MandateController extends BaseController with Auditable {
   def remove(authCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active || mandate.currentStatus.status == models.Status.Approved =>
+        val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
         updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
           case MandateUpdated(x) =>
-            val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
-            relationshipService.maintainRelationship(mandate, agentCode, MandateConstants.DeAuthorise).flatMap { response =>
-              response.status match {
-                case OK =>
-                  updateService.updateMandate(mandate, Some(models.Status.Cancelled)).map {
-                    case MandateUpdated(m) => {
-                      userType match {
-                        case "agent" =>
-                          val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
-                          val service = m.subscription.service.id
-                          emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(userType), service)
-                        case _ =>
-                          val agentEmail = m.agentParty.contactDetails.email
-                          val service = m.subscription.service.id
-                          emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(userType), service, Some(mandate.currentStatus.status))
-                      }
-                      doAudit("removed", agentCode, m)
-                      Ok(Json.toJson(m))
-                    }
-                    case MandateUpdateError => InternalServerError
-                  }
-                case BAD_REQUEST => Future.successful(BadRequest)
-                case _ => Future.successful(InternalServerError)
-              }
-            }
+            relationshipService.breakAgentClientRelationship(x, agentCode, userType)
+            Future.successful(Ok)
           case MandateUpdateError => Future.successful(NotFound)
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Active =>
@@ -199,7 +162,7 @@ trait MandateController extends BaseController with Auditable {
   def createRelationship(ac: String) = Action.async(parse.json) { implicit request =>
     withJsonBody[NonUKClientDto] { nonUKClientDto =>
       createService.createMandateForNonUKClient(ac, nonUKClientDto) map { mandateId =>
-        Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
+        Created
       }
     }
   }
