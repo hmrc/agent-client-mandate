@@ -345,7 +345,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
     }
 
     "createMandateForNonUKClient" when {
-      "agent tries to register a Non-UK Client" in {
+      "agent registers a Non-UK Client" in {
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
           """
@@ -385,9 +385,62 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonETMP)
         }
 
+        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
+        }
+
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
         val result = TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto)
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+      }
+
+      "agent registers a Non-UK Client but fails to creat mandate" in {
+        val mandateId = TestClientMandateCreateService.createMandateId
+        val successResponseJsonETMP = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
+            |  }
+            |}
+          """.stripMargin
+        )
+        val successResponseJsonAuth = Json.parse(
+          """{
+               "credentials": {
+                 "gatewayId": "cred-id-113244018119",
+                 "idaPids": []
+               },
+               "accounts": {
+                 "agent": {
+                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                 }
+               }
+             }""")
+
+
+        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+          Future.successful(successResponseJsonAuth)
+        }
+
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+          Future.successful(successResponseJsonETMP)
+        }
+        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
+          Future.successful(successResponseJsonETMP)
+        }
+
+        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateCreateError)
+        }
+
+        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
+        val result = TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto)
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
     }
