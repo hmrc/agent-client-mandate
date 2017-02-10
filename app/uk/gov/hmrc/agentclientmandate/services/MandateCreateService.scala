@@ -190,7 +190,12 @@ trait MandateCreateService extends Auditable {
       nonUKClientDetails <- nonUKClientDetailsJsonFuture
       authority <- authorityJsonFuture
     } yield {
-      relationshipService.createAgentClientRelationship(createMandateToSave(agentDetails, nonUKClientDetails, authority), ac)
+      mandateRepository.insertMandate(createMandateToSave(agentDetails, nonUKClientDetails, authority)).map {
+        case MandateCreated(m) =>
+          relationshipService.createAgentClientRelationship(m, ac)
+          doAudit("createMandateNonUKClient", ac, m)
+        case _ => throw new RuntimeException("Mandate not created for non-uk")
+      }
     }
   }
 
