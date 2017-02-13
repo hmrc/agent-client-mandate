@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
+import play.api.http.Status._
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.play.config.ServicesConfig
 import uk.gov.hmrc.play.http._
-import play.api.Logger
-import play.api.http.Status._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
-trait AuthConnector extends ServicesConfig with RawResponseReads {
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+trait AuthConnector extends ServicesConfig with RawResponseReads with Auditable {
 
   def serviceUrl:String = baseUrl("auth")
   def http: HttpGet with HttpPost with HttpPut
@@ -37,7 +38,9 @@ trait AuthConnector extends ServicesConfig with RawResponseReads {
     http.GET[HttpResponse](getUrl) map { response =>
       response.status match {
         case OK => response.json
-        case status => throw new RuntimeException("No authority found")
+        case status =>
+          doFailedAudit("authFailed", getUrl, response.body)
+          throw new RuntimeException("No authority found")
       }
     }
   }

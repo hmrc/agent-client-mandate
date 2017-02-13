@@ -18,10 +18,10 @@ package uk.gov.hmrc.agentclientmandate
 
 import uk.gov.hmrc.agentclientmandate.config.MicroserviceGlobal
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.play.audit.model.{Audit, DataEvent, EventTypes}
+import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.model.{Audit, DataEvent}
 import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.AuditExtensions._
 
 trait Auditable extends AppName {
 
@@ -46,6 +46,13 @@ trait Auditable extends AppName {
     }
 
     sendDataEvent(auditType, auditDetails ++ clientAuditDetails)
+  }
+
+  def doFailedAudit(auditType: String, request: String, response: String)(implicit hc:HeaderCarrier): Unit = {
+    val auditDetails = Map("request" -> request,
+                           "response" -> response)
+
+    sendDataEvent(auditType, auditDetails)
   }
 
   private def sendDataEvent(auditType: String, detail: Map[String, String])

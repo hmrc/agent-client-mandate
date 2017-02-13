@@ -20,6 +20,7 @@ import play.api.Logger
 import play.api.http.ContentTypes.XML
 import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.http.Status._
+import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
@@ -30,7 +31,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseReads {
+trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseReads with Auditable {
 
   def serviceUrl: String = baseUrl("government-gateway-proxy")
 
@@ -50,8 +51,9 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
             metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
             response
           case status =>
+            Logger.warn("allocateAgent failed")
             metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
-            Logger.warn(s"[GovernmentGatewayProxyConnector][allocateAgent] - status: $status Error ${response.body}")
+            doFailedAudit("allocateAgentFailed", input.toXml.toString, response.body)
             response
         }
       })
@@ -62,7 +64,16 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()
-        response
+        response.status match {
+          case OK =>
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+            response
+          case status =>
+            Logger.warn("deAllocateAgent failed")
+            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+            doFailedAudit("deAllocateAgentFailed", input.toXml.toString, response.body)
+            response
+        }
       })
   }
 

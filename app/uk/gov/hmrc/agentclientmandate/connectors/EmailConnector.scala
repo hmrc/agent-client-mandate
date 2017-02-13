@@ -20,6 +20,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.Logger
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
+import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -32,7 +33,7 @@ sealed trait EmailStatus
 case object EmailSent extends EmailStatus
 case object EmailNotSent extends EmailStatus
 
-trait EmailConnector extends ServicesConfig with RawResponseReads {
+trait EmailConnector extends ServicesConfig with RawResponseReads with Auditable {
 
   def sendEmailUri: String
 
@@ -51,10 +52,14 @@ trait EmailConnector extends ServicesConfig with RawResponseReads {
 
     http.POST(postUrl, jsonData).map { response =>
       response.status match {
-        case ACCEPTED =>  Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: sent"); EmailSent
-        case status =>
-          Logger.warn(s"[EmailConnector][sendTemplatedEmail] - status: $status Error ${response.body}")
+        case ACCEPTED => {
+          EmailSent
+        }
+        case status => {
+          Logger.warn("email failed")
+          doFailedAudit("emailFailed", jsonData.toString, response.body)
           EmailNotSent
+        }
       }
     }
   }
