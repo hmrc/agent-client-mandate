@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
+import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
@@ -38,7 +39,7 @@ object EtmpConnector extends EtmpConnector {
   // $COVERAGE-ON$
 }
 
-trait EtmpConnector extends ServicesConfig with RawResponseReads {
+trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable {
 
   val etmpUrl: String = baseUrl("etmp-hod")
 
@@ -65,8 +66,9 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
           metrics.incrementSuccessCounter(MetricsEnum.MaintainAtedRelationship)
           response
         case status =>
+          Logger.warn("maintainAtedRelationship failed")
           metrics.incrementFailedCounter(MetricsEnum.MaintainAtedRelationship)
-          Logger.warn(s"[EtmpConnector][maintainAtedRelationship] - status: $status Error ${response.body}")
+          doFailedAudit("maintainRelationshipFailed", jsonData.toString, response.body)
           response
       }
     }
@@ -83,8 +85,9 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
             metrics.incrementSuccessCounter(MetricsEnum.EtmpGetDetails)
             response.json
           case status =>
+            Logger.warn("getDetailsFromEtmp failed")
             metrics.incrementFailedCounter(MetricsEnum.EtmpGetDetails)
-            Logger.warn(s"[EtmpConnector][getDetailsFromEtmp] - status: $status Error ${response.body}")
+            doFailedAudit("getDetailsFromEtmpFailed", getUrl, response.body)
             throw new RuntimeException("No ETMP details found")
         }
       }
@@ -111,7 +114,9 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads {
           metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
           response.json
         case status =>
+          Logger.warn("getAtedSubscriptionDetails failed")
           metrics.incrementFailedCounter(MetricsEnum.AtedSubscriptionDetails)
+          doFailedAudit("getAtedSubscriptionDetailsFailed", getUrl, response.body)
           throw new RuntimeException("Error in getting ATED subscription details from ETMP")
       }
     }

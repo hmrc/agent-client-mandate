@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate._
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate, NonUKClientDto}
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
-import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.play.microservice.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -51,21 +51,30 @@ trait MandateController extends BaseController with Auditable {
         createService.createMandate(agentCode, x).map { mandateId =>
           Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
         }
-      case None => Future.successful(BadRequest)
+      case None => {
+        Logger.warn("Could not parse request to create mandate")
+        Future.successful(BadRequest)
+      }
     }
   }
 
   def fetch(authId: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).map {
       case MandateFetched(x) => Ok(Json.toJson(x))
-      case MandateNotFound => NotFound
+      case MandateNotFound => {
+        Logger.warn("Could not find mandate: " + mandateId)
+        NotFound
+      }
     }
   }
 
   def fetchByClient(authId: String, clientId: String, service: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(clientId, service).map {
       case MandateFetched(x) => Ok(Json.toJson(x))
-      case MandateNotFound => NotFound
+      case MandateNotFound => {
+        Logger.warn("Could not find mandate by client")
+        NotFound
+      }
     }
   }
 
@@ -87,9 +96,15 @@ trait MandateController extends BaseController with Auditable {
             doAudit("approved", "", m)
             Ok(Json.toJson(m))
           }
-          case MandateUpdateError => InternalServerError
+          case MandateUpdateError => {
+            Logger.warn("Could not approve mandate to activate: " + newMandate.id)
+            InternalServerError
+          }
         }
-      case None => Future.successful(BadRequest)
+      case None => {
+        Logger.warn("Could not parse request to approve mandate")
+        Future.successful(BadRequest)
+      }
     }
   }
 
@@ -100,11 +115,17 @@ trait MandateController extends BaseController with Auditable {
           case MandateUpdated(x) =>
             relationshipService.createAgentClientRelationship(x, agentCode)
             Future.successful(Ok)
-          case MandateUpdateError => Future.successful(NotFound)
+          case MandateUpdateError => {
+            Logger.warn("Could not find mandate to activate after fetching: " + mandateId)
+            Future.successful(NotFound)
+          }
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Approved =>
         throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be activated")
-      case MandateNotFound => Future.successful(NotFound)
+      case MandateNotFound => {
+        Logger.warn("Could not find mandate to activate: " + mandateId)
+        Future.successful(NotFound)
+      }
     }
   }
 
@@ -116,11 +137,17 @@ trait MandateController extends BaseController with Auditable {
           case MandateUpdated(x) =>
             relationshipService.breakAgentClientRelationship(x, agentCode, userType)
             Future.successful(Ok)
-          case MandateUpdateError => Future.successful(NotFound)
+          case MandateUpdateError => {
+            Logger.warn("Could not find mandate to remove after fetching: " + mandate.id)
+            Future.successful(NotFound)
+          }
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Active =>
         throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be removed")
-      case MandateNotFound => Future.successful(NotFound)
+      case MandateNotFound => {
+        Logger.warn("Could not find mandate to remove: " + mandateId)
+        Future.successful(NotFound)
+      }
     }
   }
 
@@ -136,7 +163,10 @@ trait MandateController extends BaseController with Auditable {
         }
         case MandateUpdateError => InternalServerError
       }
-      case MandateNotFound => Future.successful(NotFound)
+      case MandateNotFound => {
+        Logger.warn("Could not find mandate for agent rejecting client: " + mandateId)
+        Future.successful(NotFound)
+      }
     }
   }
 
@@ -154,7 +184,10 @@ trait MandateController extends BaseController with Auditable {
           case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
           case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
         }
-      case None => Future.successful(BadRequest)
+      case None => {
+        Logger.warn("Could not find parse request to import existing clients")
+        Future.successful(BadRequest)
+      }
     }
   }
 
