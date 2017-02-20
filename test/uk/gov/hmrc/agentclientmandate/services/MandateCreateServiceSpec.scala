@@ -83,7 +83,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -128,7 +128,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -181,7 +181,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
           Future.successful(ExistingRelationshipProcessed)
         }
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMPForAgent)
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
@@ -225,7 +225,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
           Future.successful(ExistingRelationshipProcessError)
         }
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMPForAgent)
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
@@ -266,7 +266,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
           Future.successful(MandateCreateError)
         }
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMPForAgent)
         }
         when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
@@ -378,10 +378,10 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -427,10 +427,10 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(etmpConnectorMock.getDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 

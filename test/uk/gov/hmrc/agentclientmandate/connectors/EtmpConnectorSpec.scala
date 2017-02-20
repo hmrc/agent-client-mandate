@@ -53,7 +53,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
-        val result = await(TestEtmpConnector.getDetails("ABC", "arn"))
+        val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "arn"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
       }
 
@@ -61,7 +61,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
-        val result = await(TestEtmpConnector.getDetails("ABC", "safeid"))
+        val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "safeid"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
       }
 
@@ -69,12 +69,12 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
-        val result = await(TestEtmpConnector.getDetails("ABC", "utr"))
+        val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "utr"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
       }
 
       "throw exception when Invalid identifier type is passed" in {
-        val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getDetails("ABC", "INVALID"))
+        val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getRegistrationDetails("ABC", "INVALID"))
         thrown.getMessage must include("Unexpected identifier type supplied - INVALID")
       }
 
@@ -82,7 +82,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
         when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
 
-        val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getDetails("ABC", "arn"))
+        val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getRegistrationDetails("ABC", "arn"))
         thrown.getMessage must include("No ETMP details found")
       }
     }

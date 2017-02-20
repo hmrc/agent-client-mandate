@@ -43,7 +43,7 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val timerContext = metrics.startTimer(MetricsEnum.GGProxyAllocate)
-    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
+    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent1", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()
         response.status match {

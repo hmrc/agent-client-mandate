@@ -31,6 +31,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 import play.api.Logger
 import play.api.http.Status._
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 class DeActivationTaskExecutor extends TaskExecutor with Auditable {
@@ -41,6 +42,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
+  override val metrics: Metrics = Metrics
 
   implicit val hc = new HeaderCarrier()
 
@@ -50,27 +52,30 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         val request = breakRelationship(args("clientId"), args("agentPartyId"))
         val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
         result.status match {
-          case OK => Success(Next("gg-proxy", args))
+          case OK => Success(Next("gg-proxy-deactivation", args))
           case _ => {
             Logger.warn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} with body ${result.body}")
             Failure(new Exception("ETMP call failed, status: " + result.status))
           }
         }
       }
-      case Next("gg-proxy", args) => {
+      case Next("gg-proxy-deactivation", args) => {
         val request = GsoAdminDeallocateAgentXmlInput(
           List(Identifier(args("serviceIdentifier"), args("clientId"))),
           args("agentCode"), AtedServiceContractName)
         val result = Await.result(ggProxyConnector.deAllocateAgent(request), 5 seconds)
         result.status match {
-          case OK => Success(Next("finalize", args))
+          case OK =>
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+            Success(Next("finalize-deactivation", args))
           case _ => {
+            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
             Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${result.status} with body ${result.body}")
             Failure(new Exception("GG Proxy call failed, status: " + result.status))
           }
         }
       }
-      case Next("finalize", args) => {
+      case Next("finalize-deactivation", args) => {
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) => {
@@ -121,7 +126,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
       //failed doing allocate agent in GG
-      case Next("gg-proxy", args) => {
+      case Next("gg-proxy-deactivation", args) => {
         Logger.warn("[DeActivationTaskExecutor] gg-proxy de-allocate agent failed")
         // rolling back ETMP as we have failed GG proxy call
         val request = createRelationship(args("clientId"), args("agentPartyId"))
@@ -129,10 +134,10 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         Success(Start(args))
       }
       //failed to update the status in Mongo from PendingCancellation to Cancelled
-      case Next("finalize", args) => {
+      case Next("finalize-deactivation", args) => {
         Logger.error("[DeActivationTaskExecutor] Mongo update failed")
         // leaving for manual intervention as etmp and gg proxy were successful
-        Success(Next("gg-proxy", args))
+        Success(Next("gg-proxy-deactivation", args))
       }
     }
   }

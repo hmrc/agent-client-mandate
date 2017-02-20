@@ -64,7 +64,13 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-failed-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
-    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter")
+    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter"),
+    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-retry-counter"),
+    MetricsEnum.StageGGProxyActivationSignalFailed -> registry.counter("stage-gg-proxy-activation-signal-retry-counter"),
+    MetricsEnum.StageFinaliseActivationSignalFailed-> registry.counter("stage-finalise-activation-signal-failure-retry-counter"),
+    MetricsEnum.StageGGProxyDeActivationSignalFailed -> registry.counter("stage-gg-proxy-deactivation-signal-retry-counter"),
+    MetricsEnum.StageFinaliseDeActivationSignalFailed-> registry.counter("stage-finalise-deactivation-signal-failure-retry-counter")
+
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()

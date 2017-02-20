@@ -65,8 +65,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
   lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
   lazy val startSignal1 = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","credId" -> "credId"))
-  lazy val nextSignal = Next("gg-proxy", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
-  lazy val finalizeSignal = Next("finalize", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId"))
+  lazy val nextSignal = Next("gg-proxy-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
+  lazy val finalizeSignal = Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId"))
 
   val timeToUse = DateTime.now()
   val mandate = Mandate("AS12345678",
@@ -109,27 +109,26 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(New(startSignal))
-        //executorActor.execSignal must be startArgs
-        expectMsg(TaskCommand(StageComplete(Next("gg-proxy", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId")), phaseCommit)))
       }
     }
 
     "execute and move to 'finalize' step" when {
 
-      "signal is Next('gg-proxy', args)" in {
+      "signal is Next('gg-proxy-activation', args)" in {
         when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseCommit)))
       }
     }
 
 
     "execute and FINISH" when {
 
-      "signal is Next('finalize', args)" in {
+      "signal is Next('finalize-activation', args)" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
@@ -149,7 +148,6 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(New(startSignal))
-        //expectMsgType(TaskCommand(StageFailed(Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId")), phaseCommit, RetryState(1486039694305L, 1, 1486039694305L))))
         expectMsgType[TaskCommand]
       }
 
@@ -159,7 +157,6 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        //executorActor.execSignal must be startArgs
         expectMsgType[TaskCommand]
       }
 
@@ -195,30 +192,27 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(startSignal1, phaseRollback))
-        //executorActor.execSignal must be startArgs
         expectMsg(TaskCommand(Complete(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","credId" -> "credId"), phaseRollback)))
 
       }
 
-      "the signal is Next('gg-proxy', args) and move to START signal" in {
+      "the signal is Next('gg-proxy-activation', args) and move to START signal" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback))
-        //executorActor.execSignal must be startArgs
         expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseRollback)))
 
       }
 
-      "the signal is Next('finalize', args) and move to Next('gg-proxy', args) signal" in {
+      "the signal is Next('finalize', args) and move to Next('gg-proxy-activation', args) signal" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseRollback))
-        //executorActor.execSignal must be startArgs
-        expectMsg(TaskCommand(StageComplete(Next("gg-proxy",Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier")), phaseRollback)))
+        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation",Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier")), phaseRollback)))
 
       }
     }
@@ -227,26 +221,22 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "handle rollback failure" when {
 
       "rollback fails at START signal" in {
-       // when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(Failed(startSignal, phaseRollback))
-        //executorActor.execSignal must be startArgs
         expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))))
       }
     }
 
 
-    "rollback the activity in Next('gg-proxy', args)" when {
+    "rollback the activity in Next('gg-proxy-activation', args)" when {
 
-      "rollback fails at Next('gg-proxy', args signal" in {
-        // when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
+      "rollback fails at Next('gg-proxy-activation', args signal" in {
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
-        //executorActor.execSignal must be startArgs
 
         expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId"))))
       }

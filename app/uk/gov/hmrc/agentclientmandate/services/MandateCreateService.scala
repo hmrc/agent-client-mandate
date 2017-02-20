@@ -52,7 +52,7 @@ trait MandateCreateService extends Auditable {
       val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
       val credId = getCredId(authority)
 
-      etmpConnector.getDetails(agentPartyId, "arn").flatMap { etmpDetails =>
+      etmpConnector.getRegistrationDetails(agentPartyId, "arn").flatMap { etmpDetails =>
 
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
 
@@ -95,7 +95,7 @@ trait MandateCreateService extends Auditable {
       val clientPartyId = (subscriptionJson \ "safeId").as[String]
       val clientPartyName = (subscriptionJson \ "organisationName").as[String]
 
-      etmpConnector.getDetails(ggRelationshipDto.agentPartyId, "arn").flatMap { etmpDetails =>
+      etmpConnector.getRegistrationDetails(ggRelationshipDto.agentPartyId, "arn").flatMap { etmpDetails =>
         val isAnIndividual = isIndividual(etmpDetails)
         val agentPartyName: String = getPartyName(etmpDetails, isAnIndividual)
         val agentPartyType = getPartyType(isAnIndividual)
@@ -157,8 +157,8 @@ trait MandateCreateService extends Auditable {
 
   def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[Unit] = {
 
-    val agentDetailsJsonFuture = etmpConnector.getDetails(dto.arn, "arn")
-    val nonUKClientDetailsJsonFuture = etmpConnector.getDetails(dto.safeId, "safeid")
+    val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
+    val nonUKClientDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.safeId, "safeid")
     val authorityJsonFuture = authConnector.getAuthority()
 
     def createMandateToSave(agentDetails: JsValue, clientDetails: JsValue, authorityJson: JsValue): Mandate = {
