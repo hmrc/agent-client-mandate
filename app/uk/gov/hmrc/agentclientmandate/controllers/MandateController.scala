@@ -71,10 +71,7 @@ trait MandateController extends BaseController with Auditable {
   def fetchByClient(authId: String, clientId: String, service: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(clientId, service).map {
       case MandateFetched(x) => Ok(Json.toJson(x))
-      case MandateNotFound => {
-        Logger.warn("Could not find mandate by client")
-        NotFound
-      }
+      case MandateNotFound => NotFound
     }
   }
 
