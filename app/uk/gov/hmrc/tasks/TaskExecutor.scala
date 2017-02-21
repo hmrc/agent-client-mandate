@@ -41,10 +41,7 @@ trait TaskExecutor extends Actor {
           // $COVERAGE-OFF$
           sig match {
             case Start(args) => metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
-            case Next("gg-proxy-activation", args) => metrics.incrementFailedCounter(MetricsEnum.StageGGProxyActivationSignalFailed)
-            case Next("finalize-activation", args) => metrics.incrementFailedCounter(MetricsEnum.StageFinaliseActivationSignalFailed)
-            case Next("gg-proxy-deactivation", args) => metrics.incrementFailedCounter(MetricsEnum.StageGGProxyDeActivationSignalFailed)
-            case Next("finalize-deactivation", args) => metrics.incrementFailedCounter(MetricsEnum.StageFinaliseDeActivationSignalFailed)
+            case Next(stage, args) => metrics.incrementFailedCounter(stage)
             case _ => println(s"Signal Type:::${sig}")
           }
           // $COVERAGE-ON$

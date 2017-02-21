@@ -30,6 +30,8 @@ trait Metrics {
 
   def incrementFailedCounter(api: MetricsEnum): Unit
 
+  def incrementFailedCounter(api: String): Unit
+
 }
 
 object Metrics extends Metrics with MicroserviceMetrics{
@@ -66,11 +68,10 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
     MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter"),
     MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-retry-counter"),
-    MetricsEnum.StageGGProxyActivationSignalFailed -> registry.counter("stage-gg-proxy-activation-signal-retry-counter"),
-    MetricsEnum.StageFinaliseActivationSignalFailed-> registry.counter("stage-finalise-activation-signal-failure-retry-counter"),
-    MetricsEnum.StageGGProxyDeActivationSignalFailed -> registry.counter("stage-gg-proxy-deactivation-signal-retry-counter"),
-    MetricsEnum.StageFinaliseDeActivationSignalFailed-> registry.counter("stage-finalise-deactivation-signal-failure-retry-counter")
-
+    "gg-proxy-activation" -> registry.counter("stage-gg-proxy-activation-signal-retry-counter"),
+    "finalize-activation"-> registry.counter("stage-finalise-activation-signal-failure-retry-counter"),
+    "gg-proxy-deactivation" -> registry.counter("stage-gg-proxy-deactivation-signal-retry-counter"),
+    "finalize-deactivation"-> registry.counter("stage-finalise-deactivation-signal-failure-retry-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()
@@ -78,5 +79,7 @@ object Metrics extends Metrics with MicroserviceMetrics{
   override def incrementSuccessCounter(api: MetricsEnum): Unit = successCounters(api).inc()
 
   override def incrementFailedCounter(api: MetricsEnum): Unit = failedCounters(api).inc()
+
+  override def incrementFailedCounter(api: String): Unit = failedCounters(api).inc()
 
 }
