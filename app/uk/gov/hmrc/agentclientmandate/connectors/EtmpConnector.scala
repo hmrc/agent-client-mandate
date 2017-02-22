@@ -74,7 +74,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
     }
   }
 
-  def getDetails(identifier: String, identifierType: String): Future[JsValue] = {
+  def getRegistrationDetails(identifier: String, identifierType: String): Future[JsValue] = {
     def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
       implicit val hc = createHeaderCarrier
       val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)

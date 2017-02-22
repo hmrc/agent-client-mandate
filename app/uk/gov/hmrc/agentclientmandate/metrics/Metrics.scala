@@ -30,6 +30,8 @@ trait Metrics {
 
   def incrementFailedCounter(api: MetricsEnum): Unit
 
+  def incrementFailedCounter(api: String): Unit
+
 }
 
 object Metrics extends Metrics with MicroserviceMetrics{
@@ -64,7 +66,8 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-failed-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
-    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter")
+    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter"),
+    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-retry-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()
@@ -72,5 +75,8 @@ object Metrics extends Metrics with MicroserviceMetrics{
   override def incrementSuccessCounter(api: MetricsEnum): Unit = successCounters(api).inc()
 
   override def incrementFailedCounter(api: MetricsEnum): Unit = failedCounters(api).inc()
+
+  override def incrementFailedCounter(stage: String): Unit = registry.counter(s"stage-$stage-signal-failure-retry-counter").inc()
+
 
 }

@@ -20,6 +20,7 @@ import org.joda.time.DateTime
 import play.api.Logger
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
@@ -41,16 +42,19 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
+  override val metrics: Metrics = Metrics
 
   implicit val hc = new HeaderCarrier()
 
   override def execute(signal: Signal): Try[Signal] = {
+
     signal match {
       case Start(args) => {
         val request = createRelationship(args("clientId"), args("agentPartyId"))
         val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
         result.status match {
-          case OK => Success(Next("gg-proxy", args))
+          case OK =>
+            Success(Next("gg-proxy-activation", args))
           case _ => {
             Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} with body ${result.body}")
             Failure(new Exception("ETMP call failed, status: " + result.status))
@@ -58,21 +62,24 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
 
-      case Next("gg-proxy", args) => {
+      case Next("gg-proxy-activation", args) => {
         val request = GsoAdminAllocateAgentXmlInput(
                     List(Identifier(args("serviceIdentifier"), args("clientId"))),
                     args("agentCode"), AtedServiceContractName)
         val result = Await.result(ggProxyConnector.allocateAgent(request), 5 seconds)
         result.status match {
-          case OK => Success(Next("finalize", args))
+          case OK =>
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+            Success(Next("finalize-activation", args))
           case _ => {
+            metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
             Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${result.status} with body ${result.body}")
             Failure(new Exception("GG Proxy call failed, status: " + result.status))
           }
         }
       }
 
-      case Next("finalize", args) => {
+      case Next("finalize-activation", args) => {
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) => {
@@ -116,7 +123,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
       //failed doing allocate agent in GG
-      case Next("gg-proxy", args) => {
+      case Next("gg-proxy-activation", args) => {
         Logger.warn("[ActivationTaskExecutor] gg-proxy allocate failed")
         // rolling back ETMP as we have failed GG proxy call
         val request = breakRelationship(args("clientId"), args("agentPartyId"))
@@ -124,10 +131,10 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
         Success(Start(args))
       }
       //failed to update the status in Mongo from PendingActivation to Active
-      case Next("finalize", args) => {
+      case Next("finalize-activation", args) => {
         Logger.error("[ActivationTaskExecutor] Mongo update failed")
         // leaving for manual intervention as etmp and gg proxy were successful
-        Success(Next("gg-proxy", args))
+        Success(Next("gg-proxy-activation", args))
       }
     }
   }

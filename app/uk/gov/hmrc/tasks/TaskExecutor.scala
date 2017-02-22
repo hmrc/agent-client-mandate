@@ -18,6 +18,7 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.Actor
 import Phase._
+import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 
 import scala.util.{Failure, Success, Try}
 
@@ -27,6 +28,8 @@ trait TaskExecutor extends Actor {
   def rollback(signal: Signal): Try[Signal]
   def onRollbackFailure(lastSignal: Signal): Unit
 
+  val metrics: Metrics = Metrics
+
   override def receive: Receive = {
     case cmd: TaskCommand => {
 
@@ -34,7 +37,15 @@ trait TaskExecutor extends Actor {
 
         case New(startSig) => doTaskCommand(startSig, Commit)
         case StageComplete(sig, phase) => doTaskCommand(sig, phase)
-        case Retrying(sig, phase, retryState) => doTaskCommand(sig, phase, Some(retryState))
+        case Retrying(sig, phase, retryState) =>
+          // $COVERAGE-OFF$
+          sig match {
+            case Start(args) => metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
+            case Next(stage, args) => metrics.incrementFailedCounter(stage)
+            case _ => println(s"Signal Type:::${sig}")
+          }
+          // $COVERAGE-ON$
+          doTaskCommand(sig, phase, Some(retryState))
         case Failed(sig, Commit) => doTaskCommand(sig, Rollback)
         case Failed(sig, Rollback) => handleRollbackFailure(sig)
         // $COVERAGE-OFF$
