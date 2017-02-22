@@ -37,7 +37,7 @@ trait NotificationEmailService {
         case (Status.Rejected, _, _) => "agent_rejects_mandate"
         case (Status.Cancelled, Some("agent"), _) => "agent_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved)) => "client_removes_mandate"
-        case (Status.Cancelled, Some("client"), Some(Status.Active)) => "client_cancels_active_mandate"
+        case (Status.Cancelled, Some("client"), Some(Status.PendingCancellation)) => "client_cancels_active_mandate"
       }
     }
     def serviceString: String = {
