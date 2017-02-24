@@ -49,8 +49,8 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.RepositoryFindGGRelationshipsToProcess -> registry.timer("repository-find-gg-relationships-process-timer"),
     MetricsEnum.RepositoryInsertExistingRelationships -> registry.timer("repository-insert-existing-relationships-timer"),
     MetricsEnum.RepositoryExistingRelationshipProcessed -> registry.timer("repository-existing-relationships-processed-timer"),
-    MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-timer"),
-    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-timer")
+    MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-response-timer"),
+    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer")
   )
 
   val successCounters = Map(
@@ -67,7 +67,7 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
     MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter"),
-    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-retry-counter")
+    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()
