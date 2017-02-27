@@ -27,6 +27,7 @@ import play.api.test.Helpers._
 import reactivemongo.api.DB
 import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult}
 import reactivemongo.api.indexes.CollectionIndexesManager
+import reactivemongo.bson.BSONDocument
 import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
@@ -169,8 +170,11 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         val relationship = GGRelationshipDto("aaa", "bbb", "ccc", "ddd")
         val existingRelationships = List(relationship)
 
+        val modifier = BSONDocument("$set" -> BSONDocument("processed" -> true))
+
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
-        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenThrow(new RuntimeException(""))
+        when(mockCollection.update(Matchers.any(),Matchers.eq(modifier),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenThrow(new RuntimeException(""))
+        when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.eq(true))(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         val testRepository = new TestMandateRepository
         val result = await(testRepository.existingRelationshipProcessed(relationship))
 

@@ -102,6 +102,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[Mandate, BSONObjectID]("mandates", mongo, Mandate.formats, ReactiveMongoFormats.objectIdFormats)
     with MandateRepository {
 
+  //Temporary code and should be removed after next deployment - start
+  collection.update(BSONDocument("id" -> "EB2BF6B9"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Cancelled")), upsert = false)
+
+  collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
+  //Temp code - end
+
   val metrics: Metrics = Metrics
 
   override def indexes: Seq[Index] = {
