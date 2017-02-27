@@ -79,7 +79,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       "client cancels active mandate" in {
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Cancelled, Some("client"), "ATED", Some(Status.Active))
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Cancelled, Some("client"), "ATED", Some(Status.PendingCancellation))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail("aa@mail.com", "client_cancels_active_mandate", "Annual Tax on Enveloped Dwellings")
       }
@@ -88,7 +88,7 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
     "send email to default" when {
       "service name cant be found" in {
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Cancelled, Some("client"), "aaaa", Some(Status.Active))
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Active, service = "aaaa")
         await(response) must be(EmailSent)
       }
     }

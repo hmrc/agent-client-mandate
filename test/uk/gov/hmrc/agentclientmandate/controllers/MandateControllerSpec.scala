@@ -81,8 +81,16 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "remove the mandate" when {
 
-      "request is valid and client mandate found " in {
+      "request is valid and client mandate found and status is active" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(mandate))
+        val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
+        status(result) must be(OK)
+      }
+
+      "request is valid and client mandate found and status is approved" in {
+        when(notificationServiceMock.sendMail(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(mandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
@@ -99,8 +107,17 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         thrown.getMessage must include("agent code not found!")
       }
 
-      "mongo update error occurs while changing the status to PENDINGACTIVATION" in {
+      "mongo update error occurs while changing the status to PENDING_CANCELLATION" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+
+        val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
+
+        status(result) must be(NOT_FOUND)
+      }
+
+      "mongo update error occurs while changing the status to CANCELLED" in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
