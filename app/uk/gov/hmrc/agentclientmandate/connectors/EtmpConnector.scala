@@ -85,7 +85,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
             metrics.incrementSuccessCounter(MetricsEnum.EtmpGetDetails)
             response.json
           case status =>
-            Logger.warn("getDetailsFromEtmp failed")
+           // Logger.warn("getRegistrationDetailsFromEtmp failed")
             metrics.incrementFailedCounter(MetricsEnum.EtmpGetDetails)
             doFailedAudit("getDetailsFromEtmpFailed", getUrl, response.body)
             throw new RuntimeException("No ETMP details found")
@@ -114,7 +114,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
           metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
           response.json
         case status =>
-          Logger.warn("getAtedSubscriptionDetails failed")
+          //Logger.warn("getAtedSubscriptionDetails failed")
           metrics.incrementFailedCounter(MetricsEnum.AtedSubscriptionDetails)
           doFailedAudit("getAtedSubscriptionDetailsFailed", getUrl, response.body)
           throw new RuntimeException("Error in getting ATED subscription details from ETMP")
