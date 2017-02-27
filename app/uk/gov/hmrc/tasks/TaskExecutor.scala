@@ -20,6 +20,8 @@ import akka.actor.Actor
 import Phase._
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 
+import play.api.Logger
+
 import scala.util.{Failure, Success, Try}
 
 trait TaskExecutor extends Actor {
@@ -69,6 +71,7 @@ trait TaskExecutor extends Actor {
         else sender() ! TaskCommand(StageComplete(newSignal, phase))
       }
       case Failure(ex) => {
+        Logger.warn(s"[TaskExecutor][doTaskCommand] Failure Exception:::${ex.getMessage}")
         val ct = currentTime
         val retryState =
           retryStateOpt match {
