@@ -59,6 +59,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
+    Logger.warn(s"[EtmpConnector][maintainAtedRelationship]-- POST URL::${postUrl} JSON Data::${jsonData}")
     http.POST(postUrl, jsonData) map { response =>
       timerContext.stop()
       response.status match {
