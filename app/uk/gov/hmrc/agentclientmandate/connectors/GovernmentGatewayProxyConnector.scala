@@ -43,6 +43,7 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 
   def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val timerContext = metrics.startTimer(MetricsEnum.GGProxyAllocate)
+    Logger.warn(s"[GovernmentGatewayProxyConnector][allocateAgent]-- input XML::${input.toXml}")
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminAllocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()
@@ -61,6 +62,7 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 
   def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
+    Logger.warn(s"[GovernmentGatewayProxyConnector][deAllocateAgent]-- input XML::${input.toXml}")
     http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
       .map({ response =>
         timerContext.stop()

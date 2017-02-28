@@ -70,18 +70,23 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
         val request = GsoAdminAllocateAgentXmlInput(
           List(Identifier(args("serviceIdentifier"), args("clientId"))),
           args("agentCode"), AtedServiceContractName)
-        val result = Await.result(ggProxyConnector.allocateAgent(request), 5 seconds)
-        Logger.warn(s"[ActivationTaskExecutor] Inside Next('gg-proxy-activation', args)---ggProxyConnector.allocateAgent::${result.status}")
-        result.status match {
-          case OK =>
-            Logger.warn(s"[ActivationTaskExecutor] Inside Next('gg-proxy-activation', args)---ggProxyConnector.allocateAgent::SUCCESS")
-            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-            Success(Next("finalize-activation", args))
-          case _ => {
-            metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
-            Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${result.status} with body ${result.body}")
-            Failure(new Exception("GG Proxy call failed, status: " + result.status))
-          }
+        Try(Await.result(ggProxyConnector.allocateAgent(request), 5 seconds)) match {
+          case Success(resp) =>
+            resp.status match {
+              case OK =>
+                Logger.warn(s"[ActivationTaskExecutor] Inside Next('gg-proxy-activation', args)---ggProxyConnector.allocateAgent::SUCCESS")
+                metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+                Success(Next("finalize-activation", args))
+              case _ =>
+                Logger.warn(s"[ActivationTaskExecutor] Inside Next('gg-proxy-activation', args)---ggProxyConnector.allocateAgent::NOT SUCCESS")
+                metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
+                Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+            }
+          case Failure(ex) =>
+            // $COVERAGE-OFF$
+            Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+            Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+          // $COVERAGE-ON$
         }
       }
 
@@ -103,16 +108,14 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
                   case Success(v) =>
                     Logger.warn(s"[ActivationTaskExecutor] Email Sent SUCCESS")
                     doAudit("emailSent", args("agentCode"), m)
-                    doAudit("activated", args("agentCode"), m)
-                    Success(Finish)
                   case Failure(reason) =>
                     // $COVERAGE-OFF$
                     Logger.warn(s"[ActivationTaskExecutor] Email Sent FAILURE")
                     doFailedAudit("emailSentFailed", clientEmail + models.Status.Active + service, reason.getMessage)
-                    doAudit("activated", args("agentCode"), m)
-                    Success(Finish)
                   // $COVERAGE-ON$
                 }
+                doAudit("activated", args("agentCode"), m)
+                Success(Finish)
               }
               case MandateUpdateError => {
                 Logger.warn(s"[ActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
