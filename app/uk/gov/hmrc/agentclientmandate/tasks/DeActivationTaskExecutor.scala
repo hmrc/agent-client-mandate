@@ -83,15 +83,32 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
             val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 3 seconds)
             updateResult match {
               case MandateUpdated(m) => {
+                val service = m.subscription.service.id
                 args("userType") match {
                   case "agent" =>
                     val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
-                    val service = m.subscription.service.id
-                    emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(args("userType")), service)
+                    Try(emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(args("userType")), service)) match {
+                      case Success(v) =>
+                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent SUCCESS")
+                        doAudit("emailSent", args("agentCode"), m)
+                      case Failure(reason) =>
+                        // $COVERAGE-OFF$
+                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent FAILURE")
+                        doFailedAudit("emailSentFailed", clientEmail + models.Status.Cancelled + service, reason.getMessage)
+                      // $COVERAGE-ON$
+                    }
                   case _ =>
                     val agentEmail = m.agentParty.contactDetails.email
-                    val service = m.subscription.service.id
-                    emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))
+                    Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))) match {
+                      case Success(v) =>
+                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent SUCCESS")
+                        doAudit("emailSent", args("agentCode"), m)
+                      case Failure(reason) =>
+                        // $COVERAGE-OFF$
+                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent FAILURE")
+                        doFailedAudit("emailSentFailed", agentEmail + models.Status.Cancelled + service, reason.getMessage)
+                      // $COVERAGE-ON$
+                    }
                 }
                 doAudit("removed", args("agentCode"), m)
                 Success(Finish)
