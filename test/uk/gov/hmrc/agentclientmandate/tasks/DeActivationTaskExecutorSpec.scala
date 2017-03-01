@@ -125,7 +125,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseCommit)))
       }
     }
 
@@ -257,6 +257,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
+        //executorActor.execSignal must be startArgs
 
         expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId"))))
       }
