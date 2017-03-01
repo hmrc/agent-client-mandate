@@ -59,7 +59,6 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
-    Logger.warn(s"[EtmpConnector][maintainAtedRelationship]-- POST URL::${postUrl} JSON Data::${jsonData}")
     http.POST(postUrl, jsonData) map { response =>
       timerContext.stop()
       response.status match {
@@ -86,7 +85,6 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
             metrics.incrementSuccessCounter(MetricsEnum.EtmpGetDetails)
             response.json
           case status =>
-           // Logger.warn("getRegistrationDetailsFromEtmp failed")
             metrics.incrementFailedCounter(MetricsEnum.EtmpGetDetails)
             doFailedAudit("getDetailsFromEtmpFailed", getUrl, response.body)
             throw new RuntimeException("No ETMP details found")
@@ -115,7 +113,6 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
           metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
           response.json
         case status =>
-          //Logger.warn("getAtedSubscriptionDetails failed")
           metrics.incrementFailedCounter(MetricsEnum.AtedSubscriptionDetails)
           doFailedAudit("getAtedSubscriptionDetailsFailed", getUrl, response.body)
           throw new RuntimeException("Error in getting ATED subscription details from ETMP")

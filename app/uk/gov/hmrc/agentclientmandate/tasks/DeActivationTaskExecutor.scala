@@ -68,7 +68,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
             resp.status match {
               case OK =>
                 metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-                Success(Next("finalize-activation", args))
+                Success(Next("finalize-deactivation", args))
               case _ =>
                 Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} with body ${resp.body}")
                 metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
