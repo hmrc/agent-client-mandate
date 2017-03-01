@@ -50,13 +50,10 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
     signal match {
       case Start(args) => {
-        Logger.warn(s"[ActivationTaskExecutor] Entering Start(args)....")
         val request = createRelationship(args("clientId"), args("agentPartyId"))
-        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
-        Logger.warn(s"[ActivationTaskExecutor] Inside Start(args)---etmpConnector.maintainAtedRelationship::${result.status}")
+        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
         result.status match {
           case OK =>
-            Logger.warn(s"[ActivationTaskExecutor] Inside Start(args)---etmpConnector.maintainAtedRelationship::SUCCESS")
             Success(Next("gg-proxy-activation", args))
           case _ => {
             Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} with body ${result.body}")
@@ -66,19 +63,17 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       }
 
       case Next("gg-proxy-activation", args) => {
-        Logger.warn(s"[ActivationTaskExecutor] Entering Next('gg-proxy-activation', args)....")
         val request = GsoAdminAllocateAgentXmlInput(
           List(Identifier(args("serviceIdentifier"), args("clientId"))),
           args("agentCode"), AtedServiceContractName)
-        Try(Await.result(ggProxyConnector.allocateAgent(request), 5 seconds)) match {
+        Try(Await.result(ggProxyConnector.allocateAgent(request), 120 seconds)) match {
           case Success(resp) =>
             resp.status match {
               case OK =>
-                Logger.warn(s"[ActivationTaskExecutor] Inside Next('gg-proxy-activation', args)---ggProxyConnector.allocateAgent::SUCCESS")
                 metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
                 Success(Next("finalize-activation", args))
               case _ =>
-                Logger.warn(s"[ActivationTaskExecutor] Inside Next('gg-proxy-activation', args)---ggProxyConnector.allocateAgent::NOT SUCCESS")
+                Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} with body ${resp.body}")
                 metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
                 Failure(new Exception("GG Proxy call failed, status: " + resp.status))
             }
@@ -91,27 +86,21 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       }
 
       case Next("finalize-activation", args) => {
-        val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
-        Logger.warn(s"[ActivationTaskExecutor] Entering Next('finalize-activation', args)---after fetchService.fetchClientMandate")
+        val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
         fetchResult match {
           case MandateFetched(mandate) => {
-            Logger.warn(s"[ActivationTaskExecutor] Entering Next('finalize-activation', args)---after case MandateFetched(mandate):::$mandate")
             val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
-            val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 3 seconds)
-            Logger.warn(s"[ActivationTaskExecutor] Inside Next('finalize-activation', args)---after cmandateRepository.updateMandate(updatedMandate)")
+            val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
             updateResult match {
               case MandateUpdated(m) => {
-                Logger.warn(s"[ActivationTaskExecutor] Entering Next('finalize-activation', args)---after  case MandateUpdated(m):::$m")
                 val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
                 val service = m.subscription.service.id
                 Try(emailNotificationService.sendMail(clientEmail, models.Status.Active, service = service)) match {
                   case Success(v) =>
-                    Logger.warn(s"[ActivationTaskExecutor] Email Sent SUCCESS")
                     doAudit("emailSent", args("agentCode"), m)
                   case Failure(reason) =>
                     // $COVERAGE-OFF$
-                    Logger.warn(s"[ActivationTaskExecutor] Email Sent FAILURE")
-                    doFailedAudit("emailSentFailed", clientEmail + models.Status.Active + service, reason.getMessage)
+                    doFailedAudit("emailSentFailed", s"client email::$clientEmail status:: ${models.Status.Active} service::$service", reason.getMessage)
                   // $COVERAGE-ON$
                 }
                 doAudit("activated", args("agentCode"), m)

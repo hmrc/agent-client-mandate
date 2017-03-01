@@ -50,7 +50,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
     signal match {
       case Start(args) => {
         val request = breakRelationship(args("clientId"), args("agentPartyId"))
-        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
+        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
         result.status match {
           case OK => Success(Next("gg-proxy-deactivation", args))
           case _ => {
@@ -63,24 +63,30 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         val request = GsoAdminDeallocateAgentXmlInput(
           List(Identifier(args("serviceIdentifier"), args("clientId"))),
           args("agentCode"), AtedServiceContractName)
-        val result = Await.result(ggProxyConnector.deAllocateAgent(request), 5 seconds)
-        result.status match {
-          case OK =>
-            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-            Success(Next("finalize-deactivation", args))
-          case _ => {
-            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-            Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${result.status} with body ${result.body}")
-            Failure(new Exception("GG Proxy call failed, status: " + result.status))
-          }
+        Try(Await.result(ggProxyConnector.deAllocateAgent(request), 120 seconds)) match {
+          case Success(resp) =>
+            resp.status match {
+              case OK =>
+                metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+                Success(Next("finalize-activation", args))
+              case _ =>
+                Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} with body ${resp.body}")
+                metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+                Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+            }
+          case Failure(ex) =>
+            // $COVERAGE-OFF$
+            Logger.warn(s"[DeActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+            Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+          // $COVERAGE-ON$
         }
       }
       case Next("finalize-deactivation", args) => {
-        val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
+        val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
         fetchResult match {
           case MandateFetched(mandate) => {
             val updatedMandate = mandate.updateStatus(MandateStatus(Status.Cancelled, DateTime.now, args("credId")))
-            val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 3 seconds)
+            val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
             updateResult match {
               case MandateUpdated(m) => {
                 val service = m.subscription.service.id
@@ -89,24 +95,20 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
                     val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
                     Try(emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(args("userType")), service)) match {
                       case Success(v) =>
-                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent SUCCESS")
                         doAudit("emailSent", args("agentCode"), m)
                       case Failure(reason) =>
                         // $COVERAGE-OFF$
-                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent FAILURE")
-                        doFailedAudit("emailSentFailed", clientEmail + models.Status.Cancelled + service, reason.getMessage)
+                        doFailedAudit("emailSentFailed", s"client email::$clientEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
                       // $COVERAGE-ON$
                     }
                   case _ =>
                     val agentEmail = m.agentParty.contactDetails.email
                     Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))) match {
                       case Success(v) =>
-                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent SUCCESS")
                         doAudit("emailSent", args("agentCode"), m)
                       case Failure(reason) =>
                         // $COVERAGE-OFF$
-                        Logger.warn(s"[DeActivationTaskExecutor] Email Sent FAILURE")
-                        doFailedAudit("emailSentFailed", agentEmail + models.Status.Cancelled + service, reason.getMessage)
+                        doFailedAudit("emailSentFailed", s"agent email::$agentEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
                       // $COVERAGE-ON$
                     }
                 }
