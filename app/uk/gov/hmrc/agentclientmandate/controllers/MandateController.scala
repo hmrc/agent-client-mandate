@@ -106,6 +106,7 @@ trait MandateController extends BaseController with Auditable {
   }
 
   def activate(agentCode: String, mandateId: String) = Action.async { implicit request =>
+    Logger.warn("Attempting to activate mandate:" + mandateId)
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
         updateService.updateMandate(mandate, Some(models.Status.PendingActivation)).flatMap {
