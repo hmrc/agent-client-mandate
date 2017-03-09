@@ -244,6 +244,24 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
+    "doesAgentHaveEmail" must {
+      "return true if all mandates have an agent email address" in {
+        await(testMandateRepository.insertMandate(updatedMandate3))
+        await(testMandateRepository.insertMandate(updatedMandate2))
+
+        await(testMandateRepository.count) must be(2)
+        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456")) must be(Nil)
+      }
+
+      "return false if all mandates have an agent email address" in {
+        await(testMandateRepository.insertMandate(updatedMandate2))
+        await(testMandateRepository.insertMandate(updatedMandate4))
+
+        await(testMandateRepository.count) must be(2)
+        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456")) must be(Seq(updatedMandate4.id))
+      }
+    }
+
   }
 
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
@@ -300,7 +318,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
   def updatedMandate4: Mandate =
     Mandate("AS12345679", createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),

@@ -81,6 +81,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
 
+  def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]]
+
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
   // $COVERAGE-ON$
@@ -101,12 +103,6 @@ object MandateRepository extends MongoDbConnection {
 class MandateMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[Mandate, BSONObjectID]("mandates", mongo, Mandate.formats, ReactiveMongoFormats.objectIdFormats)
     with MandateRepository {
-
-  //Temporary code and should be removed after next deployment - start
-  collection.update(BSONDocument("id" -> "EB2BF6B9"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Cancelled")), upsert = false)
-
-  collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
-  //Temp code - end
 
   val metrics: Metrics = Metrics
 
@@ -311,13 +307,13 @@ class MandateMongoRepository(implicit mongo: () => DB)
         "agentPartyId" -> BSONDocument("$exists" -> true),
         "processed" -> BSONDocument("$exists" -> false)
       )
-      val result = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
+      val queryResult = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
 
-      result onComplete {
+      queryResult onComplete {
         _ => timerContext.stop()
       }
 
-      result
+      queryResult
     }
 
     result match {
@@ -329,6 +325,33 @@ class MandateMongoRepository(implicit mongo: () => DB)
         Logger.warn(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
+  }
+
+  def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]] = {
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindGGRelationshipsToProcess)
+    val query = BSONDocument("agentParty.contactDetails.email" -> "")
+
+    val result = Try {
+      val queryResult = collection.find(query).cursor[Mandate]().collect[Seq]()
+
+      queryResult onComplete {
+        _ => timerContext.stop()
+      }
+
+      queryResult
+    }
+
+    result match {
+      case Success(s) =>
+        s.map { x =>
+          x.map { _.id }
+        }
+      case Failure(f) =>
+        Logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
+        Future.successful(Nil)
+    }
+
+
   }
 
   // $COVERAGE-OFF$
