@@ -48,6 +48,8 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.RepositoryAgentAlreadyInserted -> registry.timer("repository-agent-already-inserted-timer"),
     MetricsEnum.RepositoryFindGGRelationshipsToProcess -> registry.timer("repository-find-gg-relationships-process-timer"),
     MetricsEnum.RepositoryInsertExistingRelationships -> registry.timer("repository-insert-existing-relationships-timer"),
+    MetricsEnum.RepositoryFindAgentEmail -> registry.timer("repository-find-agent-email-timer"),
+    MetricsEnum.RepositoryUpdateAgentEmail -> registry.timer("repository-update-agent-email-timer"),
     MetricsEnum.RepositoryExistingRelationshipProcessed -> registry.timer("repository-existing-relationships-processed-timer"),
     MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-response-timer"),
     MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer")
