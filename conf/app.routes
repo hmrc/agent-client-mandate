@@ -42,4 +42,10 @@ POST  /agent/:ac/mandate/non-uk                     uk.gov.hmrc.agentclientmanda
 POST   /agent/:ac/mandate/edit                      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.editMandate(ac: String)
 
 # fetch mandate for client
-GET    /org/:org/mandate/:clientId/:service       uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetchByClient(org: String, clientId: String, service: String)
+GET    /org/:org/mandate/:clientId/:service         uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetchByClient(org: String, clientId: String, service: String)
+
+# check for agents missing email
+GET   /agent/:ac/mandate/isAgentMissingEmail        uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.isAgentMissingEmail(ac: String)
+
+# update missing email for agent
+POST   /agent/:ac/mandate/updateAgentEmail          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentEmail(ac: String)

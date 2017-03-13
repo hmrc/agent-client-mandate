@@ -244,6 +244,48 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
+    "doesAgentHaveEmail" must {
+      "return true if all mandates have an agent email address" in {
+        await(testMandateRepository.insertMandate(updatedMandate3))
+        await(testMandateRepository.insertMandate(updatedMandate2))
+
+        await(testMandateRepository.count) must be(2)
+        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456")) must be(Nil)
+      }
+
+      "return false if all mandates have an agent email address" in {
+        await(testMandateRepository.insertMandate(updatedMandate2))
+        await(testMandateRepository.insertMandate(updatedMandate4))
+
+        await(testMandateRepository.count) must be(2)
+        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456")) must be(Seq(updatedMandate4.id))
+      }
+
+      "fail when trying to find agents email in mandates" in {
+        when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
+        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        val testRepository = new TestMandateRepository
+        val result = await(testRepository.findMandatesMissingAgentEmail("JARN123456"))
+
+        result mustBe Nil
+      }
+    }
+
+    "updateAgentEmail" must {
+      "update the agents email" in {
+        await(testMandateRepository.insertMandate(updatedMandate4))
+        await(testMandateRepository.insertMandate(updatedMandate2))
+
+        await(testMandateRepository.updateAgentEmail(List(updatedMandate2.id, updatedMandate4.id), "test@mail.com")) must be(MandateUpdatedAgentEmail)
+        await(testMandateRepository.fetchMandate(updatedMandate4.id).map {
+          case MandateFetched(x) => x.agentParty.contactDetails.email
+        }) must be("test@mail.com")
+        await(testMandateRepository.fetchMandate(updatedMandate2.id).map {
+          case MandateFetched(x) => x.agentParty.contactDetails.email
+        }) must be("test@mail.com")
+      }
+    }
+
   }
 
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
@@ -300,7 +342,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
   def updatedMandate4: Mandate =
     Mandate("AS12345679", createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
@@ -313,6 +355,15 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Cancelled, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
+      clientDisplayName = "client display name"
+    )
+  def updatedMandate6: Mandate =
+    Mandate("AS12325679", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123457", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
+      currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
       subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
       clientDisplayName = "client display name"

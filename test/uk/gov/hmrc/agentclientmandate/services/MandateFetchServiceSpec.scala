@@ -65,6 +65,13 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     }
 
+    "a list of mandates is found for an agent id" in {
+      when(mockMandateRepository.findMandatesMissingAgentEmail(Matchers.any())) thenReturn Future.successful(List(clientMandate.id))
+
+      val response = TestFetchMandateService.getMandatesMissingAgentsEmails("agentId")
+      await(response) must be(List(clientMandate.id))
+    }
+
   }
 
   val clientMandate =

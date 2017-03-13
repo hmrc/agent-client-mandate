@@ -39,6 +39,7 @@ case object MandateCreateError extends MandateCreate
 sealed trait MandateUpdate
 case class MandateUpdated(mandate: Mandate) extends MandateUpdate
 case object MandateUpdateError extends MandateUpdate
+case object MandateUpdatedAgentEmail extends MandateUpdate
 
 sealed trait MandateFetchStatus
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
@@ -81,6 +82,10 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
 
+  def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]]
+
+  def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
+
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
   // $COVERAGE-ON$
@@ -101,12 +106,6 @@ object MandateRepository extends MongoDbConnection {
 class MandateMongoRepository(implicit mongo: () => DB)
   extends ReactiveRepository[Mandate, BSONObjectID]("mandates", mongo, Mandate.formats, ReactiveMongoFormats.objectIdFormats)
     with MandateRepository {
-
-  //Temporary code and should be removed after next deployment - start
-  collection.update(BSONDocument("id" -> "EB2BF6B9"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Cancelled")), upsert = false)
-
-  collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
-  //Temp code - end
 
   val metrics: Metrics = Metrics
 
@@ -311,13 +310,13 @@ class MandateMongoRepository(implicit mongo: () => DB)
         "agentPartyId" -> BSONDocument("$exists" -> true),
         "processed" -> BSONDocument("$exists" -> false)
       )
-      val result = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
+      val queryResult = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
 
-      result onComplete {
+      queryResult onComplete {
         _ => timerContext.stop()
       }
 
-      result
+      queryResult
     }
 
     result match {
@@ -328,6 +327,53 @@ class MandateMongoRepository(implicit mongo: () => DB)
       case Failure(f) =>
         Logger.warn(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
         Future.successful(Nil)
+    }
+  }
+
+  def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]] = {
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindAgentEmail)
+    val query = BSONDocument("agentParty.contactDetails.email" -> "")
+
+    val result = Try {
+      val queryResult = collection.find(query).cursor[Mandate]().collect[Seq]()
+
+      queryResult onComplete {
+        _ => timerContext.stop()
+      }
+
+      queryResult
+    }
+
+    result match {
+      case Success(s) =>
+        s.map { x =>
+          x.map { _.id }
+        }
+      case Failure(f) =>
+        Logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
+        Future.successful(Nil)
+    }
+  }
+
+  def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate] = {
+
+    val query = BSONDocument("id" -> BSONDocument("$in" -> mandateIds))
+    val modifier = BSONDocument("$set" -> BSONDocument("agentParty.contactDetails.email" -> email))
+
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentEmail)
+
+    collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
+      timerContext.stop()
+      writeResult.ok match {
+        case true => MandateUpdatedAgentEmail
+        case _ => MandateUpdateError
+      }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.warn("Failed to update agent email", e)
+        timerContext.stop()
+        MandateUpdateError
+      // $COVERAGE-ON$
     }
   }
 
