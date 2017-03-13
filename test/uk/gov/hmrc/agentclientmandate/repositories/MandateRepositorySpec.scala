@@ -265,9 +265,13 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     "updateAgentEmail" must {
       "update the agents email" in {
         await(testMandateRepository.insertMandate(updatedMandate4))
+        await(testMandateRepository.insertMandate(updatedMandate2))
 
-        await(testMandateRepository.updateAgentEmail(updatedMandate4.id, "test@mail.com")) must be(MandateUpdatedAgentEmail)
+        await(testMandateRepository.updateAgentEmail(List(updatedMandate2.id, updatedMandate4.id), "test@mail.com")) must be(MandateUpdatedAgentEmail)
         await(testMandateRepository.fetchMandate(updatedMandate4.id).map {
+          case MandateFetched(x) => x.agentParty.contactDetails.email
+        }) must be("test@mail.com")
+        await(testMandateRepository.fetchMandate(updatedMandate2.id).map {
           case MandateFetched(x) => x.agentParty.contactDetails.email
         }) must be("test@mail.com")
       }
@@ -342,6 +346,15 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Cancelled, new DateTime(1472631805678L), "credidclientupdate"),
+      statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
+      subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
+      clientDisplayName = "client display name"
+    )
+  def updatedMandate6: Mandate =
+    Mandate("AS12325679", createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123457", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("", Some("0123456789"))),
+      clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
+      currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
       statusHistory = Seq(MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate")),
       subscription = Subscription(Some("XBAT00000123456"), Service("ATED", "ated")),
       clientDisplayName = "client display name"

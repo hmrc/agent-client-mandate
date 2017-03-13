@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailSent, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound, MandateRepository, MandateUpdated}
+import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -86,7 +86,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     }
 
     "updateStatus" must {
-      "change madate status and send email for client" in {
+      "change mandate status and send email for client" in {
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
@@ -95,13 +95,22 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
         result must be(MandateUpdated(updatedMandate))
       }
 
-      "change madate status and send email for agent" in {
+      "change mandate status and send email for agent" in {
         when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         val result = await(TestMandateUpdateService.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
+      }
+    }
+
+    "updateAgentEmail" must {
+      "update all mandates with email for agent" in {
+        when(mockMandateRepository.findMandatesMissingAgentEmail(Matchers.any())) thenReturn Future.successful(mandateIds)
+        when(mockMandateRepository.updateAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedAgentEmail)
+        val result = await(TestMandateUpdateService.updateAgentEmail("agentId", "test@mail.com"))
+        result must be(MandateUpdatedAgentEmail)
       }
     }
 
@@ -176,6 +185,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       |}
     """.stripMargin
   )
+
+  val mandateIds = Seq(mandate.id, clientApprovedMandate.id, updatedMandate.id)
 
   val mockMandateRepository = mock[MandateRepository]
   val mockEmailService = mock[NotificationEmailService]

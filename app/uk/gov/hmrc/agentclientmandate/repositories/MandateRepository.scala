@@ -84,7 +84,7 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]]
 
-  def updateAgentEmail(mandateId: String, email: String): Future[MandateUpdate]
+  def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
 
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
@@ -355,14 +355,14 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def updateAgentEmail(mandateId: String, email: String): Future[MandateUpdate] = {
+  def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate] = {
 
-    val query = BSONDocument("id" -> mandateId)
+    val query = BSONDocument("id" -> BSONDocument("$in" -> mandateIds))
     val modifier = BSONDocument("$set" -> BSONDocument("agentParty.contactDetails.email" -> email))
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentEmail)
 
-    collection.update(query, modifier, upsert = false).map { writeResult =>
+    collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
       timerContext.stop()
       writeResult.ok match {
         case true => MandateUpdatedAgentEmail
