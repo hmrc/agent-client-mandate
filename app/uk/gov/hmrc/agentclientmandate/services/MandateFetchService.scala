@@ -36,6 +36,10 @@ trait MandateFetchService {
   def getAllMandates(arn: String, serviceName: String): Future[Seq[Mandate]] = {
     mandateRepository.getAllMandatesByServiceName(arn, serviceName)
   }
+
+  def getMandatesMissingAgentsEmails(arn: String, service: String): Future[Seq[String]] = {
+    mandateRepository.findMandatesMissingAgentEmail(arn, service)
+  }
 }
 
 object MandateFetchService extends MandateFetchService {
