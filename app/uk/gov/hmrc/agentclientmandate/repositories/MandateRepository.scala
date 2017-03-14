@@ -82,7 +82,7 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
 
-  def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]]
+  def findMandatesMissingAgentEmail(arn: String, service: String): Future[Seq[String]]
 
   def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
 
@@ -330,9 +330,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def findMandatesMissingAgentEmail(agentId: String): Future[Seq[String]] = {
+  def findMandatesMissingAgentEmail(arn: String, service: String): Future[Seq[String]] = {
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindAgentEmail)
-    val query = BSONDocument("agentParty.contactDetails.email" -> "")
+    val query = BSONDocument(
+      "agentParty.contactDetails.email" -> "",
+      "agentParty.id" -> arn,
+      "subscription.service.id" -> service.toUpperCase)
 
     val result = Try {
       val queryResult = collection.find(query).cursor[Mandate]().collect[Seq]()

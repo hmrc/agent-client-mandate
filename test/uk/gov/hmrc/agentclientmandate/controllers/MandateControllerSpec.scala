@@ -329,36 +329,36 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "isAgentMissingEmail" must {
       "return Found when mandates found" in {
-        when(fetchServiceMock.getMandatesMissingAgentsEmails(Matchers.any())) thenReturn Future.successful(mandates)
-        val result = TestMandateController.isAgentMissingEmail(agentCode).apply(FakeRequest())
+        when(fetchServiceMock.getMandatesMissingAgentsEmails(Matchers.any(), Matchers.any())) thenReturn Future.successful(mandates)
+        val result = TestMandateController.isAgentMissingEmail(agentCode, arn, service).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "return Ok when no mandates found without email addresses" in {
-        when(fetchServiceMock.getMandatesMissingAgentsEmails(Matchers.any())) thenReturn Future.successful(Nil)
-        val result = TestMandateController.isAgentMissingEmail(agentCode).apply(FakeRequest())
+        when(fetchServiceMock.getMandatesMissingAgentsEmails(Matchers.any(), Matchers.any())) thenReturn Future.successful(Nil)
+        val result = TestMandateController.isAgentMissingEmail(agentCode, arn, service).apply(FakeRequest())
         status(result) must be(NO_CONTENT)
       }
     }
 
     "updateAgentEmail" must {
       "return ok if agents email updated" in {
-        when(updateServiceMock.updateAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedAgentEmail)
+        when(updateServiceMock.updateAgentEmail(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedAgentEmail)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("test@mail.com"))
-        val result = TestMandateController.updateAgentEmail(agentCode).apply(fakeRequest)
+        val result = TestMandateController.updateAgentEmail(agentCode, arn, service).apply(fakeRequest)
         status(result) must be(OK)
       }
 
       "return error if agents email not updated" in {
-        when(updateServiceMock.updateAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateAgentEmail(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdateError)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("test@mail.com"))
-        val result = TestMandateController.updateAgentEmail(agentCode).apply(fakeRequest)
+        val result = TestMandateController.updateAgentEmail(agentCode, arn, service).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
 
       "return bad request if no email address sent" in {
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(""))
-        val result = TestMandateController.updateAgentEmail(agentCode).apply(fakeRequest)
+        val result = TestMandateController.updateAgentEmail(agentCode, arn, service).apply(fakeRequest)
         status(result) must be(BAD_REQUEST)
       }
     }

@@ -45,7 +45,7 @@ POST   /agent/:ac/mandate/edit                      uk.gov.hmrc.agentclientmanda
 GET    /org/:org/mandate/:clientId/:service         uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetchByClient(org: String, clientId: String, service: String)
 
 # check for agents missing email
-GET   /agent/:ac/mandate/isAgentMissingEmail        uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.isAgentMissingEmail(ac: String)
+GET   /agent/:ac/mandate/isAgentMissingEmail/:arn/:service  uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.isAgentMissingEmail(ac: String, arn:String, service: String)
 
 # update missing email for agent
-POST   /agent/:ac/mandate/updateAgentEmail          uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentEmail(ac: String)
+POST   /agent/:ac/mandate/updateAgentEmail/:arn/:service    uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentEmail(ac: String, arn:String, service: String)

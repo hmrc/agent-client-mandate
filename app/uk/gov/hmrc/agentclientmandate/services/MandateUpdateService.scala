@@ -84,8 +84,8 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
-  def updateAgentEmail(agentId: String, email: String): Future[MandateUpdate] = {
-    mandateRepository.findMandatesMissingAgentEmail(agentId).flatMap { x =>
+  def updateAgentEmail(arn: String, email: String, service: String): Future[MandateUpdate] = {
+    mandateRepository.findMandatesMissingAgentEmail(arn, service).flatMap { x =>
       mandateRepository.updateAgentEmail(x, email)
     }
   }

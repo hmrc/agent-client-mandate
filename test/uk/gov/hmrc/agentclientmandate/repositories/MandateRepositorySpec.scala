@@ -250,7 +250,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.insertMandate(updatedMandate2))
 
         await(testMandateRepository.count) must be(2)
-        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456")) must be(Nil)
+        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456", "ATED")) must be(Nil)
       }
 
       "return false if all mandates have an agent email address" in {
@@ -258,14 +258,14 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.insertMandate(updatedMandate4))
 
         await(testMandateRepository.count) must be(2)
-        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456")) must be(Seq(updatedMandate4.id))
+        await(testMandateRepository.findMandatesMissingAgentEmail("JARN123456", "ATED")) must be(Seq(updatedMandate4.id))
       }
 
       "fail when trying to find agents email in mandates" in {
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
         val testRepository = new TestMandateRepository
-        val result = await(testRepository.findMandatesMissingAgentEmail("JARN123456"))
+        val result = await(testRepository.findMandatesMissingAgentEmail("JARN123456", "ATED"))
 
         result mustBe Nil
       }

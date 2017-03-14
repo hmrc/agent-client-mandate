@@ -221,17 +221,17 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
-  def isAgentMissingEmail(agentCode: String) = Action.async { implicit request =>
-    fetchService.getMandatesMissingAgentsEmails(agentCode).map {
+  def isAgentMissingEmail(agentCode: String, arn: String, service: String) = Action.async { implicit request =>
+    fetchService.getMandatesMissingAgentsEmails(arn, service).map {
       case Nil => NoContent
       case _ => Ok
     }
   }
 
-  def updateAgentEmail(agentCode: String) = Action.async(parse.json) { implicit request =>
+  def updateAgentEmail(agentCode: String, arn: String, service: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[String] match {
       case Some(x) if x.trim.length > 0 =>
-        updateService.updateAgentEmail(agentCode, x).map {
+        updateService.updateAgentEmail(arn, x, service).map {
           case MandateUpdatedAgentEmail => Ok
           case MandateUpdateError => InternalServerError
         }
