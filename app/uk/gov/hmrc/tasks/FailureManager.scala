@@ -41,7 +41,6 @@ protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
     // Enqueue them for retry later
     case cmd: TaskCommand => {
       retryQueue += cmd
-      println("Queued errored command " + cmd +" Size="+retryQueue.size)
     }
 
     //Tick from the clock. Wake up to evaluate if any TaskCommands

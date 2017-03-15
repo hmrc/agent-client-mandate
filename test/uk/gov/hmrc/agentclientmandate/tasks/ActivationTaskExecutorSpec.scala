@@ -63,15 +63,16 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       Props(classOf[ActivationTaskExecutorMock], etmpConnector, ggConnector, mandateFetchService, mandateRepository, emailNotificationService)
   }
 
-  lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
+  lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
   lazy val startSignal1 = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","credId" -> "credId"))
-  lazy val nextSignal = Next("gg-proxy-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
+  lazy val nextSignal = Next("gg-proxy-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
   lazy val finalizeSignal = Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId"))
 
   val timeToUse = DateTime.now()
   val mandate = Mandate("AS12345678",
     User("credid", "Joe Bloggs", None),
     agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
     currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
@@ -81,6 +82,16 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
+    statusHistory = Seq(MandateStatus(Status.New, new DateTime(), "credid")),
+    subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
+    clientDisplayName = "client display name"
+  )
+  val updatedMandate1 = Mandate("AS12345678",
+    User("credid", "Joe Bloggs", None),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some("agent@mail.com"))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+    currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
+    statusHistory = Seq(MandateStatus(Status.PendingActivation, new DateTime(), "credid"), MandateStatus(Status.Approved, timeToUse, "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
@@ -109,7 +120,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(New(startSignal))
-        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
       }
     }
 
@@ -121,17 +132,28 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
       }
     }
 
 
     "execute and FINISH" when {
 
-      "signal is Next('finalize-activation', args)" in {
+      "signal is Next('finalize-activation', args), sends mail to client" in {
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+
+        actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
+        expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier"), phaseCommit)))
+      }
+
+      "signal is Next('finalize-activation', args), sends mail to agent" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -163,7 +185,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize', args) but no mandate is returned" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateNotFound))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -174,7 +196,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize', args) but mandate update fails" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
-        when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -187,8 +209,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val exception = new RuntimeException("some exception")
 
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenThrow exception
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenThrow exception
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -216,7 +238,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback))
-        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseRollback)))
+        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseRollback)))
 
       }
 
@@ -239,7 +261,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(Failed(startSignal, phaseRollback))
-        expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))))
+        expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
       }
     }
 
@@ -252,7 +274,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
 
-        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId"))))
+        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
       }
     }
 

@@ -35,11 +35,13 @@ trait NotificationEmailService {
     def template: String = {
       (action, userType, prevStatus) match {
         case (Status.Approved, _, _) => "client_approves_mandate"
+        case (Status.Active, Some("agent"), _) => "agent_self_auth_activates_mandate"
         case (Status.Active, _, _) => "agent_activates_mandate"
         case (Status.Rejected, _, _) => "agent_rejects_mandate"
-        case (Status.Cancelled, Some("agent"), _) => "agent_removes_mandate"
+        case (Status.Cancelled, Some("agent"), _) => "agent_self_auth_deactivates_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved)) => "client_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.PendingCancellation)) => "client_cancels_active_mandate"
+        case (Status.Cancelled, Some("client"), _) => "agent_removes_mandate"
       }
     }
     def serviceString: String = {

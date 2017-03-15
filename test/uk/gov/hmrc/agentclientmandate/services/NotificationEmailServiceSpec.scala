@@ -55,8 +55,14 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
         verify(mockEmailConnector).sendTemplatedEmail("aa@mail.com", "agent_activates_mandate", "Annual Tax on Enveloped Dwellings")
       }
 
+       "agent self-auth non-uk mandate" in {
+         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+         val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Active, Some("agent"), "ATED")
+         await(response) must be(EmailSent)
+         verify(mockEmailConnector).sendTemplatedEmail("aa@mail.com", "agent_self_auth_activates_mandate", "Annual Tax on Enveloped Dwellings")
+       }
 
-      "agent rejects mandate" in {
+       "agent rejects mandate" in {
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
         val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Rejected, None, "ATED")
         await(response) must be(EmailSent)
@@ -65,10 +71,17 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
 
       "agent cancels active mandate" in {
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Cancelled, Some("agent"), "ATED")
+        val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Cancelled, Some("client"), "ATED")
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail("aa@mail.com", "agent_removes_mandate", "Annual Tax on Enveloped Dwellings")
       }
+
+       "agent cancels self-auth non-uk mandate" in {
+         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+         val response = TestNotificationEmailService.sendMail("aa@mail.com", Status.Cancelled, Some("agent"), "ATED")
+         await(response) must be(EmailSent)
+         verify(mockEmailConnector).sendTemplatedEmail("aa@mail.com", "agent_self_auth_deactivates_mandate", "Annual Tax on Enveloped Dwellings")
+       }
 
       "client cancels approved mandate" in {
         when(mockEmailConnector.sendTemplatedEmail(Matchers.eq("aa@mail.com"), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)

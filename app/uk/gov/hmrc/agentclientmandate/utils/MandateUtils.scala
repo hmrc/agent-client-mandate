@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
-import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
+import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship, Mandate, Status}
 
 object MandateUtils {
 
@@ -28,4 +28,5 @@ object MandateUtils {
     EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, EtmpRelationship(action = "De-Authorise", isExclusiveAgent = None))
   }
 
+  def whetherSelfAuthorised(m: Mandate): Boolean = !m.statusHistory.exists(_.status == Status.Approved) //does not have a status approved
 }
