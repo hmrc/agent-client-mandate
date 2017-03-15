@@ -57,9 +57,9 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       Props(classOf[DeActivationTaskExecutorMock], etmpConnector, ggConnector, mandateFetchService, mandateRepository, emailNotificationService)
   }
 
-  lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
+  lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
   lazy val startSignal1 = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","credId" -> "credId"))
-  lazy val nextSignal = Next("gg-proxy-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))
+  lazy val nextSignal = Next("gg-proxy-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "agentCode" -> "agentCode", "clientId" -> "clientId", "mandateId" -> "mandateId", "agentPartyId" -> "agentPartyId"))
   lazy val finalizeSignal = Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId", "userType" -> "client"))
   lazy val finalizeSignal1 = Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId", "userType" -> "agent"))
 
@@ -73,18 +73,19 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
   )
   val updatedMandate = Mandate("AS12345678",
     User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("agent@mail.com", Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
+    statusHistory = Seq(MandateStatus(Status.New, new DateTime(), "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
-
   val updatedMandate1 = Mandate("AS12345678",
     User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
+    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("agent@mail.com", Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
-    currentStatus = MandateStatus(Status.Cancelled, timeToUse, "credid"),
+    currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
+    statusHistory = Seq(MandateStatus(Status.PendingCancellation, new DateTime(), "credid"), MandateStatus(Status.Approved, timeToUse, "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
@@ -113,7 +114,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(New(startSignal))
-        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-deactivation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-deactivation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
       }
     }
 
@@ -125,7 +126,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
       }
     }
 
@@ -135,18 +136,29 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "signal is Next('finalize-deactivation', args) and userType is Client" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
-        when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.eq(Some("client")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.eq(Some("client")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
-        expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier", "userType" -> "client"), phaseCommit)))
+        expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier", "userType" -> "client", "mandateId" -> "mandateId"), phaseCommit)))
       }
 
-      "signal is Next('finalize-deactivation', args) and userType is Agent" in {
+      "signal is Next('finalize-deactivation', args) and userType is Agent, send mail to agent" in {
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("agent@mail.com"), Matchers.any(), Matchers.eq(Some("agent")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+
+        actorRef ! TaskCommand(StageComplete(finalizeSignal1, phaseCommit))
+        expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier", "userType" -> "agent", "mandateId" -> "mandateId"), phaseCommit)))
+      }
+
+      "signal is Next('finalize-deactivation', args) and userType is Agent, sends mail to client" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
-        when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.eq(Some("agent")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.eq(Some("client")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -219,7 +231,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback))
         //executorActor.execSignal must be startArgs
-        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId")), phaseRollback)))
+        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseRollback)))
 
       }
 
@@ -244,7 +256,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
         actorRef ! TaskCommand(Failed(startSignal, phaseRollback))
-        expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId"))))
+        expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
       }
     }
 
@@ -259,7 +271,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
         //executorActor.execSignal must be startArgs
 
-        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId"))))
+        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
       }
     }
 

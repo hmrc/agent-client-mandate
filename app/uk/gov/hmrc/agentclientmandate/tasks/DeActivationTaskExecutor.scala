@@ -54,7 +54,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         result.status match {
           case OK => Success(Next("gg-proxy-deactivation", args))
           case _ => {
-            Logger.warn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} with body ${result.body}")
+            Logger.warn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
             Failure(new Exception("ETMP call failed, status: " + result.status))
           }
         }
@@ -70,7 +70,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
                 metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
                 Success(Next("finalize-deactivation", args))
               case _ =>
-                Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} with body ${resp.body}")
+                Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
                 metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
                 Failure(new Exception("GG Proxy call failed, status: " + resp.status))
             }
@@ -92,13 +92,14 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
                 val service = m.subscription.service.id
                 args("userType") match {
                   case "agent" =>
-                    val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
-                    Try(emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, Some(args("userType")), service)) match {
+                    val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
+                    else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
+                    Try(emailNotificationService.sendMail(receiverParty._1, models.Status.Cancelled, receiverParty._2, service)) match {
                       case Success(v) =>
                         doAudit("emailSent", args("agentCode"), m)
                       case Failure(reason) =>
                         // $COVERAGE-OFF$
-                        doFailedAudit("emailSentFailed", s"client email::$clientEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
+                        doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
                       // $COVERAGE-ON$
                     }
                   case _ =>
