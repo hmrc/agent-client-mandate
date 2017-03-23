@@ -276,12 +276,23 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.insertMandate(updatedMandate4))
         await(testMandateRepository.insertMandate(updatedMandate2))
 
-        await(testMandateRepository.updateAgentEmail(List(updatedMandate2.id, updatedMandate4.id), "test@mail.com")) must be(MandateUpdatedAgentEmail)
+        await(testMandateRepository.updateAgentEmail(List(updatedMandate2.id, updatedMandate4.id), "test@mail.com")) must be(MandateUpdatedEmail)
         await(testMandateRepository.fetchMandate(updatedMandate4.id).map {
           case MandateFetched(x) => x.agentParty.contactDetails.email
         }) must be("test@mail.com")
         await(testMandateRepository.fetchMandate(updatedMandate2.id).map {
           case MandateFetched(x) => x.agentParty.contactDetails.email
+        }) must be("test@mail.com")
+      }
+    }
+
+    "updateClientEmail" must {
+      "update the clients email" in {
+        await(testMandateRepository.insertMandate(updatedMandate2))
+
+        await(testMandateRepository.updateClientEmail(updatedMandate2.id, "test@mail.com")) must be(MandateUpdatedEmail)
+        await(testMandateRepository.fetchMandate(updatedMandate2.id).map {
+          case MandateFetched(x) => x.clientParty.get.contactDetails.email
         }) must be("test@mail.com")
       }
     }

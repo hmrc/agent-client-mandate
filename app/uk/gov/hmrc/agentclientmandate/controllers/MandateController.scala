@@ -232,11 +232,25 @@ trait MandateController extends BaseController with Auditable {
     request.body.asOpt[String] match {
       case Some(x) if x.trim.length > 0 =>
         updateService.updateAgentEmail(arn, x, service).map {
-          case MandateUpdatedAgentEmail => Ok
+          case MandateUpdatedEmail => Ok
           case MandateUpdateError => InternalServerError
         }
       case _ => {
-        Logger.warn("Could not find email address")
+        Logger.warn("Could not find agent email address")
+        Future.successful(BadRequest)
+      }
+    }
+  }
+
+  def updateClientEmail(authCode: String, mandateId: String) = Action.async(parse.json) { implicit request =>
+    request.body.asOpt[String] match {
+      case Some(x) if x.trim.length > 0 =>
+        updateService.updateClientEmail(mandateId, x).map {
+          case MandateUpdatedEmail => Ok
+          case MandateUpdateError => InternalServerError
+        }
+      case _ => {
+        Logger.warn("Could not find client email address")
         Future.successful(BadRequest)
       }
     }

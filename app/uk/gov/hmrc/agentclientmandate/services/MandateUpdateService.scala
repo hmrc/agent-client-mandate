@@ -90,6 +90,10 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
+  def updateClientEmail(mandateId: String, email: String): Future[MandateUpdate] = {
+    mandateRepository.updateClientEmail(mandateId, email)
+  }
+
 }
 
 object MandateUpdateService extends MandateUpdateService {
