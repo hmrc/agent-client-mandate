@@ -242,10 +242,10 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
-  def updateClientEmail(authCode: String, mandateId: String) = Action.async(parse.json) { implicit request =>
+  def updateClientEmail(authCode: String, clientId: String, service: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[String] match {
       case Some(x) if x.trim.length > 0 =>
-        updateService.updateClientEmail(mandateId, x).map {
+        updateService.updateClientEmail(clientId, service, x).map {
           case MandateUpdatedEmail => Ok
           case MandateUpdateError => InternalServerError
         }
