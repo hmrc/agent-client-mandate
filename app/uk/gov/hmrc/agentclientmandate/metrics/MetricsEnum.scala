@@ -33,6 +33,7 @@ object MetricsEnum extends Enumeration {
   val RepositoryFindGGRelationshipsToProcess = Value
   val RepositoryFindAgentEmail = Value
   val RepositoryUpdateAgentEmail = Value
+  val RepositoryUpdateClientEmail = Value
   val GGProxyAllocate = Value
   val GGProxyDeallocate = Value
   val StageStartSignalFailed = Value

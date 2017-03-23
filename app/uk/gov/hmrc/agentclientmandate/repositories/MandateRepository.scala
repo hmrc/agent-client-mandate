@@ -39,7 +39,7 @@ case object MandateCreateError extends MandateCreate
 sealed trait MandateUpdate
 case class MandateUpdated(mandate: Mandate) extends MandateUpdate
 case object MandateUpdateError extends MandateUpdate
-case object MandateUpdatedAgentEmail extends MandateUpdate
+case object MandateUpdatedEmail extends MandateUpdate
 
 sealed trait MandateFetchStatus
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
@@ -85,6 +85,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def findMandatesMissingAgentEmail(arn: String, service: String): Future[Seq[String]]
 
   def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
+
+  def updateClientEmail(clientId: String, service: String, email: String): Future[MandateUpdate]
 
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
@@ -372,12 +374,37 @@ class MandateMongoRepository(implicit mongo: () => DB)
     collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
       timerContext.stop()
       writeResult.ok match {
-        case true => MandateUpdatedAgentEmail
+        case true => MandateUpdatedEmail
         case _ => MandateUpdateError
       }
     }.recover {
       // $COVERAGE-OFF$
       case e => Logger.warn("Failed to update agent email", e)
+        timerContext.stop()
+        MandateUpdateError
+      // $COVERAGE-ON$
+    }
+  }
+
+  def updateClientEmail(clientId: String, service: String, email: String): Future[MandateUpdate] = {
+    val query = BSONDocument(
+      "clientParty.id" -> clientId,
+      "subscription.service.id" -> service.toUpperCase,
+      "currentStatus.status" -> Status.Active.toString
+    )
+    val modifier = BSONDocument("$set" -> BSONDocument("clientParty.contactDetails.email" -> email))
+
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateClientEmail)
+
+    collection.update(query, modifier, upsert = false, multi = false).map { writeResult =>
+      timerContext.stop()
+      writeResult.ok match {
+        case true => MandateUpdatedEmail
+        case _ => MandateUpdateError
+      }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.warn("Failed to update client email", e)
         timerContext.stop()
         MandateUpdateError
       // $COVERAGE-ON$

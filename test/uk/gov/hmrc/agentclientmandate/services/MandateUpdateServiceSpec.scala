@@ -108,9 +108,17 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "updateAgentEmail" must {
       "update all mandates with email for agent" in {
         when(mockMandateRepository.findMandatesMissingAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(mandateIds)
-        when(mockMandateRepository.updateAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedAgentEmail)
+        when(mockMandateRepository.updateAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedEmail)
         val result = await(TestMandateUpdateService.updateAgentEmail("agentId", "test@mail.com", "ated"))
-        result must be(MandateUpdatedAgentEmail)
+        result must be(MandateUpdatedEmail)
+      }
+    }
+
+    "updateClientEmail" must {
+      "update the mandate with email for client" in {
+        when(mockMandateRepository.updateClientEmail(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedEmail)
+        val result = await(TestMandateUpdateService.updateClientEmail("clientId", "service", "test@mail.com"))
+        result must be(MandateUpdatedEmail)
       }
     }
 
