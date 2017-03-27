@@ -51,4 +51,4 @@ GET   /agent/:ac/mandate/isAgentMissingEmail/:arn/:service  uk.gov.hmrc.agentcli
 POST   /agent/:ac/mandate/updateAgentEmail/:arn/:service    uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentEmail(ac: String, arn:String, service: String)
 
 # updat client email
-POST   /org/:org/mandate/updateClientEmail/:clientId/:service       uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.updateClientEmail(org: String, clientId: String, service: String)
+POST   /org/:org/mandate/updateClientEmail/:mandateId       uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.updateClientEmail(org: String, mandateId: String)

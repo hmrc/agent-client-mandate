@@ -86,7 +86,7 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
 
-  def updateClientEmail(clientId: String, service: String, email: String): Future[MandateUpdate]
+  def updateClientEmail(mandateId: String, email: String): Future[MandateUpdate]
 
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
@@ -386,12 +386,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def updateClientEmail(clientId: String, service: String, email: String): Future[MandateUpdate] = {
-    val query = BSONDocument(
-      "clientParty.id" -> clientId,
-      "subscription.service.id" -> service.toUpperCase,
-      "currentStatus.status" -> Status.Active.toString
-    )
+  def updateClientEmail(mandateId: String, email: String): Future[MandateUpdate] = {
+    val query = BSONDocument("id" -> mandateId)
     val modifier = BSONDocument("$set" -> BSONDocument("clientParty.contactDetails.email" -> email))
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateClientEmail)
