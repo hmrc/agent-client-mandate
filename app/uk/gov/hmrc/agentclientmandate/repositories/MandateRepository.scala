@@ -17,14 +17,16 @@
 package uk.gov.hmrc.agentclientmandate.repositories
 
 import play.api.Logger
+import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
+import reactivemongo.api.collections.bson
 import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.agentclientmandate.models.{GGRelationshipDto, Mandate, Status}
+import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
 
@@ -110,7 +112,39 @@ class MandateMongoRepository(implicit mongo: () => DB)
     with MandateRepository {
 
   //Temporary code and should be removed after next deployment - start
+  // $COVERAGE-OFF$
   collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
+
+  {
+    val childrenEnumerator = collection.find(Json.obj("createdBy" -> Json.obj("$exists" -> true))).cursor[BSONDocument]().enumerate()
+
+    val processChildren: Iteratee[BSONDocument, Unit] = {
+
+      import reactivemongo.bson._
+
+      implicit object AgentNameReader extends BSONDocumentReader[Party] {
+        def read(bson: BSONDocument): Party = {
+          val opt: Option[Party] = for {
+            id <- bson.getAs[String]("id")
+            name <- bson.getAs[String]("name")
+          } yield new Party(id, name, PartyType.Individual, ContactDetails("aa", None))
+
+          opt.get // the person is required (or let throw an exception)
+        }
+      }
+
+      Iteratee.foreach { child =>
+        val childId = child.getAs[BSONObjectID]("_id")
+        val agentParty = child.getAs[Party]("agentParty")
+        if (agentParty.isDefined) {
+          collection.update(BSONDocument("_id" -> childId.get), BSONDocument("$set" -> BSONDocument("createdBy.name" -> agentParty.get.name)))
+        }
+      }
+    }
+
+    childrenEnumerator.run(processChildren)
+  }
+  // $COVERAGE-ON$
   //Temp code - end
 
   val metrics: Metrics = Metrics

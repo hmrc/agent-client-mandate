@@ -19,12 +19,15 @@ package uk.gov.hmrc.agentclientmandate.repositories
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.iteratee.Enumerator
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import reactivemongo.api.DB
+import reactivemongo.api.{Cursor, DB}
 import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult}
 import reactivemongo.api.indexes.CollectionIndexesManager
 import reactivemongo.bson.BSONDocument
@@ -32,8 +35,9 @@ import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
+import scala.collection.generic.CanBuildFrom
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
@@ -49,6 +53,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
 
       "insert results in error" in {
+        setupFindMockTemp
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.insert(Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(false,0,0,Nil,Nil,None,None,None)))
         val testRepository = new TestMandateRepository
@@ -127,6 +132,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       "return error when insert fails" in {
         val existingRelationships = List(GGRelationshipDto("aaa", "bbb", "ccc", "ddd"), GGRelationshipDto("zzz", "yyy", "xxx", "www"))
 
+        setupFindMockTemp
         setupFindMock
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.ImplicitlyDocumentProducer).thenThrow(new scala.RuntimeException)
@@ -172,6 +178,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
         val modifier = BSONDocument("$set" -> BSONDocument("processed" -> true))
 
+        setupFindMockTemp
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
         when(mockCollection.update(Matchers.any(),Matchers.eq(modifier),Matchers.any(),Matchers.any(),Matchers.any())(Matchers.any(),Matchers.any(),Matchers.any())).thenThrow(new RuntimeException(""))
         when(mockCollection.update(Matchers.any(),Matchers.any(),Matchers.any(),Matchers.any(),Matchers.eq(true))(Matchers.any(),Matchers.any(),Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
@@ -194,8 +201,12 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
 
       "fail when trying to find relationships to process" in {
+        setupFindMockTemp
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        when(mockCollection.find(Matchers.eq(BSONDocument(
+          "agentPartyId" -> BSONDocument("$exists" -> true),
+          "processed" -> BSONDocument("$exists" -> false)
+        )))(Matchers.any())).thenThrow(new RuntimeException)
         val testRepository = new TestMandateRepository
         val result = await(testRepository.findGGRelationshipsToProcess())
 
@@ -262,8 +273,12 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
 
       "fail when trying to find agents email in mandates" in {
+        setupFindMockTemp
         when(mockCollection.indexesManager.create(Matchers.any())).thenReturn(Future.successful(UpdateWriteResult(true,0,0,Nil,Nil,None,None,None)))
-        when(mockCollection.find(Matchers.any())(Matchers.any())).thenThrow(new RuntimeException)
+        when(mockCollection.find(Matchers.eq(BSONDocument(
+          "agentParty.contactDetails.email" -> "",
+          "agentParty.id" -> "JARN123456",
+          "subscription.service.id" -> "ATED")))(Matchers.any())).thenThrow(new RuntimeException)
         val testRepository = new TestMandateRepository
         val result = await(testRepository.findMandatesMissingAgentEmail("JARN123456", "ATED"))
 
@@ -302,7 +317,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
 
   def mandate: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", "name", None),
+    Mandate("AS12345678", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
@@ -312,7 +327,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def updatedMandate: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", "name", None),
+    Mandate("AS12345678", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123456", "Joe Ated", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
@@ -322,7 +337,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def mandate1: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", "name", None),
+    Mandate("AS12345678", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
@@ -332,7 +347,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def updatedMandate2: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", "name", None),
+    Mandate("AS12345678", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
@@ -342,7 +357,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def updatedMandate3: Mandate =
-    Mandate("AS12345679", createdBy = User("credid", "name", None),
+    Mandate("AS12345679", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.New, new DateTime(1472631805678L), "credidclientupdate"),
@@ -352,7 +367,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def updatedMandate4: Mandate =
-    Mandate("AS12345679", createdBy = User("credid", "name", None),
+    Mandate("AS12345679", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
@@ -362,7 +377,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def updatedMandate5: Mandate =
-    Mandate("AS12345670", createdBy = User("credid", "name", None),
+    Mandate("AS12345670", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Cancelled, new DateTime(1472631805678L), "credidclientupdate"),
@@ -371,7 +386,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       clientDisplayName = "client display name"
     )
   def updatedMandate6: Mandate =
-    Mandate("AS12325679", createdBy = User("credid", "name", None),
+    Mandate("AS12325679", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123457", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("", Some("0123456789"))),
       clientParty = Some(Party("XBAT00000123457", "Susie", PartyType.Organisation, contactDetails = ContactDetails("", None))),
       currentStatus = MandateStatus(Status.Active, new DateTime(1472631805678L), "credidclientupdate"),
@@ -401,8 +416,27 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
 
   private def setupFindMock = {
     val queryBuilder = mock[JSONQueryBuilder]
-    when(mockCollection.find(Matchers.any())(Matchers.any())) thenReturn queryBuilder
+    when(mockCollection.find(Matchers.eq(BSONDocument(
+      "agentPartyId" -> "bbb"
+    )))(Matchers.any())) thenReturn queryBuilder
 
     when(queryBuilder.one[GGRelationshipDto](Matchers.any(), Matchers.any()))thenReturn(Future.successful(None))
+  }
+
+  private def setupFindMockTemp = {
+    val queryBuilder = mock[JSONQueryBuilder]
+    when(mockCollection.find(Matchers.any())(Matchers.any())) thenReturn queryBuilder
+    val mockCursor = mock[Cursor[BSONDocument]]
+    when(queryBuilder.cursor[BSONDocument](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())) thenAnswer new Answer[Cursor[BSONDocument]] {
+      def answer(i: InvocationOnMock) = mockCursor
+    }
+
+    when(
+      mockCursor.collect[Traversable](Matchers.anyInt(), Matchers.anyBoolean())(Matchers.any[CanBuildFrom[Traversable[_], BSONDocument, Traversable[BSONDocument]]], Matchers.any[ExecutionContext])
+    ) thenReturn Future.successful(List())
+
+    when(
+      mockCursor.enumerate()
+    ) thenReturn Enumerator[BSONDocument]()
   }
 }

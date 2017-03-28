@@ -102,7 +102,7 @@ trait MandateCreateService extends Auditable {
 
         val mandate = Mandate(
           id = createMandateId,
-          createdBy = User(ggRelationshipDto.credId, clientPartyName, ggRelationshipDto.agentCode),
+          createdBy = User(ggRelationshipDto.credId, agentPartyName, ggRelationshipDto.agentCode),
           agentParty = Party(
             ggRelationshipDto.agentPartyId,
             agentPartyName,
