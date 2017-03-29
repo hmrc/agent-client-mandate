@@ -129,7 +129,7 @@ trait MandateController extends BaseController with Auditable {
 
   def remove(authCode: String, mandateId: String) = Action.async { implicit request =>
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active => {
+      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active  => {
         val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
         updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
           case MandateUpdated(x) =>
@@ -146,6 +146,17 @@ trait MandateController extends BaseController with Auditable {
           case MandateUpdated(x) =>
             val service = x.subscription.service.id
             emailNotificationService.sendMail(x.agentParty.contactDetails.email, models.Status.Cancelled, service = service, userType = Some("client"), prevStatus = Some(models.Status.Approved))
+            doAudit("removed", "", x)
+            Future.successful(Ok)
+          case MandateUpdateError => {
+            Logger.warn("Could not find mandate to remove after fetching: " + mandate.id)
+            Future.successful(NotFound)
+          }
+        }
+      }
+      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.New => {
+        updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
+          case MandateUpdated(x) =>
             doAudit("removed", "", x)
             Future.successful(Ok)
           case MandateUpdateError => {

@@ -95,6 +95,13 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
+
+      "request is valid and client mandate found and status is New" in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(mandate))
+        val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
+        status(result) must be(OK)
+      }
     }
 
     "cant remove the mandate" when {
@@ -125,12 +132,21 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         status(result) must be(NOT_FOUND)
       }
 
-      "status of mandate returned is not ACTIVE" in {
+      "mongo update error occurs while changing the New status to CANCELLED" in {
         when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(mandate))
+        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+
+        val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
+
+        status(result) must be(NOT_FOUND)
+      }
+
+      "status of mandate returned is not ACTIVE" in {
+        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(cancelledMandate))
 
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest()))
 
-        thrown.getMessage must include("Mandate with status New cannot be removed")
+        thrown.getMessage must include("Mandate with status Cancelled cannot be removed")
       }
 
       "no mandate is fetched" in {
@@ -527,7 +543,17 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       clientDisplayName = "client display name"
     )
 
-
+  val cancelledMandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
   val createMandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
 
   val registeredAddressDetails = RegisteredAddressDetails("123 Fake Street", "Somewhere", None, None, None, "GB")
