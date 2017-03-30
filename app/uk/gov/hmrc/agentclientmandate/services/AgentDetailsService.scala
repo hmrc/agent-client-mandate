@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import org.joda.time.LocalDate
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
-import uk.gov.hmrc.agentclientmandate.models.{AgentDetails, RegisteredAddressDetails}
+import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.play.http.HeaderCarrier
 
@@ -41,13 +43,7 @@ trait AgentDetailsService {
 
       etmpConnector.getRegistrationDetails(agentPartyId, "arn").map { etmpDetails =>
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
-
-        val agentName = if (isAnIndividual) {
-          s"""${(etmpDetails \ "individual" \ "firstName").as[String]} ${(etmpDetails \ "individual" \ "lastName").as[String]}"""
-        } else {
-          s"""${(etmpDetails \ "organisation" \ "organisationName").as[String]}"""
-        }
-
+        val safeId = (etmpDetails \ "safeId").as[String]
         val addressLine1 = (etmpDetails \ "addressDetails" \ "addressLine1").as[String]
         val addressLine2 = (etmpDetails \ "addressDetails" \ "addressLine2").as[String]
         val addressLine3 = (etmpDetails \ "addressDetails" \ "addressLine3").asOpt[String]
@@ -55,10 +51,45 @@ trait AgentDetailsService {
         val postalCode = (etmpDetails \ "addressDetails" \ "postalCode").asOpt[String]
         val countryCode = (etmpDetails \ "addressDetails" \ "countryCode").as[String]
 
-        AgentDetails(agentName, RegisteredAddressDetails(addressLine1, addressLine2, addressLine3, addressLine4, postalCode, countryCode))
+        val phoneNumber = (etmpDetails \ "contactDetails" \ "phoneNumber").asOpt[String]
+        val mobileNumber = (etmpDetails \ "contactDetails" \ "mobileNumber").asOpt[String]
+        val faxNumber = (etmpDetails \ "contactDetails" \ "faxNumber").asOpt[String]
+        val emailAddress = (etmpDetails \ "contactDetails" \ "emailAddress").asOpt[String]
+
+
+        val nonUKId = (etmpDetails \ "nonUKIdentification").asOpt[Identification]
+
+        if (isAnIndividual) {
+          val fname = (etmpDetails \ "individual" \ "firstName").as[String]
+          val lname = (etmpDetails \ "individual" \ "lastName").as[String]
+          val dob = (etmpDetails \ "individual" \ "dateOfBirth").as[LocalDate]
+
+          AgentDetails(safeId,
+            true,
+            individual = Some(Individual(fname, None, lname, dob)),
+            None,
+            addressDetails = RegisteredAddressDetails(addressLine1, addressLine2, addressLine3, addressLine4, postalCode, countryCode),
+            contactDetails = EtmpContactDetails(phoneNumber, mobileNumber, faxNumber, emailAddress),
+            identification = nonUKId)
+
+        } else {
+          val orgName = (etmpDetails \ "organisation" \ "organisationName").as[String]
+          val isAGroup = (etmpDetails \ "organisation" \ "isAGroup").asOpt[Boolean]
+          val orgType = (etmpDetails \ "organisation" \ "organisationName").asOpt[String]
+
+          AgentDetails(safeId,
+            false,
+            None,
+            organisation = Some(Organisation(orgName, isAGroup, orgType)),
+            addressDetails = RegisteredAddressDetails(addressLine1, addressLine2, addressLine3, addressLine4, postalCode, countryCode),
+            contactDetails = EtmpContactDetails(phoneNumber, mobileNumber, faxNumber, emailAddress),
+            identification = nonUKId)
+        }
+
       }
     }
   }
+
 
   def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
     authConnector.getAuthority().flatMap { authority =>
