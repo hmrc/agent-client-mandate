@@ -39,8 +39,7 @@ trait Auditable extends AppName {
 
     val clientAuditDetails = {
       m.clientParty match {
-        case Some(x) => Map("clientPartyId" -> x.id,
-          "clientPartyName" -> x.name)
+        case Some(x) => Map("clientPartyId" -> x.id, "clientPartyName" -> x.name)
         case _ => Map.empty
       }
     }
