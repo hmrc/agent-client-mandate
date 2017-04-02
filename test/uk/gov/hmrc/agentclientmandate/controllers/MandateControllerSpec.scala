@@ -25,6 +25,7 @@ import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
+import uk.gov.hmrc.agentclientmandate.builders.AgentBuilder
 import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
@@ -77,7 +78,6 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         status(result) must be(NOT_FOUND)
       }
     }
-
 
     "remove the mandate" when {
 
@@ -557,6 +557,6 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
   val createMandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
 
   val registeredAddressDetails = RegisteredAddressDetails("123 Fake Street", "Somewhere", None, None, None, "GB")
-  val agentDetails = AgentDetails("Agent Ltd.", registeredAddressDetails)
+  val agentDetails = AgentBuilder.buildAgentDetails
 
 }
