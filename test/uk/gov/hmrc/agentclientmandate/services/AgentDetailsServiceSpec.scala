@@ -89,7 +89,7 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
       implicit val hc = new HeaderCarrier()
       val result = await(TestAgentDetailsService.getAgentDetails("ac"))
-      result.agentName must be("Jon Snow")
+      result.organisation.map(_.organisationName) must be(None)
     }
 
     "get agent details for organisation" in {
@@ -127,7 +127,7 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
       implicit val hc = new HeaderCarrier()
       val result = await(TestAgentDetailsService.getAgentDetails("ac"))
-      result.agentName must be("ABC Limited")
+      result.organisation.map(_.organisationName) must be(Some("ABC Limited"))
     }
 
     "returns true - for delegation authorization check for Ated" when {
