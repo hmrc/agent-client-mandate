@@ -37,7 +37,9 @@ trait AuthConnector extends ServicesConfig with RawResponseReads with Auditable 
     val getUrl = s"""$serviceUrl/$authorityUri"""
     http.GET[HttpResponse](getUrl) map { response =>
       response.status match {
-        case OK => response.json
+        case OK =>
+          doResponseAudit("authSuccess", response)
+          response.json
         case status =>
           doFailedAudit("authFailed", getUrl, response.body)
           throw new RuntimeException("No authority found")

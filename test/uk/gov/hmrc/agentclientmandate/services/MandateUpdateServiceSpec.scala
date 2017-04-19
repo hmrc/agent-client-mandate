@@ -185,6 +185,22 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     """.stripMargin
   )
 
+  val authJson2 = Json.parse(
+    """
+      |{
+      |  "credentials": {
+      |    "gatewayId": "cred-id-1234567890"
+      |  },
+      |  "accounts": {
+      |    "awrs": {
+      |      "utr": "ated-ref-num",
+      |      "link": "/link"
+      |    }
+      |  }
+      |}
+    """.stripMargin
+  )
+
   val etmpSubscriptionJson = Json.parse(
     """
       |{
