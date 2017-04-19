@@ -22,6 +22,7 @@ import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.model.{Audit, DataEvent}
 import uk.gov.hmrc.play.config.AppName
 import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http._
 
 trait Auditable extends AppName {
 
@@ -45,6 +46,14 @@ trait Auditable extends AppName {
     }
 
     sendDataEvent(auditType, auditDetails ++ clientAuditDetails)
+  }
+
+  def doResponseAudit(auditType: String, resp: HttpResponse)(implicit hc:HeaderCarrier): Unit = {
+    val auditDetails = Map("serviceName" -> "ated",
+      "response.status" -> s"${resp.status}",
+      "response.body" -> s"${resp.body}")
+
+    sendDataEvent(auditType, auditDetails)
   }
 
   def doFailedAudit(auditType: String, request: String, response: String)(implicit hc:HeaderCarrier): Unit = {
