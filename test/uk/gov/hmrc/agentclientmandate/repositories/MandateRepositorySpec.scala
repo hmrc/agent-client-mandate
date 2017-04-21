@@ -427,9 +427,12 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     val queryBuilder = mock[JSONQueryBuilder]
     when(mockCollection.find(Matchers.any())(Matchers.any())) thenReturn queryBuilder
     val mockCursor = mock[Cursor[BSONDocument]]
+
     when(queryBuilder.cursor[BSONDocument](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())) thenAnswer new Answer[Cursor[BSONDocument]] {
       def answer(i: InvocationOnMock) = mockCursor
     }
+
+    when(queryBuilder.one(Matchers.any(), Matchers.any())) thenReturn Future.successful(None)
 
     when(
       mockCursor.collect[Traversable](Matchers.anyInt(), Matchers.anyBoolean())(Matchers.any[CanBuildFrom[Traversable[_], BSONDocument, Traversable[BSONDocument]]], Matchers.any[ExecutionContext])
