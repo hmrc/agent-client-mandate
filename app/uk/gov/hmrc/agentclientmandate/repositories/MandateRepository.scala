@@ -115,35 +115,32 @@ class MandateMongoRepository(implicit mongo: () => DB)
   // $COVERAGE-OFF$
   collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
 
-  {
-    val childrenEnumerator = collection.find(Json.obj("createdBy" -> Json.obj("$exists" -> true))).cursor[BSONDocument]().enumerate()
-
-    val processChildren: Iteratee[BSONDocument, Unit] = {
-
-      import reactivemongo.bson._
-
-      implicit object AgentNameReader extends BSONDocumentReader[Party] {
-        def read(bson: BSONDocument): Party = {
-          val opt: Option[Party] = for {
-            id <- bson.getAs[String]("id")
-            name <- bson.getAs[String]("name")
-          } yield new Party(id, name, PartyType.Individual, ContactDetails("aa", None))
-
-          opt.get // the person is required (or let throw an exception)
-        }
-      }
-
-      Iteratee.foreach { child =>
-        val childId = child.getAs[BSONObjectID]("_id")
-        val agentParty = child.getAs[Party]("agentParty")
-        if (agentParty.isDefined) {
-          collection.update(BSONDocument("_id" -> childId.get), BSONDocument("$set" -> BSONDocument("createdBy.name" -> agentParty.get.name)))
-        }
-      }
-    }
-
-    childrenEnumerator.run(processChildren)
+  collection.find(BSONDocument("id" -> "F98A717D")).one[Mandate] map {
+    case Some(mandate) =>
+      val agentPartyCopy = mandate.agentParty
+      val subscriptionCopy = mandate.subscription
+      val createdByCopy = mandate.createdBy
+      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
+        subscription = subscriptionCopy.copy(referenceNumber = None),
+        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
+      val isClient = mandate.clientParty.isDefined
+      Logger.error("Found mandate F98A717D -> withClient" + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate F98A717D")
   }
+
+  collection.find(BSONDocument("id" -> "OAFBF977")).one[Mandate] map {
+    case Some(mandate) =>
+      val agentPartyCopy = mandate.agentParty
+      val subscriptionCopy = mandate.subscription
+      val createdByCopy = mandate.createdBy
+      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
+        subscription = subscriptionCopy.copy(referenceNumber = None),
+        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
+      val isClient = mandate.clientParty.isDefined
+      Logger.error("Found mandate OAFBF977 -> withClient" + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate OAFBF977")
+  }
+
   // $COVERAGE-ON$
   //Temp code - end
 
@@ -282,8 +279,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
             }
 
           case Failure(f) =>
+            // $COVERAGE-OFF$
             Logger.warn(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
             Future.successful(ExistingRelationshipsInsertError)
+          // $COVERAGE-ON$
         }
     }.recover {
       // $COVERAGE-OFF$
@@ -337,8 +336,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
           // $COVERAGE-ON$
         }
       case Failure(f) =>
+        // $COVERAGE-OFF$
         Logger.warn(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
         Future.successful(ExistingRelationshipProcessError)
+      // $COVERAGE-ON$
     }
   }
 
@@ -365,8 +366,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
           x
         }
       case Failure(f) =>
+        // $COVERAGE-OFF$
         Logger.warn(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
         Future.successful(Nil)
+      // $COVERAGE-ON$
     }
   }
 
@@ -393,8 +396,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
           x.map { _.id }
         }
       case Failure(f) =>
+        // $COVERAGE-OFF$
         Logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
         Future.successful(Nil)
+        // $COVERAGE-ON$
     }
   }
 
