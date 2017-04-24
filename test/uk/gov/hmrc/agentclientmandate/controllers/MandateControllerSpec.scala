@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.builders.AgentBuilder
-import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, AuthConnectorSpec, EmailSent}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
@@ -291,6 +291,9 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "sending correct data" must {
         "return Ok when insert relationships ok" in {
+          when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+            Future.successful(successResponseJsonAuth)
+          }
           when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInserted))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
           val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
@@ -298,6 +301,9 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         }
 
         "return Ok when relationships already exist" in {
+          when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+            Future.successful(successResponseJsonAuth)
+          }
           when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsAlreadyExist))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
           val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
@@ -305,6 +311,9 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         }
 
         "exception thrown when there is an error inserting relationships" in {
+          when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+            Future.successful(successResponseJsonAuth)
+          }
           when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInsertError))
           val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
 
@@ -434,6 +443,19 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         ]
       """
 
+  val successResponseJsonAuth = Json.parse(
+    """{
+               "credentials": {
+                 "gatewayId": "cred-id-113244018119",
+                 "idaPids": []
+               },
+               "accounts": {
+                 "agent": {
+                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                 }
+               }
+             }""")
+
   val mandates = Seq("AAAAAAA", "BBBBBB", "CCCCCC")
 
   val fetchServiceMock = mock[MandateFetchService]
@@ -442,6 +464,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
   val relationshipServiceMock = mock[RelationshipService]
   val agentDetailsServiceMock = mock[AgentDetailsService]
   val notificationServiceMock = mock[NotificationEmailService]
+  val authConnectorMock = mock[AuthConnector]
 
   object TestAgentMandateController extends MandateController {
     override val fetchService = fetchServiceMock
@@ -450,6 +473,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     override val updateService = updateServiceMock
     override val agentDetailsService = agentDetailsServiceMock
     override val emailNotificationService = notificationServiceMock
+    override val authConnector = authConnectorMock
     override val audit: Audit = new TestAudit
     override val userType = "agent"
   }
@@ -461,6 +485,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     override val updateService = updateServiceMock
     override val agentDetailsService = agentDetailsServiceMock
     override val emailNotificationService = notificationServiceMock
+    override val authConnector = authConnectorMock
     override val audit: Audit = new TestAudit
     override val userType = "client"
   }
@@ -470,6 +495,9 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     reset(createServiceMock)
     reset(updateServiceMock)
     reset(relationshipServiceMock)
+    reset(authConnectorMock)
+    reset(agentDetailsServiceMock)
+    reset(notificationServiceMock)
   }
 
   implicit override lazy val app: FakeApplication = FakeApplication(

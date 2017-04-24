@@ -17,9 +17,10 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate._
+import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate, NonUKClientDto}
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
@@ -42,6 +43,8 @@ trait MandateController extends BaseController with Auditable {
   def agentDetailsService: AgentDetailsService
 
   def emailNotificationService: NotificationEmailService
+
+  def authConnector: AuthConnector
 
   def userType: String
 
@@ -202,17 +205,21 @@ trait MandateController extends BaseController with Auditable {
   def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
     request.body.asOpt[Seq[GGRelationshipDto]] match {
       case Some(x) =>
-        val ggdtoList = x map ( _.copy(agentCode = Some(agentCode)))
-        createService.insertExistingRelationships(ggdtoList).map {
-          case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
-          case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
+        authConnector.getAuthority().flatMap { authority =>
+          val ggdtoList = x map ( _.copy(agentCode = Some(agentCode), credId = getCredId(authority)))
+          createService.insertExistingRelationships(ggdtoList).map {
+            case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
+            case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
+          }
         }
       case None => {
-        Logger.warn("Could not find parse request to import existing clients")
+        Logger.warn("Could not parse request to import existing clients")
         Future.successful(BadRequest)
       }
     }
   }
+
+  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
 
 
   def createRelationship(ac: String) = Action.async(parse.json) { implicit request =>
@@ -277,6 +284,7 @@ object MandateAgentController extends MandateController {
   val relationshipService = RelationshipService
   val agentDetailsService = AgentDetailsService
   val emailNotificationService = NotificationEmailService
+  val authConnector = AuthConnector
   val userType = "agent"
   // $COVERAGE-ON$
 }
@@ -289,6 +297,7 @@ object MandateClientController extends MandateController {
   val relationshipService = RelationshipService
   val agentDetailsService = AgentDetailsService
   val emailNotificationService = NotificationEmailService
+  val authConnector = AuthConnector
   val userType = "client"
   // $COVERAGE-ON$
 }
