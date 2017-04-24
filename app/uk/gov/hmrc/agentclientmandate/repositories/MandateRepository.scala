@@ -128,6 +128,45 @@ class MandateMongoRepository(implicit mongo: () => DB)
     case _ => Logger.error("Could not find mandate F98A717D")
   }
 
+  collection.find(BSONDocument("id" -> "24033514")).one[Mandate] map {
+    case Some(mandate) =>
+      val agentPartyCopy = mandate.agentParty
+      val subscriptionCopy = mandate.subscription
+      val createdByCopy = mandate.createdBy
+      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
+        subscription = subscriptionCopy.copy(referenceNumber = None),
+        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
+      val isClient = mandate.clientParty.isDefined
+      Logger.error("Found mandate 24033514 -> withClient" + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate 24033514")
+  }
+
+  collection.find(BSONDocument("id" -> "99E3D407")).one[Mandate] map {
+    case Some(mandate) =>
+      val agentPartyCopy = mandate.agentParty
+      val subscriptionCopy = mandate.subscription
+      val createdByCopy = mandate.createdBy
+      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
+        subscription = subscriptionCopy.copy(referenceNumber = None),
+        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
+      val isClient = mandate.clientParty.isDefined
+      Logger.error("Found mandate 99E3D407 -> withClient" + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate 99E3D407")
+  }
+
+  collection.find(BSONDocument("id" -> "3ABAD7FF")).one[Mandate] map {
+    case Some(mandate) =>
+      val agentPartyCopy = mandate.agentParty
+      val subscriptionCopy = mandate.subscription
+      val createdByCopy = mandate.createdBy
+      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
+        subscription = subscriptionCopy.copy(referenceNumber = None),
+        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
+      val isClient = mandate.clientParty.isDefined
+      Logger.error("Found mandate 3ABAD7FF -> withClient" + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate 3ABAD7FF")
+  }
+
   collection.find(BSONDocument("id" -> "OAFBF977")).one[Mandate] map {
     case Some(mandate) =>
       val agentPartyCopy = mandate.agentParty
