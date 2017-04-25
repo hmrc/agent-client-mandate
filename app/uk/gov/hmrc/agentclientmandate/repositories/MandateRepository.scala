@@ -115,20 +115,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
   // $COVERAGE-OFF$
   collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
 
-  collection.find(BSONDocument("id" -> "F98A717D")).one[Mandate] map {
-    case Some(mandate) =>
-      val agentPartyCopy = mandate.agentParty
-      val subscriptionCopy = mandate.subscription
-      val createdByCopy = mandate.createdBy
-      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
-        subscription = subscriptionCopy.copy(referenceNumber = None),
-        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
-      val isClient = mandate.clientParty.isDefined
-      Logger.error("Found mandate F98A717D -> withClient" + isClient + ", details: " + mandateCopy)
-    case _ => Logger.error("Could not find mandate F98A717D")
-  }
+  collection.remove(BSONDocument("id" -> "F98A717D"))
+  collection.remove(BSONDocument("id" -> "24033514"))
+  collection.remove(BSONDocument("id" -> "99E3D407"))
+  collection.remove(BSONDocument("id" -> "3ABAD7FF"))
 
-  collection.find(BSONDocument("id" -> "24033514")).one[Mandate] map {
+  collection.find(BSONDocument("id" -> "0AFBF977")).one[Mandate] map {
     case Some(mandate) =>
       val agentPartyCopy = mandate.agentParty
       val subscriptionCopy = mandate.subscription
@@ -137,47 +129,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
         subscription = subscriptionCopy.copy(referenceNumber = None),
         createdBy = createdByCopy.copy(credId="", name="", groupId=None))
       val isClient = mandate.clientParty.isDefined
-      Logger.error("Found mandate 24033514 -> withClient" + isClient + ", details: " + mandateCopy)
-    case _ => Logger.error("Could not find mandate 24033514")
-  }
-
-  collection.find(BSONDocument("id" -> "99E3D407")).one[Mandate] map {
-    case Some(mandate) =>
-      val agentPartyCopy = mandate.agentParty
-      val subscriptionCopy = mandate.subscription
-      val createdByCopy = mandate.createdBy
-      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
-        subscription = subscriptionCopy.copy(referenceNumber = None),
-        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
-      val isClient = mandate.clientParty.isDefined
-      Logger.error("Found mandate 99E3D407 -> withClient" + isClient + ", details: " + mandateCopy)
-    case _ => Logger.error("Could not find mandate 99E3D407")
-  }
-
-  collection.find(BSONDocument("id" -> "3ABAD7FF")).one[Mandate] map {
-    case Some(mandate) =>
-      val agentPartyCopy = mandate.agentParty
-      val subscriptionCopy = mandate.subscription
-      val createdByCopy = mandate.createdBy
-      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
-        subscription = subscriptionCopy.copy(referenceNumber = None),
-        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
-      val isClient = mandate.clientParty.isDefined
-      Logger.error("Found mandate 3ABAD7FF -> withClient" + isClient + ", details: " + mandateCopy)
-    case _ => Logger.error("Could not find mandate 3ABAD7FF")
-  }
-
-  collection.find(BSONDocument("id" -> "OAFBF977")).one[Mandate] map {
-    case Some(mandate) =>
-      val agentPartyCopy = mandate.agentParty
-      val subscriptionCopy = mandate.subscription
-      val createdByCopy = mandate.createdBy
-      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
-        subscription = subscriptionCopy.copy(referenceNumber = None),
-        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
-      val isClient = mandate.clientParty.isDefined
-      Logger.error("Found mandate OAFBF977 -> withClient" + isClient + ", details: " + mandateCopy)
-    case _ => Logger.error("Could not find mandate OAFBF977")
+      Logger.error("Found mandate 0AFBF977 -> withClient " + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate 0AFBF977")
   }
 
   // $COVERAGE-ON$
