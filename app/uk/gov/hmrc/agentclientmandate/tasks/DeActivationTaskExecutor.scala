@@ -32,7 +32,7 @@ import scala.util.{Failure, Success, Try}
 import play.api.Logger
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 
 class DeActivationTaskExecutor extends TaskExecutor with Auditable {
 
@@ -67,6 +67,10 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
           case Success(resp) =>
             resp.status match {
               case OK =>
+                metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+                Success(Next("finalize-deactivation", args))
+              case INTERNAL_SERVER_ERROR if (parseErrorResp(resp) == "9005") =>
+                // this error means GG does not have a relationship with this client
                 metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
                 Success(Next("finalize-deactivation", args))
               case _ =>

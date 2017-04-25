@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.utils
 
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship, Mandate, Status}
+import uk.gov.hmrc.play.http.HttpResponse
 
 object MandateUtils {
 
@@ -29,4 +30,9 @@ object MandateUtils {
   }
 
   def whetherSelfAuthorised(m: Mandate): Boolean = !m.statusHistory.exists(_.status == Status.Approved) //does not have a status approved
+
+  def parseErrorResp(resp: HttpResponse): String = {
+    val msgToXml = scala.xml.XML.loadString(resp.body)
+    (msgToXml \\ "ErrorNumber").text
+  }
 }

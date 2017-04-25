@@ -18,7 +18,9 @@ package uk.gov.hmrc.agentclientmandate.utils
 
 import org.joda.time.DateTime
 import org.scalatestplus.play.PlaySpec
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.play.http.HttpResponse
 
 class MandateUtilsSpec extends PlaySpec {
 
@@ -53,6 +55,14 @@ class MandateUtilsSpec extends PlaySpec {
             clientDisplayName = "client display name"
           )
         MandateUtils.whetherSelfAuthorised(mandate1) must be (false)
+      }
+    }
+
+    "return ErrorNumber from httpresponse" when {
+      "response from gg" in {
+        val httpResponse = HttpResponse(INTERNAL_SERVER_ERROR, responseString = Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>9005</ErrorNumber><Message>The enrolment is not allocated to the Agent Group</Message><RequestID>25DAE8CDF10B4B7CB469AF662643C917</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>"""))
+        val result = MandateUtils.parseErrorResp(httpResponse)
+        result must be ("9005")
       }
     }
   }

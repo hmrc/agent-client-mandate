@@ -72,6 +72,10 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
               case OK =>
                 metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
                 Success(Next("finalize-activation", args))
+              case INTERNAL_SERVER_ERROR if (parseErrorResp(resp) == "7004") =>
+                // this error means GG already has a relationship for this client
+                metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+                Success(Next("finalize-activation", args))
               case _ =>
                 Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
                 metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
