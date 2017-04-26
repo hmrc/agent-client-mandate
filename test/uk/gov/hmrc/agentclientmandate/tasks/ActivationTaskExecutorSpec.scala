@@ -17,27 +17,23 @@
 package uk.gov.hmrc.agentclientmandate.tasks
 
 import akka.actor.{ActorSystem, Props}
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
+import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import org.joda.time.DateTime
 import org.mockito.Matchers
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, OneServerPerSuite, PlaySpec}
-import play.api.libs.json.Json
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatestplus.play.OneServerPerSuite
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailSent, EtmpConnector, GovernmentGatewayProxyConnector}
-import uk.gov.hmrc.agentclientmandate.metrics.Metrics
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, NotificationEmailService}
-import uk.gov.hmrc.domain.{AtedUtr, Generator}
-import uk.gov.hmrc.play.http.{BadGatewayException, BadRequestException, HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.tasks._
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
 
 
 class ActivationTaskExecutorMock(override val etmpConnector: EtmpConnector, override val ggProxyConnector: GovernmentGatewayProxyConnector,
@@ -115,7 +111,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "execute and move to GG-PROXY allocation step" when {
 
       "signal is START" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -127,7 +123,16 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "execute and move to 'finalize' step" when {
 
       "signal is Next('gg-proxy-activation', args)" in {
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
+
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+
+        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
+      }
+
+      "signal is Next('gg-proxy-activation', args) and gg returns error 7004" in {
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString=Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>7004</ErrorNumber><Message>The principal enrolments service does not allow allocations to more than one agent</Message><RequestID>BCC50A4B872440C38002A4C1FF613327</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -165,7 +170,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "fail to execute" when {
 
       "signal is START but the ETMP fails" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -174,7 +179,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "signal is Next('gg-proxy', args) but the GG fails" in {
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None))
+        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString=Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>1</ErrorNumber><Message>The principal enrolments service does not allow allocations to more than one agent</Message><RequestID>BCC50A4B872440C38002A4C1FF613327</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -233,7 +238,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "the signal is Next('gg-proxy-activation', args) and move to START signal" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
@@ -243,7 +248,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "the signal is Next('finalize', args) and move to Next('gg-proxy-activation', args) signal" in {
-        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK, None))
+        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
 
