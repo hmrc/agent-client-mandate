@@ -112,7 +112,22 @@ class MandateMongoRepository(implicit mongo: () => DB)
     with MandateRepository {
 
   //Temporary code and should be removed after next deployment - start
+  // $COVERAGE-OFF$
   collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
+
+  collection.find(BSONDocument("id" -> "6599BCB4")).one[Mandate] map {
+    case Some(mandate) =>
+      val agentPartyCopy = mandate.agentParty
+      val subscriptionCopy = mandate.subscription
+      val createdByCopy = mandate.createdBy
+      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
+        subscription = subscriptionCopy.copy(referenceNumber = None),
+        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
+      val isClient = mandate.clientParty.isDefined
+      Logger.error("Found mandate 6599BCB4 -> withClient" + isClient + ", details: " + mandateCopy)
+    case _ => Logger.error("Could not find mandate 6599BCB4")
+  }
+  // $COVERAGE-ON$
   //Temp code - end
 
   val metrics: Metrics = Metrics
