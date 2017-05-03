@@ -15,7 +15,7 @@ GET    /agent/:ac/mandate/:mandateId                uk.gov.hmrc.agentclientmanda
 GET    /org/:org/mandate/:mandateId                 uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetch(org: String, mandateId: String)
 
 # fetch mandate for service
-GET    /agent/:ac/mandate/service/:arn/:service     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetchAll(ac: String, arn: String, service: String)
+GET    /agent/:ac/mandate/service/:arn/:service     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetchAll(ac: String, arn: String, service: String, credId: Option[String] ?= None, displayName: Option[String] ?= None)
 
 # update mandate as client approves it
 POST   /org/:org/mandate/approve                    uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.approve(org: String)

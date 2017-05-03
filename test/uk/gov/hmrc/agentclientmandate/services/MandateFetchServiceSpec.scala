@@ -22,9 +22,12 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.json.Json
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateRepository}
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 
@@ -49,11 +52,35 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     "list of client mandate is found for a valid arn and service name in MongoDB" in {
 
-      when(mockMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
 
-      val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED")
+      val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED", None, None)
       await(response) must be(List(clientMandate))
 
+    }
+
+    "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in {
+
+      val successResponseJsonAuth = Json.parse(
+        """{
+               "credentials": {
+                 "gatewayId": "cred-id-113244018119",
+                 "idaPids": []
+               },
+               "accounts": {
+                 "agent": {
+                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                 }
+               }
+             }""")
+
+      when(mockAuthConnector.getAuthority()(Matchers.any())) thenReturn {
+        Future.successful(successResponseJsonAuth)
+      }
+      when(mockMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
+
+      val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED", Some("credId"), None)
+      await(response) must be(List(clientMandate))
     }
 
     "a mandate is found for a valid client id and service" in {
@@ -86,14 +113,19 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       clientDisplayName = "client display name"
     )
 
+  implicit val hc = HeaderCarrier()
+
   val mockMandateRepository = mock[MandateRepository]
+  val mockAuthConnector = mock[AuthConnector]
 
   object TestFetchMandateService extends MandateFetchService {
     override val mandateRepository = mockMandateRepository
+    override val authConnector = mockAuthConnector
   }
 
   override def beforeEach(): Unit = {
     reset(mockMandateRepository)
+    reset(mockAuthConnector)
   }
 
 }
