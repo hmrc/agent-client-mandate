@@ -24,7 +24,7 @@ import reactivemongo.api.DB
 import reactivemongo.api.collections.bson
 import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
+import reactivemongo.bson.{BSONArray, BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -74,7 +74,7 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def fetchMandateByClient(clientId: String, service: String): Future[MandateFetchStatus]
 
-  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]]
+  def getAllMandatesByServiceName(arn: String, serviceName: String, credId: Option[String], otherCredId: Option[String], displayName: Option[String]): Future[Seq[Mandate]]
 
   def insertExistingRelationships(ggRelationshipDto: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert]
 
@@ -216,13 +216,32 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
   }
 
-  def getAllMandatesByServiceName(arn: String, serviceName: String): Future[Seq[Mandate]] = {
-    val query = BSONDocument(
-      "agentParty.id" -> arn,
-      "subscription.service.name" -> serviceName.toLowerCase
-    )
+  def getAllMandatesByServiceName(arn: String,
+                                  serviceName: String,
+                                  credId: Option[String],
+                                  otherCredId: Option[String],
+                                  displayName: Option[String]): Future[Seq[Mandate]] = {
+    val query = if (credId.isDefined && otherCredId.isDefined) {
+      BSONDocument(
+        "agentParty.id" -> arn,
+        "subscription.service.name" -> serviceName.toLowerCase,
+        "$or" -> BSONArray(BSONDocument("createdBy.credId" -> credId.get), BSONDocument("createdBy.credId" -> otherCredId.get))
+      )
+    } else {
+      BSONDocument(
+        "agentParty.id" -> arn,
+        "subscription.service.name" -> serviceName.toLowerCase
+      )
+    }
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandatesByService)
-    val result = collection.find(query).cursor[Mandate]().collect[Seq]()
+    val result = collection.find(query).sort(Json.obj("clientDisplayName" -> 1)).cursor[Mandate]().collect[Seq]().map {
+      x => if (displayName.isDefined){
+        x.filter(mandate => mandate.currentStatus.status != Status.Active || (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase)))
+      }
+      else {
+        x
+      }
+    }
 
     result onComplete {
       _ => timerContext.stop()

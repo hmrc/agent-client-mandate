@@ -96,7 +96,7 @@ trait AgentDetailsService {
       val agentRefNumberOpt = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").asOpt[String]
       agentRefNumberOpt match {
         case Some(arn) =>
-          mandateFetchService.getAllMandates(arn, "ated").map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
+          mandateFetchService.getAllMandates(arn, "ated", None, None).map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
         case None => Future.successful(false)
       }
     }

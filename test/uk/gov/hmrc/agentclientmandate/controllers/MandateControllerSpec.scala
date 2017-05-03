@@ -32,6 +32,7 @@ import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.agentclientmandate.utils.TestAudit
 import uk.gov.hmrc.play.audit.model.Audit
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 
@@ -208,8 +209,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "fetch all mandates with respect to a service and ARN" when {
       "agent supplies valid service and ARN" in {
-        when(fetchServiceMock.getAllMandates(Matchers.eq(arn), Matchers.eq(service))).thenReturn(Future.successful(Seq(newMandate)))
-        val result = TestMandateController.fetchAll(agentCode, arn, service).apply(FakeRequest())
+        when(fetchServiceMock.getAllMandates(Matchers.eq(arn), Matchers.eq(service), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(newMandate)))
+        val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq(newMandate)))
       }
@@ -217,8 +218,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "return not-found when trying to fetch all mandates with respect to a service and ARN" when {
       "agent supplies invalid/non-existing service and ARN" in {
-        when(fetchServiceMock.getAllMandates(Matchers.eq(arn), Matchers.eq(service))).thenReturn(Future.successful(Nil))
-        val result = TestMandateController.fetchAll(agentCode, arn, service).apply(FakeRequest())
+        when(fetchServiceMock.getAllMandates(Matchers.eq(arn), Matchers.eq(service), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Nil))
+        val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
     }
@@ -454,6 +455,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
                  }
                }
              }""")
+
+  implicit val hc = HeaderCarrier()
 
   val mandates = Seq("AAAAAAA", "BBBBBB", "CCCCCC")
 

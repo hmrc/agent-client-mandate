@@ -133,7 +133,7 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     "returns true - for delegation authorization check for Ated" when {
       "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
         when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandate)))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(mandate)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
       }
     }
@@ -146,13 +146,13 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
         when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
         when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"))).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
     }

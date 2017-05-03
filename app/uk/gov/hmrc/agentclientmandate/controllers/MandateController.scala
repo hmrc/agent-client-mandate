@@ -78,8 +78,8 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
-  def fetchAll(agentCode: String, arn: String, serviceName: String) = Action.async { implicit request =>
-    fetchService.getAllMandates(arn, serviceName).map {
+  def fetchAll(agentCode: String, arn: String, serviceName: String, credId: Option[String], displayName: Option[String]) = Action.async { implicit request =>
+    fetchService.getAllMandates(arn, serviceName, credId, displayName).map {
       case Nil => NotFound
       case mandateList => Ok(Json.toJson(mandateList))
     }

@@ -96,7 +96,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.findAll()).head must be(mandate)
         await(testMandateRepository.count) must be(1)
 
-        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ated")) must be(List(mandate))
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ated", None, None, None)) must be(List(mandate))
       }
 
     }
@@ -109,7 +109,23 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.findAll()).head must be(mandate)
         await(testMandateRepository.count) must be(1)
 
-        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED")) must be(List(mandate))
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED", None, None, None)) must be(List(mandate))
+      }
+    }
+
+    "apply filtering to the list" when {
+      "user selects to view only those they have created" in {
+        await(testMandateRepository.insertMandate(activeMandate))
+        val user = User("credid2", "Joe Bloggs", None)
+        await(testMandateRepository.insertMandate(activeMandate.copy(id = "AS12345679", createdBy = user)))
+
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED", Some("credid"), Some("othercredid"), None)) must be(List(activeMandate))
+      }
+
+      "user adds a filter on the display name" in {
+        await(testMandateRepository.insertMandate(activeMandate))
+
+        await(testMandateRepository.getAllMandatesByServiceName("JARN123456", "ATED", None, None, Some("bob"))) must be(List())
       }
     }
 
@@ -321,6 +337,16 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ATED", "ated")),
+      clientDisplayName = "client display name"
+    )
+
+  def activeMandate: Mandate =
+    Mandate("AS22345678", createdBy = User("credid", "Joe Bloggs", None),
+      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Active, new DateTime(1472631804869L), "credidupdate"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ATED", "ated")),
       clientDisplayName = "client display name"
