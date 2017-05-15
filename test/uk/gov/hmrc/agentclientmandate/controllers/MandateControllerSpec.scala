@@ -280,51 +280,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
     }
 
-    "import existing relationships" must {
-      "sending incorrect data" must {
-        "return Bad Request" in {
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(incorrectJson))
-          val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
-          status(result) must be(BAD_REQUEST)
-        }
-      }
-
-      "sending correct data" must {
-        "return Ok when insert relationships ok" in {
-          when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
-            Future.successful(successResponseJsonAuth)
-          }
-          when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInserted))
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
-          val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
-          status(result) must be(OK)
-        }
-
-        "return Ok when relationships already exist" in {
-          when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
-            Future.successful(successResponseJsonAuth)
-          }
-          when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsAlreadyExist))
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
-          val result = TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest)
-          status(result) must be(OK)
-        }
-
-        "exception thrown when there is an error inserting relationships" in {
-          when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
-            Future.successful(successResponseJsonAuth)
-          }
-          when(createServiceMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInsertError))
-          val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.parse(correctJson))
-
-          val thrown = the[RuntimeException] thrownBy await(TestMandateController.importExistingRelationships("agentCode").apply(fakeRequest))
-
-          thrown.getMessage must include("Could not insert existing relationships")
-        }
-      }
-    }
-
-      "trying to create mandate for non-uk client by an agent" when {
+    "trying to create mandate for non-uk client by an agent" when {
 
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")

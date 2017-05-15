@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import play.api.Logger
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
@@ -89,56 +88,6 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def createMandateForExistingRelationships(ggRelationshipDto: GGRelationshipDto): Future[Boolean] = {
-
-    etmpConnector.getAtedSubscriptionDetails(ggRelationshipDto.clientSubscriptionId) flatMap { subscriptionJson =>
-      val clientPartyId = (subscriptionJson \ "safeId").as[String]
-      val clientPartyName = (subscriptionJson \ "organisationName").as[String]
-
-      etmpConnector.getRegistrationDetails(ggRelationshipDto.agentPartyId, "arn").flatMap { etmpDetails =>
-        val isAnIndividual = isIndividual(etmpDetails)
-        val agentPartyName: String = getPartyName(etmpDetails, isAnIndividual)
-        val agentPartyType = getPartyType(isAnIndividual)
-
-        val mandate = Mandate(
-          id = createMandateId,
-          createdBy = User(ggRelationshipDto.credId, agentPartyName, ggRelationshipDto.agentCode),
-          agentParty = Party(
-            ggRelationshipDto.agentPartyId,
-            agentPartyName,
-            agentPartyType,
-            ContactDetails("", None)
-          ),
-          clientDisplayName = clientPartyName,
-          clientParty = Some(Party(
-            clientPartyId,
-            clientPartyName,
-            PartyType.Organisation,
-            ContactDetails("", None)
-          )),
-          currentStatus = MandateStatus(Status.Active, DateTime.now, ""),
-          statusHistory = Nil,
-          subscription = Subscription(
-            Some(ggRelationshipDto.clientSubscriptionId),
-            Service(identifiers.getString(s"${ggRelationshipDto.serviceName}.serviceId"), ggRelationshipDto.serviceName)
-          )
-        )
-
-        mandateRepository.insertMandate(mandate).flatMap {
-          case MandateCreated(m) =>
-            mandateRepository.existingRelationshipProcessed(ggRelationshipDto).map {
-              case ExistingRelationshipProcessed =>
-                implicit val hc = new HeaderCarrier()
-                doAudit("createExistingRelationshipMandate", "", m)(hc)
-                true
-              case ExistingRelationshipProcessError => false
-            }
-          case _ => Future.successful(false)
-        }
-      }
-    }
-  }
-
   def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
 
   def isIndividual(etmpDetails: JsValue): Boolean = (etmpDetails \ "isAnIndividual").as[Boolean]
@@ -197,10 +146,6 @@ trait MandateCreateService extends Auditable {
         case _ => throw new RuntimeException("Mandate not created for non-uk")
       }
     }
-  }
-
-  def insertExistingRelationships(ggRelationshipDtos: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert] = {
-    mandateRepository.insertExistingRelationships(ggRelationshipDtos)
   }
 }
 

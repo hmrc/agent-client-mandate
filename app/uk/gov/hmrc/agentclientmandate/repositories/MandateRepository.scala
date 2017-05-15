@@ -17,12 +17,9 @@
 package uk.gov.hmrc.agentclientmandate.repositories
 
 import play.api.Logger
-import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
 import reactivemongo.api.DB
-import reactivemongo.api.collections.bson
-import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
@@ -75,14 +72,6 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def fetchMandateByClient(clientId: String, service: String): Future[MandateFetchStatus]
 
   def getAllMandatesByServiceName(arn: String, serviceName: String, credId: Option[String], otherCredId: Option[String], displayName: Option[String]): Future[Seq[Mandate]]
-
-  def insertExistingRelationships(ggRelationshipDto: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert]
-
-  def agentAlreadyInserted(agentId: String): Future[ExistingAgentStatus]
-
-  def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess]
-
-  def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]]
 
   def findMandatesMissingAgentEmail(arn: String, service: String): Future[Seq[String]]
 
@@ -247,135 +236,6 @@ class MandateMongoRepository(implicit mongo: () => DB)
       _ => timerContext.stop()
     }
     result
-  }
-
-  def insertExistingRelationships(ggRelationshipDtos: Seq[GGRelationshipDto]): Future[ExistingRelationshipsInsert] = {
-
-    val timerContext = metrics.startTimer(MetricsEnum.RepositoryInsertExistingRelationships)
-    agentAlreadyInserted(ggRelationshipDtos.head.agentPartyId).flatMap {
-      case ExistingAgentFound =>
-        timerContext.stop()
-        Future.successful(ExistingRelationshipsAlreadyExist)
-      case ExistingAgentNotFound =>
-
-        val insertResult = Try {
-          val bulkDocs = ggRelationshipDtos.map(implicitly[collection.ImplicitlyDocumentProducer](_))
-
-          val result = collection.bulkInsert(ordered = false)(bulkDocs: _*)
-
-          result onComplete {
-            _ => timerContext.stop()
-          }
-
-          result
-        }
-
-        insertResult match {
-          case Success(s) =>
-            s.map {
-              case x: MultiBulkWriteResult if x.writeErrors == Nil =>
-                ExistingRelationshipsInserted
-            }.recover {
-              case e: Throwable =>
-                // $COVERAGE-OFF$
-                Logger.warn("Error inserting document", e)
-                ExistingRelationshipsInsertError
-              // $COVERAGE-ON$
-            }
-
-          case Failure(f) =>
-            // $COVERAGE-OFF$
-            Logger.warn(s"[MandateRepository][insertExistingRelationships] failed: ${f.getMessage}")
-            Future.successful(ExistingRelationshipsInsertError)
-          // $COVERAGE-ON$
-        }
-    }.recover {
-      // $COVERAGE-OFF$
-      case e => Logger.warn("Failed to insert existing relationship", e)
-        timerContext.stop()
-        ExistingRelationshipsInsertError
-      // $COVERAGE-ON$
-    }
-  }
-
-  def agentAlreadyInserted(agentId: String): Future[ExistingAgentStatus] = {
-    val query = BSONDocument(
-      "agentPartyId" -> agentId
-    )
-    collection.find(query).one[GGRelationshipDto] map {
-      case Some(existingAgent) => ExistingAgentFound
-      case _ => ExistingAgentNotFound
-    }
-  }
-
-  def existingRelationshipProcessed(ggRelationshipDto: GGRelationshipDto): Future[ExistingRelationshipProcess] = {
-    val timerContext = metrics.startTimer(MetricsEnum.RepositoryExistingRelationshipProcessed)
-    val query = BSONDocument(
-      "agentPartyId" -> ggRelationshipDto.agentPartyId,
-      "clientSubscriptionId" -> ggRelationshipDto.clientSubscriptionId,
-      "serviceName" -> ggRelationshipDto.serviceName
-    )
-
-    val modifier = BSONDocument("$set" -> BSONDocument("processed" -> true))
-
-    val updateResult = Try {
-      val result = collection.update(query, modifier, multi = false, upsert = false)
-
-      result onComplete {
-        _ => timerContext.stop()
-      }
-
-      result
-    }
-
-    updateResult match {
-      case Success(s) =>
-        s.map {
-          case x: WriteResult if x.writeErrors == Nil && !x.hasErrors && x.ok =>
-            ExistingRelationshipProcessed
-        }.recover {
-          case e: Throwable =>
-            // $COVERAGE-OFF$
-            Logger.warn("Error updating document", e)
-            ExistingRelationshipProcessError
-          // $COVERAGE-ON$
-        }
-      case Failure(f) =>
-        // $COVERAGE-OFF$
-        Logger.warn(s"[MandateRepository][existingRelationshipProcessed] failed: ${f.getMessage}")
-        Future.successful(ExistingRelationshipProcessError)
-      // $COVERAGE-ON$
-    }
-  }
-
-  def findGGRelationshipsToProcess(): Future[Seq[GGRelationshipDto]] = {
-    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindGGRelationshipsToProcess)
-    val result = Try {
-
-      val query = BSONDocument(
-        "agentPartyId" -> BSONDocument("$exists" -> true),
-        "processed" -> BSONDocument("$exists" -> false)
-      )
-      val queryResult = collection.find(query).cursor[GGRelationshipDto]().collect[Seq]()
-
-      queryResult onComplete {
-        _ => timerContext.stop()
-      }
-
-      queryResult
-    }
-
-    result match {
-      case Success(s) =>
-        s.map { x =>
-          x
-        }
-      case Failure(f) =>
-        // $COVERAGE-OFF$
-        Logger.warn(s"[MandateRepository][findGGRelationshipsToProcess] failed: ${f.getMessage}")
-        Future.successful(Nil)
-      // $COVERAGE-ON$
-    }
   }
 
   def findMandatesMissingAgentEmail(arn: String, service: String): Future[Seq[String]] = {

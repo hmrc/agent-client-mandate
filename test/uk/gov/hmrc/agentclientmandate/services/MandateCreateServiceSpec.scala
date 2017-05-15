@@ -29,7 +29,7 @@ import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.utils.TestAudit
 import uk.gov.hmrc.play.audit.model.Audit
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
 
@@ -145,140 +145,6 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       }
     }
 
-
-    "createMandateForExistingRelationships" must {
-
-      "create a mandate successfully" in {
-
-        val successResponseJsonETMPForAgent = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": true,
-            |  "individual" : {
-            |    "firstName": "firstName",
-            |    "lastName": "lastName"
-            |  }
-            |}
-          """.stripMargin
-        )
-        val etmpSubscriptionJson = Json.parse(
-          """
-            |{
-            |  "safeId": "cred-id-1234567890",
-            |  "organisationName": "client-name"
-            |}
-          """.stripMargin
-        )
-
-        val mandateId = TestClientMandateCreateService.createMandateId
-
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
-        }
-        when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
-          Future.successful(ExistingRelationshipProcessed)
-        }
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
-          Future.successful(successResponseJsonETMPForAgent)
-        }
-        when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
-
-        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId")
-
-        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(ggRelationshipDto))
-        result mustBe true
-      }
-
-      "create a mandate successfully but fail to mark it processed" in {
-
-        val successResponseJsonETMPForAgent = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": true,
-            |  "individual" : {
-            |    "firstName": "firstName",
-            |    "lastName": "lastName"
-            |  }
-            |}
-          """.stripMargin
-        )
-        val etmpSubscriptionJson = Json.parse(
-          """
-            |{
-            |  "safeId": "cred-id-1234567890",
-            |  "organisationName": "client-name"
-            |}
-          """.stripMargin
-        )
-
-        val mandateId = TestClientMandateCreateService.createMandateId
-
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
-        }
-        when(mandateRepositoryMock.existingRelationshipProcessed(Matchers.any())) thenReturn {
-          Future.successful(ExistingRelationshipProcessError)
-        }
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
-          Future.successful(successResponseJsonETMPForAgent)
-        }
-        when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
-
-        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId")
-
-        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(ggRelationshipDto))
-        result mustBe false
-      }
-
-      "fails to create a mandate" in {
-
-        val successResponseJsonETMPForAgent = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": true,
-            |  "individual" : {
-            |    "firstName": "firstName",
-            |    "lastName": "lastName"
-            |  }
-            |}
-          """.stripMargin
-        )
-        val etmpSubscriptionJson = Json.parse(
-          """
-            |{
-            |  "safeId": "cred-id-1234567890",
-            |  "organisationName": "client-name"
-            |}
-          """.stripMargin
-        )
-
-        val mandateId = TestClientMandateCreateService.createMandateId
-
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
-          Future.successful(MandateCreateError)
-        }
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
-          Future.successful(successResponseJsonETMPForAgent)
-        }
-        when(etmpConnectorMock.getAtedSubscriptionDetails(Matchers.any())).thenReturn(Future.successful(etmpSubscriptionJson))
-
-        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId")
-
-        val result = await(TestClientMandateCreateService.createMandateForExistingRelationships(ggRelationshipDto))
-        result mustBe false
-      }
-
-    }
-
     "getAgentPartyName" must {
       "get agent name for individual" in {
         val etmpAgentDetails = Json.parse(
@@ -330,17 +196,6 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       "party type for individual" in {
         val partyType = TestClientMandateCreateService.getPartyType(true)
         partyType must be(PartyType.Individual)
-      }
-    }
-
-    "insert existing relationships" must {
-      "insert successfully" in {
-        when(mandateRepositoryMock.insertExistingRelationships(Matchers.any())).thenReturn(Future.successful(ExistingRelationshipsInserted))
-
-        val ggRelationshipDto = GGRelationshipDto("ated", "agentPartyId", "credId", "clientSubscriptionId")
-
-        val result = await(TestClientMandateCreateService.insertExistingRelationships(List(ggRelationshipDto)))
-        result mustBe ExistingRelationshipsInserted
       }
     }
 
