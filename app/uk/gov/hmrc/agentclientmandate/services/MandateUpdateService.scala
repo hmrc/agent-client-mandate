@@ -94,6 +94,13 @@ trait MandateUpdateService extends Auditable {
     mandateRepository.updateClientEmail(mandateId, email)
   }
 
+  def updateAgentCredId(oldCredId: String)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
+    authConnector.getAuthority() flatMap { authority =>
+      val newCredId = (authority \ "credentials" \ "gatewayId").as[String]
+      mandateRepository.updateAgentCredId(oldCredId, newCredId)
+    }
+  }
+
 }
 
 object MandateUpdateService extends MandateUpdateService {

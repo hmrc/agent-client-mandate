@@ -24,6 +24,7 @@ import org.mockito.stubbing.Answer
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.Logger
 import play.api.libs.iteratee.Enumerator
 import play.api.test.Helpers._
 import reactivemongo.api.commands.UpdateWriteResult
@@ -34,6 +35,7 @@ import reactivemongo.json.collection.{JSONCollection, JSONQueryBuilder}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
+import scala.concurrent.duration._
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -223,6 +225,22 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         await(testMandateRepository.fetchMandate(updatedMandate2.id).map {
           case MandateFetched(x) => x.clientParty.get.contactDetails.email
         }) must be("test@mail.com")
+      }
+    }
+
+    "updateAgentCredId" must {
+      "update the agents cred id" in {
+        await(testMandateRepository.insertMandate(activeMandate))
+        await(testMandateRepository.insertMandate(updatedMandate))
+
+        await(testMandateRepository.updateAgentCredId("credid", "newCredId")) must be(MandateUpdatedCredId)
+
+        await(testMandateRepository.fetchMandate(activeMandate.id).map {
+          case MandateFetched(x) => x.createdBy.credId
+        }) must be("newCredId")
+        await(testMandateRepository.fetchMandate(updatedMandate.id).map {
+          case MandateFetched(x) => x.createdBy.credId
+        }) must be("newCredId")
       }
     }
 

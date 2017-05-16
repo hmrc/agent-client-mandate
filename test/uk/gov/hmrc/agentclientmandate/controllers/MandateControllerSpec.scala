@@ -366,6 +366,28 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
     }
 
+    "updateCredId" must {
+      "return ok if credId updated" in {
+        when(updateServiceMock.updateAgentCredId(Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdatedCredId)
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
+        val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
+        status(result) must be(OK)
+      }
+
+      "return error if credId not updated" in {
+        when(updateServiceMock.updateAgentCredId(Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
+        val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
+        status(result) must be(INTERNAL_SERVER_ERROR)
+      }
+
+      "return bad request if no credId sent" in {
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(""))
+        val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
+        status(result) must be(BAD_REQUEST)
+      }
+    }
+
   }
 
   val incorrectJson =

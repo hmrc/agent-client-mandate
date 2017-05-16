@@ -39,23 +39,11 @@ sealed trait MandateUpdate
 case class MandateUpdated(mandate: Mandate) extends MandateUpdate
 case object MandateUpdateError extends MandateUpdate
 case object MandateUpdatedEmail extends MandateUpdate
+case object MandateUpdatedCredId extends MandateUpdate
 
 sealed trait MandateFetchStatus
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
 case object MandateNotFound extends MandateFetchStatus
-
-sealed trait ExistingRelationshipsInsert
-case object ExistingRelationshipsInserted extends ExistingRelationshipsInsert
-case object ExistingRelationshipsInsertError extends ExistingRelationshipsInsert
-case object ExistingRelationshipsAlreadyExist extends ExistingRelationshipsInsert
-
-sealed trait ExistingAgentStatus
-case object ExistingAgentFound extends ExistingAgentStatus
-case object ExistingAgentNotFound extends ExistingAgentStatus
-
-sealed trait ExistingRelationshipProcess
-case object ExistingRelationshipProcessed extends ExistingRelationshipProcess
-case object ExistingRelationshipProcessError extends ExistingRelationshipProcess
 
 sealed trait MandateRemove
 case object MandateRemoved extends MandateRemove
@@ -78,6 +66,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
 
   def updateClientEmail(mandateId: String, email: String): Future[MandateUpdate]
+
+  def updateAgentCredId(oldCredId: String, newCredId: String): Future[MandateUpdate]
 
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
@@ -104,18 +94,6 @@ class MandateMongoRepository(implicit mongo: () => DB)
   // $COVERAGE-OFF$
   collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
 
-  collection.find(BSONDocument("id" -> "6599BCB4")).one[Mandate] map {
-    case Some(mandate) =>
-      val agentPartyCopy = mandate.agentParty
-      val subscriptionCopy = mandate.subscription
-      val createdByCopy = mandate.createdBy
-      val mandateCopy = mandate.copy(agentParty = agentPartyCopy.copy(id="", name="", contactDetails=ContactDetails("", None)),
-        subscription = subscriptionCopy.copy(referenceNumber = None),
-        createdBy = createdByCopy.copy(credId="", name="", groupId=None))
-      val isClient = mandate.clientParty.isDefined
-      Logger.error("Found mandate 6599BCB4 -> withClient" + isClient + ", details: " + mandateCopy)
-    case _ => Logger.error("Could not find mandate 6599BCB4")
-  }
   // $COVERAGE-ON$
   //Temp code - end
 
@@ -124,10 +102,17 @@ class MandateMongoRepository(implicit mongo: () => DB)
   override def indexes: Seq[Index] = {
     Seq(
       Index(Seq("id" -> IndexType.Ascending), name = Some("idIndex"), unique = true, sparse = true),
-      Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true),
-      Index(Seq("id" -> IndexType.Ascending, "serviceName" -> IndexType.Ascending,
-        "agentPartyId" -> IndexType.Ascending, "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true),
-      Index(Seq("id" -> IndexType.Ascending, "service.name" -> IndexType.Ascending, "clientParty.id" -> IndexType.Ascending), name = Some("compoundClientFetchIndex"), sparse = true)
+      Index(Seq("id" -> IndexType.Ascending,
+        "service.name" -> IndexType.Ascending), name = Some("compoundIdServiceIndex"), unique = true, sparse = true),
+      Index(Seq("id" -> IndexType.Ascending,
+        "serviceName" -> IndexType.Ascending,
+        "agentPartyId" -> IndexType.Ascending,
+        "clientSubscriptionId" -> IndexType.Ascending), name = Some("existingRelationshipIndex"), sparse = true),
+      Index(Seq("id" -> IndexType.Ascending,
+        "service.name" -> IndexType.Ascending,
+        "clientParty.id" -> IndexType.Ascending), name = Some("compoundClientFetchIndex"), sparse = true),
+      Index(Seq("id" -> IndexType.Ascending,
+        "createdBy.credId" -> IndexType.Ascending), name = Some("agentCreatedByCredId"))
     )
   }
 
@@ -305,6 +290,27 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }.recover {
       // $COVERAGE-OFF$
       case e => Logger.warn("Failed to update client email", e)
+        timerContext.stop()
+        MandateUpdateError
+      // $COVERAGE-ON$
+    }
+  }
+
+  def updateAgentCredId(oldCredId: String, newCredId: String): Future[MandateUpdate] = {
+    val query = BSONDocument("createdBy.credId" -> oldCredId)
+    val modifier = BSONDocument("$set" -> BSONDocument("createdBy.credId" -> newCredId))
+
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentCredId)
+
+    collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
+      timerContext.stop()
+      writeResult.ok match {
+        case true => MandateUpdatedCredId
+        case _ => MandateUpdateError
+      }
+    }.recover {
+      // $COVERAGE-OFF$
+      case e => Logger.warn("Failed to update agent cred id", e)
         timerContext.stop()
         MandateUpdateError
       // $COVERAGE-ON$

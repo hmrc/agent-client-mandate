@@ -254,6 +254,22 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
+  def updateAgentCredId(authCode: String) = Action.async(parse.json) { implicit request =>
+    request.body.asOpt[String] match {
+      case Some(x) if x.trim.length > 0 =>
+        updateService.updateAgentCredId(x).map {
+          case MandateUpdatedCredId => Ok
+          case MandateUpdateError =>
+            Logger.warn("Error updating cred id")
+            InternalServerError
+        }
+      case _ => {
+        Logger.warn("Could not find cred id")
+        Future.successful(BadRequest)
+      }
+    }
+  }
+
 }
 
 object MandateAgentController extends MandateController {
