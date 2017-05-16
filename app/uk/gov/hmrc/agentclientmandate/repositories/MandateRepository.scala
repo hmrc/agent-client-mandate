@@ -94,6 +94,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
   // $COVERAGE-OFF$
   collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
 
+  collection.remove(BSONDocument("processed" -> BSONDocument("$exists" -> true)))
   // $COVERAGE-ON$
   //Temp code - end
 

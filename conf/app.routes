@@ -51,4 +51,4 @@ POST   /agent/:ac/mandate/updateAgentEmail/:arn/:service    uk.gov.hmrc.agentcli
 POST   /org/:org/mandate/updateClientEmail/:mandateId       uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.updateClientEmail(org: String, mandateId: String)
 
 # update agent credId
-POST   /agent/:ac/mandate/updateAgentCredId            uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.updateAgentCredId(ac: String)
+POST   /agent/:ac/mandate/updateAgentCredId            uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentCredId(ac: String)
