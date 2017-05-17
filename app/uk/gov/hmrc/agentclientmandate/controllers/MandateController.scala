@@ -202,26 +202,6 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
-  def importExistingRelationships(agentCode: String) = Action.async(parse.json) { implicit request =>
-    request.body.asOpt[Seq[GGRelationshipDto]] match {
-      case Some(x) =>
-        authConnector.getAuthority().flatMap { authority =>
-          val ggdtoList = x map ( _.copy(agentCode = Some(agentCode), credId = getCredId(authority)))
-          createService.insertExistingRelationships(ggdtoList).map {
-            case ExistingRelationshipsInserted | ExistingRelationshipsAlreadyExist => Ok
-            case ExistingRelationshipsInsertError => throw new RuntimeException("Could not insert existing relationships")
-          }
-        }
-      case None => {
-        Logger.warn("Could not parse request to import existing clients")
-        Future.successful(BadRequest)
-      }
-    }
-  }
-
-  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
-
-
   def createRelationship(ac: String) = Action.async(parse.json) { implicit request =>
     withJsonBody[NonUKClientDto] { nonUKClientDto =>
       createService.createMandateForNonUKClient(ac, nonUKClientDto) map { mandateId =>
@@ -269,6 +249,22 @@ trait MandateController extends BaseController with Auditable {
         }
       case _ => {
         Logger.warn("Could not find client email address")
+        Future.successful(BadRequest)
+      }
+    }
+  }
+
+  def updateAgentCredId(authCode: String) = Action.async(parse.json) { implicit request =>
+    request.body.asOpt[String] match {
+      case Some(x) if x.trim.length > 0 =>
+        updateService.updateAgentCredId(x).map {
+          case MandateUpdatedCredId => Ok
+          case MandateUpdateError =>
+            Logger.warn("Error updating cred id")
+            InternalServerError
+        }
+      case _ => {
+        Logger.warn("Could not find cred id")
         Future.successful(BadRequest)
       }
     }

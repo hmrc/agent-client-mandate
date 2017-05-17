@@ -122,6 +122,15 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       }
     }
 
+    "updateAgentCredId" must {
+      "update the mandate with the proper cred id" in {
+        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
+        when(mockMandateRepository.updateAgentCredId(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedCredId)
+        val result = await(TestMandateUpdateService.updateAgentCredId("credId"))
+        result must be(MandateUpdatedCredId)
+      }
+    }
+
   }
 
   val timeToUse = DateTime.now()
