@@ -244,6 +244,32 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
+    "updateExpiredMandates" must {
+      "find mandates older than 28 days that have a status of New, Approved, PendingCancellation, or PendingActivation" in {
+        val now = new DateTime(1472631804869L)
+        val _28daysOld = now.minusDays(28)
+        val _29daysOld = now.minusDays(29)
+
+        val newStatus0daysOld = MandateStatus(Status.New, now, "credid")
+        val newStatus29daysOld = MandateStatus(Status.New, _29daysOld, "credid")
+        val approvedStatus29daysOld = MandateStatus(Status.Approved, _29daysOld, "credid")
+        val pendingCancellationStatus29daysOld = MandateStatus(Status.PendingCancellation, _29daysOld, "credid")
+        val pendingActivationStatus29daysOld = MandateStatus(Status.PendingActivation, _29daysOld, "credid")
+        val activeStatus29daysOld = MandateStatus(Status.Active, _29daysOld, "credid")
+
+        await(testMandateRepository.insertMandate(mandate.copy(id = "AAA", currentStatus = newStatus29daysOld)))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "BBB", currentStatus = approvedStatus29daysOld)))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "CCC", currentStatus = pendingCancellationStatus29daysOld)))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "DDD", currentStatus = pendingActivationStatus29daysOld)))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "EEE", currentStatus = activeStatus29daysOld)))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "FFF", currentStatus = newStatus0daysOld)))
+
+        val x = await(testMandateRepository.findOldMandates(_28daysOld))
+
+        x.size must be(4)
+      }
+    }
+
   }
 
   def testMandateRepository(implicit mongo: () => DB) = new MandateMongoRepository
@@ -279,7 +305,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
     )
 
   def mandate1: Mandate =
-    Mandate("AS12345678", createdBy = User("credid", "Joe Bloggs", None),
+    Mandate("AS12345679", createdBy = User("credid", "Joe Bloggs", None),
       agentParty = Party("JARN123457", "John Snow", PartyType.Organisation, contactDetails = ContactDetails("test@test.com", Some("0123456789"))),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(1472631804869L), "credidupdate"),

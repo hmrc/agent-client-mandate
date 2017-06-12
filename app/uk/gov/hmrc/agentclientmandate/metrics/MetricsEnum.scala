@@ -38,4 +38,5 @@ object MetricsEnum extends Enumeration {
   val StageFinaliseActivationSignalFailed = Value
   val StageGGProxyDeActivationSignalFailed = Value
   val StageFinaliseDeActivationSignalFailed = Value
+  val RepositoryFindOldMandates = Value
 }

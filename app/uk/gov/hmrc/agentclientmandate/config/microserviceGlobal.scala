@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.config
 
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
+import scala.concurrent.duration._
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
@@ -26,7 +27,10 @@ import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.filters.MicroserviceFilterSupport
 import uk.gov.hmrc.play.http.logging.filters.LoggingFilter
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
-import uk.gov.hmrc.play.scheduling.{RunningOfScheduledJobs, ScheduledJob}
+import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJobs, ScheduledJob}
+
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.FiniteDuration
 
 //scalastyle:off public.methods.have.type
 object ControllerConfiguration extends ControllerConfig {
@@ -65,5 +69,16 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
   override val authFilter = Some(MicroserviceAuthFilter)
 
-  override val scheduledJobs: Seq[ScheduledJob] = Nil
+  override val scheduledJobs: Seq[ScheduledJob] = {
+    Seq(new ExclusiveScheduledJob {
+
+      override def name: String = "ExpirationService"
+      override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
+        ???
+      }
+
+      override def interval: FiniteDuration = 1 day
+      override def initialDelay: FiniteDuration = 0 seconds
+    })
+  }
 }
