@@ -108,6 +108,8 @@ trait MandateUpdateService extends Auditable {
       mandates.map { mandate =>
         val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, DateTime.now, "SYSTEM"))
         mandateRepository.updateMandate(updatedMandate)
+        implicit val hc = new HeaderCarrier()
+        doAudit("expire", "", updatedMandate)
       }
     }
   }
