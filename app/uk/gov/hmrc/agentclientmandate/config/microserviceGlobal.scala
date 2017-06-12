@@ -18,8 +18,10 @@ package uk.gov.hmrc.agentclientmandate.config
 
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
+
 import scala.concurrent.duration._
 import play.api.{Application, Configuration, Play}
+import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
 import uk.gov.hmrc.play.audit.filters.AuditFilter
 import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.auth.microservice.filters.AuthorisationFilter
@@ -74,7 +76,8 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
 
       override def name: String = "ExpirationService"
       override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
-        ???
+        MandateUpdateService.checkExpiry()
+        Future.successful(Result("checking expiry"))
       }
 
       override def interval: FiniteDuration = 1 day

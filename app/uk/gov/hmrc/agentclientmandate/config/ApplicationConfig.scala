@@ -23,5 +23,5 @@ object ApplicationConfig extends ServicesConfig {
 
   val identifiers = ConfigFactory.load("identifiers.properties")
 
-  lazy val etmpTps = getInt(s"etmp-tps")
+  lazy val expiryAfterDays = getInt("expiry-after-days")
 }
