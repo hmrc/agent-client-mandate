@@ -16,12 +16,19 @@
 
 package uk.gov.hmrc.agentclientmandate.config
 
-import com.typesafe.config.ConfigFactory
-import uk.gov.hmrc.play.config.ServicesConfig
+import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import scala.concurrent.duration._
 
-object ApplicationConfig extends ServicesConfig {
+class MicroserviceGlobalSpec extends PlaySpec with OneServerPerSuite {
 
-  val identifiers = ConfigFactory.load("identifiers.properties")
+  "MicroserviceGlobal" must {
+    "have one scheduled job" in {
+      MicroserviceGlobal.scheduledJobs.size must be(1)
+    }
 
-  lazy val expiryAfterDays = getInt("expiry-after-days")
+    "expiration job must be present and set up for daily interval" in {
+      MicroserviceGlobal.scheduledJobs.head.name must be("ExpirationService")
+      MicroserviceGlobal.scheduledJobs.head.interval must be(1 day)
+    }
+  }
 }

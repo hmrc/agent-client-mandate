@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import org.joda.time.DateTime
 import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.Auditable
+import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailStatus, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
@@ -31,8 +32,6 @@ import scala.concurrent.Future
 trait MandateUpdateService extends Auditable {
 
   def mandateRepository: MandateRepository
-
-  def emailNotificationService: NotificationEmailService
 
   def etmpConnector: EtmpConnector
 
@@ -101,12 +100,25 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
+  def checkExpiry(): Unit = {
+    val dateFrom = DateTime.now().minusDays(ApplicationConfig.expiryAfterDays)
+    for{
+      mandates <- mandateRepository.findOldMandates(dateFrom)
+    } yield {
+      mandates.map { mandate =>
+        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, DateTime.now, "SYSTEM"))
+        mandateRepository.updateMandate(updatedMandate)
+        implicit val hc = new HeaderCarrier()
+        doAudit("expire", "", updatedMandate)
+      }
+    }
+  }
+
 }
 
 object MandateUpdateService extends MandateUpdateService {
   // $COVERAGE-OFF$
   val mandateRepository = MandateRepository()
-  val emailNotificationService = NotificationEmailService
   val etmpConnector: EtmpConnector = EtmpConnector
   val authConnector: AuthConnector = AuthConnector
   // $COVERAGE-ON$

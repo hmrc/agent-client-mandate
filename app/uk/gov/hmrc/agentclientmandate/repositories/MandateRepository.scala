@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.repositories
 
+import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
@@ -68,6 +69,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
   def updateClientEmail(mandateId: String, email: String): Future[MandateUpdate]
 
   def updateAgentCredId(oldCredId: String, newCredId: String): Future[MandateUpdate]
+
+  def findOldMandates(dateFrom: DateTime): Future[Seq[Mandate]]
 
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
@@ -316,6 +319,20 @@ class MandateMongoRepository(implicit mongo: () => DB)
         MandateUpdateError
       // $COVERAGE-ON$
     }
+  }
+
+  def findOldMandates(dateFrom: DateTime): Future[Seq[Mandate]] = {
+    val query = BSONDocument(
+      "currentStatus.timestamp" -> BSONDocument("$lt" -> dateFrom.getMillis),
+      "$or" -> Json.arr(Json.obj("currentStatus.status" -> Status.New.toString), Json.obj("currentStatus.status" -> Status.Approved.toString), Json.obj("currentStatus.status" -> Status.PendingCancellation.toString), Json.obj("currentStatus.status" -> Status.PendingActivation.toString))
+    )
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindOldMandates)
+    val result = collection.find(query).cursor[Mandate]().collect[Seq]()
+
+    result onComplete {
+      _ => timerContext.stop()
+    }
+    result
   }
 
   // $COVERAGE-OFF$
