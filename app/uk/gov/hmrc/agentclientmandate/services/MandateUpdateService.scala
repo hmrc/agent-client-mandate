@@ -100,20 +100,22 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
-  def checkExpiry(): Unit = {
+  def checkExpiry(): Future[_] = {
     val dateFrom = DateTime.now().minusDays(ApplicationConfig.expiryAfterDays)
-    for{
+    for {
       mandates <- mandateRepository.findOldMandates(dateFrom)
     } yield {
       mandates.map { mandate =>
         val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, DateTime.now, "SYSTEM"))
-        mandateRepository.updateMandate(updatedMandate)
-        implicit val hc = new HeaderCarrier()
-        doAudit("expire", "", updatedMandate)
+        mandateRepository.updateMandate(updatedMandate).map {
+          case MandateUpdated(m) =>
+            implicit val hc = new HeaderCarrier()
+            doAudit("expire", "", m)
+          case MandateUpdateError => Logger.warn("Could not expire mandate")
+        }
       }
     }
   }
-
 }
 
 object MandateUpdateService extends MandateUpdateService {

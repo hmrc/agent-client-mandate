@@ -130,11 +130,18 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "checkExpiry" must {
       "get expired mandate list and update all to be expired" in {
         when(mockMandateRepository.findOldMandates(Matchers.any())).thenReturn(Future.successful(List(mandate)))
-        TestMandateUpdateService.checkExpiry()
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
+        await(TestMandateUpdateService.checkExpiry())
+        verify(mockMandateRepository, times(1)).updateMandate(Matchers.any())
+      }
+
+      "get expired mandate list but fail when updating mandate" in {
+        when(mockMandateRepository.findOldMandates(Matchers.any())).thenReturn(Future.successful(List(mandate)))
+        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        await(TestMandateUpdateService.checkExpiry())
         verify(mockMandateRepository, times(1)).updateMandate(Matchers.any())
       }
     }
-
   }
 
   val timeToUse = DateTime.now()
