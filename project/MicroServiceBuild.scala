@@ -16,7 +16,6 @@ private object AppDependencies {
   private val playAuthVersion = "4.3.0"
   private val playHealthVersion = "2.1.0"
   private val logbackJsonLoggerVersion = "3.1.0"
-  private val playUrlBindersVersion = "2.1.0"
   private val playConfigVersion = "4.3.0"
   private val domainVersion = "4.1.0"
   private val hmrcTestVersion = "2.3.0"
@@ -27,7 +26,7 @@ private object AppDependencies {
   private val reactivemongoTestVersion = "2.0.0"
   private val mockitoVersion = "1.9.0"
   private val scalatestPlusPlayVersion = "1.5.1"
-
+  private val playUiVersion = "7.2.1"
   private val mongoLockVersion = "4.1.0"
   private val playSchedulingVersion = "4.0.0"
 
@@ -38,14 +37,13 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "play-authorisation" % playAuthVersion,
     "uk.gov.hmrc" %% "play-health" % playHealthVersion,
-    "uk.gov.hmrc" %% "play-url-binders" % playUrlBindersVersion,
     "uk.gov.hmrc" %% "play-config" % playConfigVersion,
     "uk.gov.hmrc" %% "logback-json-logger" % logbackJsonLoggerVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
     "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion,
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
-
+    "uk.gov.hmrc" %% "play-ui" % playUiVersion,
     "com.kenshoo" %% "metrics-play" % "2.3.0_0.1.8",
     "com.codahale.metrics" % "metrics-graphite" % "3.0.2"
   )
