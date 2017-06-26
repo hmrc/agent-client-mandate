@@ -72,6 +72,8 @@ trait MandateRepository extends Repository[Mandate, BSONObjectID] {
 
   def findOldMandates(dateFrom: DateTime): Future[Seq[Mandate]]
 
+  def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String): Future[Seq[String]]
+
   // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
   // $COVERAGE-ON$
@@ -333,6 +335,31 @@ class MandateMongoRepository(implicit mongo: () => DB)
       _ => timerContext.stop()
     }
     result
+  }
+
+  def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String): Future[Seq[String]] = {
+    val query = BSONDocument(
+      "agentParty.id" -> arn,
+      "subscription.service.name" -> serviceName.toLowerCase,
+      "currentStatus.timestamp" -> BSONDocument("$gt" -> dateFrom.getMillis),
+      "currentStatus.status" -> Status.Cancelled.toString,
+      "$where"-> "this.createdBy.credId != this.currentStatus.updatedBy"
+    )
+
+    val timerContext = metrics.startTimer(MetricsEnum.RepositoryClientCancelledMandates)
+    val result = Try(collection.find(query).cursor[Mandate]().collect[Seq]())
+
+    result match {
+      case Success(s) =>
+        s.map { x =>
+          x.map { _.clientDisplayName }
+        }
+      case Failure(f) =>
+        // $COVERAGE-OFF$
+        Logger.warn(s"[MandateRepository][getClientCancelledMandates] failed: ${f.getMessage}")
+        Future.successful(Nil)
+      // $COVERAGE-ON$
+    }
   }
 
   // $COVERAGE-OFF$

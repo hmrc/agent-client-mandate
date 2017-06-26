@@ -24,4 +24,6 @@ object ApplicationConfig extends ServicesConfig {
   val identifiers = ConfigFactory.load("identifiers.properties")
 
   lazy val expiryAfterDays = getInt("expiry-after-days")
+
+  lazy val clientCancelledMandateNotification = getInt("client-cancelled-mandate-notification-days")
 }

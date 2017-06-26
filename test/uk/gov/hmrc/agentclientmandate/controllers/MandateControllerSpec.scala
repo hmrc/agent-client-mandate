@@ -22,6 +22,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
@@ -385,6 +386,21 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(""))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(BAD_REQUEST)
+      }
+    }
+
+    "getClientsThatCancelled" must {
+      "return ok if mandates found and return client display names" in {
+        when(fetchServiceMock.fetchClientCancelledMandates(Matchers.any(), Matchers.any())) thenReturn Future.successful(List("AAA", "BBB"))
+        val result = TestMandateController.getClientsThatCancelled(agentCode, arn, service).apply(FakeRequest())
+        status(result) must be(OK)
+        contentAsJson(result) must be(Json.toJson(Seq("AAA", "BBB")))
+      }
+
+      "return NotFound if no mandates returned" in {
+        when(fetchServiceMock.fetchClientCancelledMandates(Matchers.any(), Matchers.any())) thenReturn Future.successful(Nil)
+        val result = TestMandateController.getClientsThatCancelled(agentCode, arn, service).apply(FakeRequest())
+        status(result) must be(NOT_FOUND)
       }
     }
 

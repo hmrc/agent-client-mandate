@@ -50,6 +50,7 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.RepositoryUpdateClientEmail -> registry.timer("repository-update-client-email-timer"),
     MetricsEnum.RepositoryUpdateAgentCredId -> registry.timer("repository-update-agent-credId-timer"),
     MetricsEnum.RepositoryFindOldMandates -> registry.timer("repository-find-old-mandates-timer"),
+    MetricsEnum.RepositoryClientCancelledMandates -> registry.timer("repository-find-client-cancelled-timer"),
     MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-response-timer"),
     MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer")
   )

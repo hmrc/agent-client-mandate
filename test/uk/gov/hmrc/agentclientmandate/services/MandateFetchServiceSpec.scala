@@ -99,6 +99,12 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       await(response) must be(List(clientMandate.id))
     }
 
+    "a list of client display names" in {
+      when(mockMandateRepository.getClientCancelledMandates(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(List("AAA", "BBB"))
+      val response = TestFetchMandateService.fetchClientCancelledMandates("arn", "service")
+      await(response) must be(List("AAA", "BBB"))
+    }
+
   }
 
   val clientMandate =

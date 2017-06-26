@@ -270,6 +270,13 @@ trait MandateController extends BaseController with Auditable {
     }
   }
 
+  def getClientsThatCancelled(agentCode: String, arn: String, serviceName: String) = Action.async { implicit request =>
+    fetchService.fetchClientCancelledMandates(arn, serviceName).map {
+      case Nil => NotFound
+      case mandateList => Ok(Json.toJson(mandateList))
+    }
+  }
+
 }
 
 object MandateAgentController extends MandateController {
