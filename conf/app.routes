@@ -52,3 +52,6 @@ POST   /org/:org/mandate/updateClientEmail/:mandateId       uk.gov.hmrc.agentcli
 
 # update agent credId
 POST   /agent/:ac/mandate/updateAgentCredId            uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentCredId(ac: String)
+
+# get client friendly names where client cancelled within 28 days
+GET     /agent/:ac/mandate/clientCancelledNames/:arn/:service       uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getClientsThatCancelled(ac: String, arn:String, service: String)
