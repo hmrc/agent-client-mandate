@@ -16,11 +16,14 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import org.joda.time.DateTime
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
 import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepository}
 import uk.gov.hmrc.play.http.HeaderCarrier
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -52,6 +55,11 @@ trait MandateFetchService {
 
   def getMandatesMissingAgentsEmails(arn: String, service: String): Future[Seq[String]] = {
     mandateRepository.findMandatesMissingAgentEmail(arn, service)
+  }
+
+  def fetchClientCancelledMandates(arn: String, serviceName: String): Future[Seq[String]] = {
+    val dateFrom = DateTime.now().minusDays(ApplicationConfig.clientCancelledMandateNotification)
+    mandateRepository.getClientCancelledMandates(dateFrom, arn, serviceName)
   }
 
   def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]

@@ -244,7 +244,7 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
       }
     }
 
-    "updateExpiredMandates" must {
+    "findOldMandates" must {
       "find mandates older than 28 days that have a status of New, Approved, PendingCancellation, or PendingActivation" in {
         val now = new DateTime(1472631804869L)
         val _28daysOld = now.minusDays(28)
@@ -267,6 +267,54 @@ class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with OneServe
         val x = await(testMandateRepository.findOldMandates(_28daysOld))
 
         x.size must be(4)
+      }
+    }
+
+    "getClientCancelledMandates" must {
+      "find mandates that have been cancelled by a client in the last 28 days" in {
+        val now = new DateTime(1472631804869L)
+        val _5daysOld = now.minusDays(5)
+        val _28daysOld = now.minusDays(28)
+        val _29daysOld = now.minusDays(29)
+
+        val agentCredId = "agentCredId"
+        val clientCredId = "clientCredId"
+        val _createdBy = User(agentCredId, "Joe Bloggs", None)
+        val cancelledAgentStatus = MandateStatus(Status.Cancelled, _5daysOld, agentCredId)
+        val cancelledClientStatus = MandateStatus(Status.Cancelled, _5daysOld, clientCredId)
+        val cancelledClientStatusOld = MandateStatus(Status.Cancelled, _29daysOld, clientCredId)
+
+        await(testMandateRepository.insertMandate(mandate.copy(id = "AAA", createdBy = _createdBy, currentStatus = cancelledAgentStatus, clientDisplayName = "AAA")))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "BBB", createdBy = _createdBy, currentStatus = cancelledClientStatus, clientDisplayName = "BBB")))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "CCC", createdBy = _createdBy, currentStatus = cancelledClientStatusOld, clientDisplayName = "CCC")))
+
+        val x = await(testMandateRepository.getClientCancelledMandates(_28daysOld, "JARN123456", "ATED"))
+
+        x.size must be(1)
+        x.head must be("BBB")
+      }
+
+      "find no mandates that have been cancelled by a client in the last 28 days, return Nil" in {
+        val now = new DateTime(1472631804869L)
+        val _5daysOld = now.minusDays(5)
+        val _28daysOld = now.minusDays(28)
+        val _29daysOld = now.minusDays(29)
+
+        val agentCredId = "agentCredId"
+        val clientCredId = "clientCredId"
+        val _createdBy = User(agentCredId, "Joe Bloggs", None)
+        val cancelledAgentStatus = MandateStatus(Status.Cancelled, _29daysOld, agentCredId)
+        val cancelledClientStatus = MandateStatus(Status.Cancelled, _29daysOld, clientCredId)
+        val cancelledClientStatusOld = MandateStatus(Status.Cancelled, _29daysOld, clientCredId)
+
+        await(testMandateRepository.insertMandate(mandate.copy(id = "AAA", createdBy = _createdBy, currentStatus = cancelledAgentStatus, clientDisplayName = "AAA")))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "BBB", createdBy = _createdBy, currentStatus = cancelledClientStatus, clientDisplayName = "BBB")))
+        await(testMandateRepository.insertMandate(mandate.copy(id = "CCC", createdBy = _createdBy, currentStatus = cancelledClientStatusOld, clientDisplayName = "CCC")))
+
+        val x = await(testMandateRepository.getClientCancelledMandates(_28daysOld, "JARN123456", "ATED"))
+
+        x.size must be(0)
+        x must be(Nil)
       }
     }
 
