@@ -21,7 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate._
 import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
-import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, GGRelationshipDto, Mandate, NonUKClientDto}
+import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.microservice.controller.BaseController
@@ -274,6 +274,14 @@ trait MandateController extends BaseController with Auditable {
     fetchService.fetchClientCancelledMandates(arn, serviceName).map {
       case Nil => NotFound
       case mandateList => Ok(Json.toJson(mandateList))
+    }
+  }
+
+  def updateRelationship(ac: String) = Action.async(parse.json) { implicit request =>
+    withJsonBody[NonUKClientDto] { oldMandate =>
+      createService.updateMandateForNonUKClient(ac, oldMandate) map { mandateId =>
+        Created
+      }
     }
   }
 

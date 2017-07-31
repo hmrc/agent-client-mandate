@@ -35,6 +35,9 @@ POST   /org/:org/mandate/remove/:mandateId          uk.gov.hmrc.agentclientmanda
 # create relationship for non-uk clients by agent
 POST  /agent/:ac/mandate/non-uk                     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.createRelationship(ac: String)
 
+#update an existing non-uk mandate
+POST  /agent/:ac/mandate/non-uk/update              uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateRelationship(ac: String)
+
 #edit-mandate
 POST   /agent/:ac/mandate/edit                      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.editMandate(ac: String)
 

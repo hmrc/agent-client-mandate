@@ -108,3 +108,9 @@ case class Mandate(id: String,
 object Mandate {
   implicit val formats = Json.format[Mandate]
 }
+
+case class OldMandateReference(mandateId: String, atedRefNumber: String)
+
+object OldMandateReference {
+  implicit val formats = Json.format[OldMandateReference]
+}

@@ -25,7 +25,8 @@ case class NonUKClientDto(
                            clientEmail: String,
                            arn: String,
                            agentEmail: String,
-                           clientDisplayName: String
+                           clientDisplayName: String,
+                           mandateRef: Option[String] = None
                          )
 
 object NonUKClientDto {
