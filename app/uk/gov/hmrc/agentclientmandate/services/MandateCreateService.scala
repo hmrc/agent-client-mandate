@@ -163,6 +163,7 @@ trait MandateCreateService extends Auditable {
 
       mandate.copy(approvedBy = Some(User(agentCredId, agentPartyName, groupId = Some(ac))),
         agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
+        statusHistory = mandate.statusHistory :+ mandate.currentStatus,
         currentStatus = MandateStatus(Status.PendingActivation, DateTime.now(), updatedBy = agentCredId),
         clientDisplayName = dto.clientDisplayName)
     }
