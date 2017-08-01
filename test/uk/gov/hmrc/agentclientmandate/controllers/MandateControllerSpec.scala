@@ -294,6 +294,20 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     }
 
+    "trying to update mandate for non-uk client by an agent" when {
+
+      "return CREATED as status code, for successful creation" in {
+        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "bb@mail.com", "arn", "@mail.com", "client display name")
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
+        when(createServiceMock.updateMandateForNonUKClient(Matchers.any(), Matchers.eq(dto))(Matchers.any())).thenReturn(Future.successful())
+        val result = TestMandateController.updateRelationship("agentCode").apply(fakeRequest)
+        status(result) must be(CREATED)
+        verify(createServiceMock, times(1)).createMandateForNonUKClient(Matchers.any(), Matchers.any())(Matchers.any())
+      }
+
+    }
+
+
     "edit mandate details" must {
       "return OK, when mandate is updated in MongoDB" in {
         when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
