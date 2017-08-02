@@ -80,6 +80,7 @@ trait MandateCreateService extends Auditable {
           statusHistory = Nil,
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
+
         mandateRepository.insertMandate(mandate).map {
           case MandateCreated(m) =>
             doAudit("createMandate", agentCode, m)
@@ -177,11 +178,13 @@ trait MandateCreateService extends Auditable {
         case MandateFetched(mandate) =>
           mandateRepository.updateMandate(updatedExistingNonUKMandateWithNewAgentDetails(mandate, agentDetails, authJson)).map {
             case MandateUpdated(m) =>
+              // $COVERAGE-OFF$
               relationshipService.createAgentClientRelationship(m, ac)
               doAudit("updateMandateNonUKClient", ac, m)
             case _ => throw new RuntimeException("Mandate not updated for non-uk")
           }
-        case _ => throw new RuntimeException(s"No existing non-uk mandate details found for mandate id")
+        case _ => throw new RuntimeException("No existing non-uk mandate details found for mandate id")
+        // $COVERAGE-ON$
       }
 
     }

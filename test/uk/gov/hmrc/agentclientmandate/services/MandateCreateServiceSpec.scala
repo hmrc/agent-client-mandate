@@ -249,7 +249,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
-      "agent registers a Non-UK Client but fails to creat mandate" in {
+      "agent registers a Non-UK Client but fails to create mandate" in {
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
           """
@@ -301,7 +301,63 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
     }
 
     "updateMandateForNonUKClient" when {
+
       "agent changes a Non-UK Client" in {
+
+        val mandateId = TestClientMandateCreateService.createMandateId
+        val newAgentETMPRegJson = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
+            |  }
+            |}
+          """.stripMargin
+        )
+        val newAgentJsonAuth = Json.parse(
+          """{
+               "credentials": {
+                 "gatewayId": "cred-id-112145698732",
+                 "idaPids": []
+               },
+               "accounts": {
+                 "agent": {
+                   "agentCode":"AGENT-345", "agentBusinessUtr":"KARN123123"
+                 }
+               }
+             }""")
+
+        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+          Future.successful(newAgentJsonAuth)
+        }
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+          Future.successful(newAgentETMPRegJson)
+        }
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateFetched(mandate))
+        }
+        when(mandateRepositoryMock.updateMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateUpdated(mandateWithClient(mandateId, DateTime.now())))
+        }
+
+        val dto = NonUKClientDto(safeId = "safeId",
+          subscriptionReference = "X12345678",
+          service = "ated",
+          clientEmail = "aa@mail.com",
+          arn = "KARN123123",
+          agentEmail = "bb@mail.com",
+          clientDisplayName = "client display name",
+          mandateRef = Some("B3671590"))
+        val result = TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto)
+
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+      }
+
+      "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {
         val successResponseJsonETMP = Json.parse(
           """
             |{
@@ -318,38 +374,39 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         val successResponseJsonAuth = Json.parse(
           """{
                "credentials": {
-                 "gatewayId": "cred-id-113244018119",
+                 "gatewayId": "cred-id-112145698732",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"AGENT-345", "agentBusinessUtr":"KARN123123"
                  }
                }
              }""")
-
 
         when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.eq("KARN123123"), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(Matchers.eq("B3671590"))) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
 
-        when(mandateRepositoryMock.updateMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(Matchers.eq(mandate))) thenReturn {
           Future.successful(MandateUpdated(mandateUpdated))
         }
 
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = TestClientMandateCreateService.updateMandateForNonUKClient("agentCode", dto)
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "KARN123123", "bb@mail.com", "client display name", mandateRef = None)
+        val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
+        thrown.getMessage must include("No Old Non-UK Mandate ID recieved for updating mandate")
       }
 
+
       "agent registers a Non-UK Client but fails to update mandate" in {
+
         val successResponseJsonETMP = Json.parse(
           """
             |{
@@ -381,10 +438,10 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.eq("KARN123123"), Matchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(Matchers.eq("B3671590"))) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
 
@@ -392,15 +449,11 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(MandateUpdateError)
         }
 
-
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = TestClientMandateCreateService.updateMandateForNonUKClient("agentCode", dto)
+        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name", mandateRef = Some("B3671590"))
+        val result = TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto)
         verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
-
     }
-
-
   }
 
   val mandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
@@ -415,7 +468,6 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       clientDisplayName = "client display name"
     )
 
-
   val mandate =
     Mandate(
       id = "B3671590",
@@ -427,18 +479,16 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
       clientDisplayName = "client display name")
 
-
   val mandateUpdated =
     Mandate(
       id = "B3671590",
       createdBy = User("cred-id-113244018119", "ABC Limited", Some("agentCode")),
-      agentParty = Party("arn", "ABC Limited", PartyType.Organisation, ContactDetails("bb@mail.com", None)),
+      agentParty = Party("KARN123123", "DEF Limited", PartyType.Organisation, ContactDetails("zz@mail.com", None)),
       clientParty = Some(Party("safeId", "ABC Limited", PartyType.Organisation, ContactDetails("aa@mail.com", None))),
       currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
       statusHistory = Seq(MandateStatus(Status.Cancelled, new DateTime(), "cred-id-113244018119"), MandateStatus(Status.PendingCancellation, new DateTime(), "cred-id-113244018119")),
       subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
       clientDisplayName = "client display name")
-
 
   def mandateWithClient(id: String, statusTime: DateTime): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
@@ -462,7 +512,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
   object TestClientMandateCreateService extends MandateCreateService {
     override val mandateRepository = mandateRepositoryMock
     override val authConnector = authConnectorMock
-    override val mandateFetchService: MandateFetchService = mockMandateFetchService
+    override val mandateFetchService = mockMandateFetchService
     override val etmpConnector = etmpConnectorMock
     override val relationshipService = relationshipServiceMock
     override val audit: Audit = new TestAudit
