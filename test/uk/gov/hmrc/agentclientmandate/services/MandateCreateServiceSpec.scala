@@ -300,6 +300,107 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
     }
 
+    "updateMandateForNonUKClient" when {
+      "agent changes a Non-UK Client" in {
+        val successResponseJsonETMP = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
+            |  }
+            |}
+          """.stripMargin
+        )
+        val successResponseJsonAuth = Json.parse(
+          """{
+               "credentials": {
+                 "gatewayId": "cred-id-113244018119",
+                 "idaPids": []
+               },
+               "accounts": {
+                 "agent": {
+                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                 }
+               }
+             }""")
+
+
+        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+          Future.successful(successResponseJsonAuth)
+        }
+
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+          Future.successful(successResponseJsonETMP)
+        }
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn {
+          Future.successful(MandateFetched(mandate))
+        }
+
+        when(mandateRepositoryMock.updateMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateUpdated(mandateUpdated))
+        }
+
+        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
+        val result = TestClientMandateCreateService.updateMandateForNonUKClient("agentCode", dto)
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+      }
+
+      "agent registers a Non-UK Client but fails to update mandate" in {
+        val successResponseJsonETMP = Json.parse(
+          """
+            |{
+            |  "sapNumber":"1234567890",
+            |  "safeId": "EX0012345678909",
+            |  "agentReferenceNumber": "AARN1234567",
+            |  "isAnIndividual": false,
+            |  "organisation": {
+            |    "organisationName": "ABC Limited"
+            |  }
+            |}
+          """.stripMargin
+        )
+        val successResponseJsonAuth = Json.parse(
+          """{
+               "credentials": {
+                 "gatewayId": "cred-id-113244018119",
+                 "idaPids": []
+               },
+               "accounts": {
+                 "agent": {
+                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                 }
+               }
+             }""")
+
+
+        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+          Future.successful(successResponseJsonAuth)
+        }
+
+        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+          Future.successful(successResponseJsonETMP)
+        }
+        when(mockMandateFetchService.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn {
+          Future.successful(MandateFetched(mandate))
+        }
+
+        when(mandateRepositoryMock.updateMandate(Matchers.any())) thenReturn {
+          Future.successful(MandateUpdateError)
+        }
+
+
+        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
+        val result = TestClientMandateCreateService.updateMandateForNonUKClient("agentCode", dto)
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+      }
+
+    }
+
+
   }
 
   val mandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
@@ -327,6 +428,18 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       clientDisplayName = "client display name")
 
 
+  val mandateUpdated =
+    Mandate(
+      id = "B3671590",
+      createdBy = User("cred-id-113244018119", "ABC Limited", Some("agentCode")),
+      agentParty = Party("arn", "ABC Limited", PartyType.Organisation, ContactDetails("bb@mail.com", None)),
+      clientParty = Some(Party("safeId", "ABC Limited", PartyType.Organisation, ContactDetails("aa@mail.com", None))),
+      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
+      statusHistory = Seq(MandateStatus(Status.Cancelled, new DateTime(), "cred-id-113244018119"), MandateStatus(Status.PendingCancellation, new DateTime(), "cred-id-113244018119")),
+      subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
+      clientDisplayName = "client display name")
+
+
   def mandateWithClient(id: String, statusTime: DateTime): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
       agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
@@ -344,10 +457,12 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
   val authConnectorMock = mock[AuthConnector]
   val etmpConnectorMock = mock[EtmpConnector]
   val relationshipServiceMock = mock[RelationshipService]
+  val mockMandateFetchService = mock[MandateFetchService]
 
   object TestClientMandateCreateService extends MandateCreateService {
     override val mandateRepository = mandateRepositoryMock
     override val authConnector = authConnectorMock
+    override val mandateFetchService: MandateFetchService = mockMandateFetchService
     override val etmpConnector = etmpConnectorMock
     override val relationshipService = relationshipServiceMock
     override val audit: Audit = new TestAudit
@@ -359,6 +474,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
     reset(etmpConnectorMock)
     reset(relationshipServiceMock)
     reset(authConnectorMock)
+    reset(mockMandateFetchService)
   }
 
 }
