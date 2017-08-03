@@ -36,6 +36,8 @@ trait MandateCreateService extends Auditable {
 
   def etmpConnector: EtmpConnector
 
+  def mandateFetchService: MandateFetchService
+
   def relationshipService: RelationshipService
 
   def createMandateId: String = {
@@ -78,6 +80,7 @@ trait MandateCreateService extends Auditable {
           statusHistory = Nil,
           subscription = Subscription(None, Service(identifiers.getString(s"$serviceName.serviceId"), serviceName))
         )
+
         mandateRepository.insertMandate(mandate).map {
           case MandateCreated(m) =>
             doAudit("createMandate", agentCode, m)
@@ -147,6 +150,46 @@ trait MandateCreateService extends Auditable {
       }
     }
   }
+
+  def updateMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[Unit] = {
+    val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
+    val mandateFuture = mandateFetchService.fetchClientMandate(dto.mandateRef.getOrElse(throw new RuntimeException("No Old Non-UK Mandate ID recieved for updating mandate")))
+    val authorityJsonFuture = authConnector.getAuthority()
+
+    def updatedExistingNonUKMandateWithNewAgentDetails(mandate: Mandate, agentDetails: JsValue, authorityJson: JsValue): Mandate = {
+      val isAgentAnIndividual = isIndividual(agentDetails)
+      val agentPartyName: String = getPartyName(agentDetails, isAgentAnIndividual)
+      val agentPartyType = getPartyType(isAgentAnIndividual)
+      val agentCredId = getCredId(authorityJson)
+
+      mandate.copy(approvedBy = Some(User(agentCredId, agentPartyName, groupId = Some(ac))),
+        agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
+        statusHistory = mandate.statusHistory :+ mandate.currentStatus,
+        currentStatus = MandateStatus(Status.PendingActivation, DateTime.now(), updatedBy = agentCredId),
+        clientDisplayName = dto.clientDisplayName)
+    }
+
+    for {
+      mandateFetched <- mandateFuture
+      agentDetails <- agentDetailsJsonFuture
+      authJson <- authorityJsonFuture
+    } yield {
+      mandateFetched match {
+        case MandateFetched(mandate) =>
+          mandateRepository.updateMandate(updatedExistingNonUKMandateWithNewAgentDetails(mandate, agentDetails, authJson)).map {
+            case MandateUpdated(m) =>
+              // $COVERAGE-OFF$
+              relationshipService.createAgentClientRelationship(m, ac)
+              doAudit("updateMandateNonUKClient", ac, m)
+            case _ => throw new RuntimeException("Mandate not updated for non-uk")
+          }
+        case _ => throw new RuntimeException("No existing non-uk mandate details found for mandate id")
+        // $COVERAGE-ON$
+      }
+
+    }
+
+  }
 }
 
 object MandateCreateService extends MandateCreateService {
@@ -155,5 +198,6 @@ object MandateCreateService extends MandateCreateService {
   val authConnector = AuthConnector
   val etmpConnector = EtmpConnector
   val relationshipService: RelationshipService = RelationshipService
+  val mandateFetchService: MandateFetchService = MandateFetchService
   // $COVERAGE-ON$
 }
