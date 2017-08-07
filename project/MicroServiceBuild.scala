@@ -12,7 +12,7 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "5.14.0"
+  private val microserviceBootstrapVersion = "5.16.0"
   private val playAuthVersion = "4.3.0"
   private val playHealthVersion = "2.1.0"
   private val logbackJsonLoggerVersion = "3.1.0"
@@ -26,9 +26,9 @@ private object AppDependencies {
   private val reactivemongoTestVersion = "2.0.0"
   private val mockitoVersion = "1.9.0"
   private val scalatestPlusPlayVersion = "1.5.1"
-  private val playUiVersion = "7.2.1"
+  private val playUiVersion = "7.4.0"
   private val mongoLockVersion = "4.1.0"
-  private val playSchedulingVersion = "4.0.0"
+  private val playSchedulingVersion = "4.1.0"
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
