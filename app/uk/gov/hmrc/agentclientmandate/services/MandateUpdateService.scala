@@ -56,7 +56,6 @@ trait MandateUpdateService extends Auditable {
                 val updatedMandate = approvedMandate.copy(
                   approvedBy = Some(approvedBy),
                   clientParty = Some(clientPartyUpdated),
-                  statusHistory = Seq(approvedMandate.currentStatus),
                   subscription = subscription
                 )
                 updateMandate(updatedMandate, Some(Status.Approved))
