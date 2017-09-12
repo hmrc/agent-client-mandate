@@ -181,10 +181,10 @@ trait MandateCreateService extends Auditable {
               // $COVERAGE-OFF$
               relationshipService.createAgentClientRelationship(m, ac)
               doAudit("updateMandateNonUKClient", ac, m)
+            // $COVERAGE-ON$
             case _ => throw new RuntimeException("Mandate not updated for non-uk")
           }
         case _ => throw new RuntimeException("No existing non-uk mandate details found for mandate id")
-        // $COVERAGE-ON$
       }
 
     }
