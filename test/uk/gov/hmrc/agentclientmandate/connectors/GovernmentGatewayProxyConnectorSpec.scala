@@ -24,26 +24,22 @@ import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
+import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
 
 
 class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  class MockHttp extends WSGet with WSPost with WSPut {
-    override val hooks = NoneRequired
-  }
-
-  val mockWSHttp = mock[MockHttp]
+  trait MockedVerbs extends CorePost
+  val mockWSHttp: CorePost = mock[MockedVerbs]
 
   override def beforeEach = {
     reset(mockWSHttp)
   }
 
   object TestGovernmentGatewayProxyConnector extends GovernmentGatewayProxyConnector {
-    override val http: HttpGet with HttpPost with HttpPut = mockWSHttp
+    override val http: CorePost = mockWSHttp
     val metrics = Metrics
   }
 
@@ -60,7 +56,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
         implicit val hc = new HeaderCarrier()
 
-        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(BAD_GATEWAY)))
 
         val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
@@ -71,7 +67,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
         implicit val hc = new HeaderCarrier()
 
-        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(BAD_GATEWAY)))
 
         val result = await(TestGovernmentGatewayProxyConnector.deAllocateAgent(GsoAdminDeallocateAgentXmlInput(List(), "", "")))
@@ -85,7 +81,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
         implicit val hc = new HeaderCarrier()
 
-        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
 
         val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
@@ -96,7 +92,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
         implicit val hc = new HeaderCarrier()
 
-        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(NOT_FOUND)))
 
         val result = await(TestGovernmentGatewayProxyConnector.deAllocateAgent(GsoAdminDeallocateAgentXmlInput(List(), "", "")))
@@ -111,7 +107,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
         implicit val hc = new HeaderCarrier()
 
-        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK)))
 
         val result = await(TestGovernmentGatewayProxyConnector.allocateAgent(GsoAdminAllocateAgentXmlInput(List(), "", "")))
@@ -122,7 +118,7 @@ class GovernmentGatewayProxyConnectorSpec extends PlaySpec with OneServerPerSuit
 
         implicit val hc = new HeaderCarrier()
 
-        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POSTString[HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK)))
 
         val result = await(TestGovernmentGatewayProxyConnector.deAllocateAgent(GsoAdminDeallocateAgentXmlInput(List(), "", "")))

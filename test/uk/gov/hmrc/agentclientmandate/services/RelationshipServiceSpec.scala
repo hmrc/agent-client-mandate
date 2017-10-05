@@ -31,10 +31,10 @@ import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.tasks._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -42,13 +42,13 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     "throw an exception" when {
       "trying to create a relationship but service name is not ATED" in {
-        val caught = intercept[uk.gov.hmrc.play.http.BadRequestException] {
+        val caught = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
           TestRelationshipService.createAgentClientRelationship(mandate1, agentCode)
         }
         caught.getMessage should endWith ("This is only defined for ATED")
       }
       "trying to break a relationship but service name is not ATED" in {
-        val caught = intercept[uk.gov.hmrc.play.http.BadRequestException] {
+        val caught = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
           TestRelationshipService.breakAgentClientRelationship(mandate1, agentCode, "client")
         }
         caught.getMessage should endWith ("This is only defined for ATED")

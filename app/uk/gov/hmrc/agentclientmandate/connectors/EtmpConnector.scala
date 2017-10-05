@@ -23,9 +23,9 @@ import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.logging.Authorization
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -34,7 +34,7 @@ object EtmpConnector extends EtmpConnector {
   // $COVERAGE-OFF$
   val urlHeaderEnvironment: String = config("etmp-hod").getString("environment").fold("")(x => x)
   val urlHeaderAuthorization: String = s"Bearer ${config("etmp-hod").getString("authorization-token").fold("")(x => x)}"
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val http: CoreGet with CorePost = WSHttp
   val metrics: Metrics = Metrics
   // $COVERAGE-ON$
 }
@@ -47,7 +47,7 @@ trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable 
 
   def urlHeaderAuthorization: String
 
-  def http: HttpGet with HttpPost with HttpPut
+  def http: CoreGet with CorePost
 
   def metrics: Metrics
 

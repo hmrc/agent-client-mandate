@@ -24,24 +24,20 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
-import uk.gov.hmrc.play.http.logging.SessionId
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.logging.SessionId
 
 import scala.concurrent.Future
 
 
 class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  class MockHttp extends WSGet with WSPost with WSPut {
-    override val hooks = NoneRequired
-  }
-
-  val mockWSHttp = mock[MockHttp]
+  trait MockedVerbs extends CorePost with CoreGet
+  val mockWSHttp: CorePost with CoreGet = mock[MockedVerbs]
 
   override def beforeEach: Unit = {
     reset(mockWSHttp)
@@ -50,7 +46,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   "EtmpConnector" must {
     "getDetails" must {
       "return valid response, for ARN as identifier type" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "arn"))
@@ -58,7 +54,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       }
 
       "return valid response, for SafeId as identifier type" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "safeid"))
@@ -66,7 +62,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       }
 
       "return valid response, for UTR as identifier type" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "utr"))
@@ -79,7 +75,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       }
 
       "throw exception when response is not OK" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
 
         val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getRegistrationDetails("ABC", "arn"))
@@ -91,7 +87,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "return valid response, if create/update relationship is successful in ETMP" in {
         val successResponse = Json.parse( """{"processingDate" :  "2014-12-17T09:30:47Z"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
@@ -104,7 +100,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "Check for a failure response when we try to create/update ATED relation in ETMP" in {
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = Some(failureResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
@@ -118,7 +114,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "return valid response, if success response received from ETMP" in {
         val successResponse = Json.parse( """{"safeId" :  "safe-id"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
         val response = await(TestEtmpConnector.getAtedSubscriptionDetails("ated-ref-num"))
@@ -128,7 +124,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "throws error, if response status is not OK from ETMP" in {
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
 
         val result = TestEtmpConnector.getAtedSubscriptionDetails("ated-ref-num")
@@ -142,7 +138,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   object TestEtmpConnector extends EtmpConnector {
     override val urlHeaderEnvironment: String = ""
     override val urlHeaderAuthorization: String = ""
-    override val http: HttpGet with HttpPost with HttpPut = mockWSHttp
+    override val http: CoreGet with CorePost = mockWSHttp
     override val metrics = Metrics
   }
 

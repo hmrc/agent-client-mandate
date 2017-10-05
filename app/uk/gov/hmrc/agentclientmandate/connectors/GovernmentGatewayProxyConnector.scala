@@ -24,8 +24,8 @@ import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -37,7 +37,7 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 
   val ggUri = "government-gateway-proxy"
 
-  def http: HttpGet with HttpPost with HttpPut
+  def http: CorePost
 
   def metrics: Metrics
 
@@ -82,7 +82,7 @@ trait GovernmentGatewayProxyConnector extends ServicesConfig with RawResponseRea
 
 object GovernmentGatewayProxyConnector extends GovernmentGatewayProxyConnector {
   // $COVERAGE-OFF$
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val http: HttpPost = WSHttp
   val metrics = Metrics
   // $COVERAGE-ON$
 }

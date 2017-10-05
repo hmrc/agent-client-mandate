@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.connectors
+package uk.gov.hmrc.agentclientmandate.binders
 
-import uk.gov.hmrc.http.{ HttpReads, HttpResponse }
-
-trait RawResponseReads {
-
-  implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
-    override def read(method: String, url: String, response: HttpResponse) = response
+import play.api.mvc.PathBindable
+// $COVERAGE-OFF$
+class SimpleObjectBinder[T](bind: String => T, unbind: T => String)(implicit m: Manifest[T]) extends PathBindable[T] {
+  override def bind(key: String, value: String): Either[String, T] = try {
+    Right(bind(value))
+  } catch {
+    case e: Throwable => Left(s"Cannot parse parameter '$key' with value '$value' as '${m.runtimeClass.getSimpleName}'")
   }
+
+  def unbind(key: String, value: T): String = unbind(value)
 }
+// $COVERAGE-ON$

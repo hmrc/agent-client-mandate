@@ -21,7 +21,6 @@ import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.play.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 import uk.gov.hmrc.tasks._
 
@@ -29,6 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorSystem
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
+import uk.gov.hmrc.http.{ BadRequestException, HeaderCarrier }
 // $COVERAGE-OFF$
 trait RelationshipService {
 

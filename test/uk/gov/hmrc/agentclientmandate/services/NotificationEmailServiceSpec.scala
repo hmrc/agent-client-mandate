@@ -27,9 +27,9 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailNotSent, EmailSent}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound}
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 

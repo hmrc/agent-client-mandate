@@ -32,7 +32,7 @@ import uk.gov.hmrc.tasks._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class ActivationTaskExecutor extends TaskExecutor with Auditable {
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.utils
 
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship, Mandate, Status}
-import uk.gov.hmrc.play.http.HttpResponse
+import uk.gov.hmrc.http.HttpResponse
 
 object MandateUtils {
 

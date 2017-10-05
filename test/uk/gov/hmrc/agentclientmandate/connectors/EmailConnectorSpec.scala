@@ -18,29 +18,25 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import org.mockito.Matchers
 import org.mockito.Mockito._
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
+import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
 
 
 class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  class MockHttp extends WSGet with WSPost with WSPut {
-    override val hooks = NoneRequired
-  }
-
-  val mockWSHttp = mock[MockHttp]
+  trait MockedVerbs extends CorePost
+  val mockWSHttp: CorePost = mock[MockedVerbs]
 
   object TestEmailConnector extends EmailConnector {
     val sendEmailUri: String = "send-templated-email"
-    val http: HttpGet with HttpPost with HttpPut = mockWSHttp
+    val http: CorePost = mockWSHttp
     val serviceUrl: String = "email"
   }
 
@@ -65,7 +61,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
         val sendEmailReqJson = Json.toJson(sendEmailReq)
 
         when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(),
-          Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+          Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(202, responseJson = None)))
 
         val response = TestEmailConnector.sendTemplatedEmail(emailString, templateId, "ATED")
@@ -87,7 +83,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
         val sendEmailReqJson = Json.toJson(sendEmailReq)
 
         when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(),
-          Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+          Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
           .thenReturn(Future.successful(HttpResponse(404, responseJson = None)))
 
         val response = TestEmailConnector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED")
