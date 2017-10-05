@@ -19,12 +19,12 @@ package uk.gov.hmrc.agentclientmandate.services
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailStatus}
 import uk.gov.hmrc.agentclientmandate.models.Status
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 import play.api.Logger
+import uk.gov.hmrc.http.HeaderCarrier
 
 
 trait NotificationEmailService {

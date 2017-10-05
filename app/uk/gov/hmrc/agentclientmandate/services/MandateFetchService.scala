@@ -22,10 +22,10 @@ import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
 import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepository}
-import uk.gov.hmrc.play.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 trait MandateFetchService {
 

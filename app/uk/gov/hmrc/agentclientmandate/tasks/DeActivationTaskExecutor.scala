@@ -32,7 +32,7 @@ import scala.util.{Failure, Success, Try}
 import play.api.Logger
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.play.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.HeaderCarrier
 
 class DeActivationTaskExecutor extends TaskExecutor with Auditable {
 

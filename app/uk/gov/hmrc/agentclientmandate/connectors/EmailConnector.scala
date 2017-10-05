@@ -23,8 +23,8 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -39,7 +39,7 @@ trait EmailConnector extends ServicesConfig with RawResponseReads with Auditable
 
   def serviceUrl: String
 
-  def http: HttpGet with HttpPost with HttpPut
+  def http: CorePost
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
     val params = Map("emailAddress" -> emailString,
@@ -71,6 +71,6 @@ object EmailConnector extends EmailConnector {
   // $COVERAGE-OFF$
   val sendEmailUri: String = "hmrc/email"
   val serviceUrl = baseUrl("email")
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val http: CorePost = WSHttp
   // $COVERAGE-OFF$
 }

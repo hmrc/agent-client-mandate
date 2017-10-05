@@ -21,8 +21,8 @@ import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.model.{Audit, DataEvent}
 import uk.gov.hmrc.play.config.AppName
-import uk.gov.hmrc.play.http.HeaderCarrier
 import uk.gov.hmrc.play.http._
+import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 
 trait Auditable extends AppName {
 

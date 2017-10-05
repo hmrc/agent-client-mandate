@@ -23,18 +23,14 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.play.http.ws.{WSGet, WSPost, WSPut}
+import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
 
 class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  class MockHttp extends WSGet with WSPost with WSPut {
-    override val hooks = NoneRequired
-  }
-
-  val mockWSHttp = mock[MockHttp]
+  trait MockedVerbs extends CoreGet
+  val mockWSHttp: CoreGet = mock[MockedVerbs]
 
   override def beforeEach: Unit = {
     reset(mockWSHttp)
@@ -43,7 +39,7 @@ class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   "AuthConnector" must {
     "return json response when authority found" in {
       val successResponseJson = Json.parse( """{"accounts": {"agent": {"agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"}}}""")
-      when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(HttpResponse(OK, Some(successResponseJson))))
 
       val result = await(TestAuthConnector.getAuthority()(new HeaderCarrier()))
@@ -51,7 +47,7 @@ class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
     }
 
     "throw exception when response is not OK" in {
-      when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any()))
+      when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
         .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
 
       val thrown = the[RuntimeException] thrownBy await(TestAuthConnector.getAuthority()(new HeaderCarrier()))
@@ -60,7 +56,7 @@ class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   }
 
   object TestAuthConnector extends AuthConnector {
-    val http: HttpGet with HttpPost with HttpPut = mockWSHttp
+    val http: CoreGet = mockWSHttp
   }
 
 }

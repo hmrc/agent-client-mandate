@@ -20,8 +20,8 @@ import play.api.http.Status._
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
-import uk.gov.hmrc.play.http._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -29,7 +29,7 @@ import scala.concurrent.Future
 trait AuthConnector extends ServicesConfig with RawResponseReads with Auditable {
 
   def serviceUrl:String = baseUrl("auth")
-  def http: HttpGet with HttpPost with HttpPut
+  def http: CoreGet
   val authorityUri: String = "auth/authority"
 
   def getAuthority()(implicit hc: HeaderCarrier): Future[JsValue] = {
@@ -50,6 +50,6 @@ trait AuthConnector extends ServicesConfig with RawResponseReads with Auditable 
 
 object AuthConnector extends AuthConnector {
   // $COVERAGE-OFF$
-  val http: HttpGet with HttpPost with HttpPut = WSHttp
+  val http: CoreGet = WSHttp
   // $COVERAGE-ON$
 }

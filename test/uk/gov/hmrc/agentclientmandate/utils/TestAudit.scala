@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import uk.gov.hmrc.agentclientmandate.config.MicroserviceAuditConnector
 import uk.gov.hmrc.play.audit.model.Audit._
 import uk.gov.hmrc.play.audit.model.{Audit, AuditAsMagnet, DataEvent}
-import uk.gov.hmrc.play.http.HeaderCarrier
+import uk.gov.hmrc.http.HeaderCarrier
 
 class TestAudit() extends Audit("test", MicroserviceAuditConnector) {
   var capturedTxName: String = ""

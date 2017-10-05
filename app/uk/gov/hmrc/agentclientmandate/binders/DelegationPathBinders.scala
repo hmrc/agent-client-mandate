@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentclientmandate.binders
 
 import uk.gov.hmrc.domain.{AtedUtr, AgentCode}
-import uk.gov.hmrc.play.binders.SimpleObjectBinder
 
 object DelegationPathBinders {
 
