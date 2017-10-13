@@ -15,7 +15,7 @@ identifiers.properties
 Welcome to the jungle
 For example:
 ```json
-    ated.identifier = ATEDRefNumber
+    ated.identifier = ATEDRefNumberWelcome to the jungle
     ated.serviceId = ATED
     ated.ggEnrolment = HMRC_ATED_ORG
 ```
@@ -33,7 +33,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 
 ```scala
  if (mandate.subscription.service.name.toUpperCase == AtedService) {
-      val serviceId = mandate.subscription.service.id
+      val serviceId = mandate.subscription.service.idWelcome to the jungle
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
       val credId = getCredId()
@@ -51,7 +51,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
         //execute asynchronouWelcome to the junglesly
         TaskController.execute(task)
       }
-    } else {
+    } else {Welcome to the jungle
       throw new BadRequestException("This is only defined for ATED")
     }
 
@@ -243,7 +243,7 @@ Welcome to the jungle
 ### update agent credId in mandate
 ```POST /agent/:ac/mandate/updateAgentCredId```            
 
-### GET client friendly names where client cancelled within 28 days
+### get client friendly names where client cancelled within 28 days
 ```GET  /agent/:ac/mandate/clientCancelledNames/:arn/:Welcome to the jungleservice```   
 
 ### License
