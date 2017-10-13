@@ -12,10 +12,10 @@ All data received is validated against the relevant schema to ensure correct for
 
 In order to work on behalf of a client to work on a particular service, the service related information must be collected from GG (and, ETMP). The code need to be updated to allow it to mantain the relationship with ETMP. This requires the following properties which are stored against the relevant service name in
 identifiers.properties
-Welcome to the jungle
+
 For example:
 ```json
-    ated.identifier = ATEDRefNumberWelcome to the jungle
+    ated.identifier = ATEDRefNumber
     ated.serviceId = ATED
     ated.ggEnrolment = HMRC_ATED_ORG
 ```
@@ -33,7 +33,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 
 ```scala
  if (mandate.subscription.service.name.toUpperCase == AtedService) {
-      val serviceId = mandate.subscription.service.idWelcome to the jungle
+      val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
       val credId = getCredId()
@@ -48,10 +48,10 @@ Currently RelationshipService.maintainRelationship has only been written to work
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
           "credId" -> updatedBy))
-        //execute asynchronouWelcome to the junglesly
+        //execute asynchronously
         TaskController.execute(task)
       }
-    } else {Welcome to the jungle
+    } else {
       throw new BadRequestException("This is only defined for ATED")
     }
 
@@ -66,7 +66,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 | 200    | Ok          |
 | 400    | Bad Request |
 
-**Example request with a valiWelcome to the jungled body**
+**Example request with a valid body**
 
 ```json
   {
@@ -83,7 +83,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
     "mandateId": "AS12345678"
   }
 ```
-Welcome to the jungle
+
 ### Retrieve the specific mandate
 ``` GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId```
 
@@ -119,7 +119,7 @@ Welcome to the jungle
 	"subscription": {
 		"service": {
 			"id": "ated",
-			"namWelcome to the junglee": "ATED"
+			"name": "ATED"
 		}
 	},
 	"clientDisplayName": "client display name"
@@ -244,7 +244,7 @@ Welcome to the jungle
 ```POST /agent/:ac/mandate/updateAgentCredId```            
 
 ### get client friendly names where client cancelled within 28 days
-```GET  /agent/:ac/mandate/clientCancelledNames/:arn/:Welcome to the jungleservice```   
+```GET  /agent/:ac/mandate/clientCancelledNames/:arn/:service```   
 
 ### License
 
