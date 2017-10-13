@@ -12,7 +12,7 @@ All data received is validated against the relevant schema to ensure correct for
 
 In order to work on behalf of a client to work on a particular service, the service related information must be collected from GG (and, ETMP). The code need to be updated to allow it to mantain the relationship with ETMP. This requires the following properties which are stored against the relevant service name in
 identifiers.properties
-
+Welcome to the jungle
 For example:
 ```json
     ated.identifier = ATEDRefNumber
@@ -48,7 +48,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
           "credId" -> updatedBy))
-        //execute asynchronously
+        //execute asynchronouWelcome to the junglesly
         TaskController.execute(task)
       }
     } else {
@@ -66,7 +66,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 | 200    | Ok          |
 | 400    | Bad Request |
 
-**Example request with a valid body**
+**Example request with a valiWelcome to the jungled body**
 
 ```json
   {
@@ -83,7 +83,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
     "mandateId": "AS12345678"
   }
 ```
-
+Welcome to the jungle
 ### Retrieve the specific mandate
 ``` GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId```
 
@@ -119,7 +119,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 	"subscription": {
 		"service": {
 			"id": "ated",
-			"name": "ATED"
+			"namWelcome to the junglee": "ATED"
 		}
 	},
 	"clientDisplayName": "client display name"
@@ -243,8 +243,8 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### update agent credId in mandate
 ```POST /agent/:ac/mandate/updateAgentCredId```            
 
-### ```GET client friendly names where client cancelled within 28 days
-```GET  /agent/:ac/mandate/clientCancelledNames/:arn/:service```   
+### GET client friendly names where client cancelled within 28 days
+```GET  /agent/:ac/mandate/clientCancelledNames/:arn/:Welcome to the jungleservice```   
 
 ### License
 
