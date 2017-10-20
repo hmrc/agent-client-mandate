@@ -1,6 +1,6 @@
 # microservice specific routes
 
-## Auth call for agent-client relationship ##
+# Auth call for agent-client relationship
 GET    /ated/agent/:ac/client/:ated                 uk.gov.hmrc.agentclientmandate.controllers.auth.AgentDelegationForAtedController.isAuthorisedForAted(ac: uk.gov.hmrc.domain.AgentCode, ated: uk.gov.hmrc.domain.AtedUtr)
 
 # get agent details

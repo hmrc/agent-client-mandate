@@ -77,7 +77,9 @@ Currently RelationshipService.maintainRelationship has only been written to work
 | ``` /agent/:ac/mandate/edit ``` | POST | edit mandate |
 | ``` /org/:org/mandate/:clientId/:service ``` | GET | fetch mandate for client |
 | ``` /agent/:ac/mandate/isAgentMissingEmail/:arn/:service ``` | GET | check for agents missing email |
-| ``` /agent/:ac/mandate/updateAgentEmail/:arn/:service``` | POST | update missing email for agent |
+| ``` /org/:org/mandate/updateClientEmail/:mandateId ``` | POST | update client email |
+| ``` /agent/:ac/mandate/updateAgentCredId``` | POST | update agent email |
+| ``` /agent/:ac/mandate/clientCancelledNames/:arn/:service``` | GET | get client friendly names where client cancelled within 28 days |
 
 ### Usage
 
