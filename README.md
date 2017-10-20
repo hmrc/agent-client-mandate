@@ -8,7 +8,7 @@ The microservice is based on the RESTful API structure, receives and sends data 
 
 All data received is validated against the relevant schema to ensure correct format of the data being received.
 
-### Adding a new service
+## Adding a new service
 
 In order to work on behalf of a client to work on a particular service, the service related information must be collected from GG (and, ETMP). The code need to be updated to allow it to mantain the relationship with ETMP. This requires the following properties which are stored against the relevant service name in
 identifiers.properties
@@ -28,7 +28,7 @@ where,
 | serviceId | ATED | The service name          |
 | ggEnrolment | HMRC_ATED_ORG | The gateway enrolment name  |
 
-### Code Change
+## Code Change
 Currently RelationshipService.maintainRelationship has only been written to work with ATED. This will have to be refactored to allow it to work for all services.
 
 ```scala
@@ -57,7 +57,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 
 ```
 
-### Agent Client Mandate APIs
+## Agent Client Mandate APIs
 
 | PATH | Supported Methods | Description |
 |------|-------------------|-------------|
@@ -81,9 +81,9 @@ Currently RelationshipService.maintainRelationship has only been written to work
 | ``` /agent/:ac/mandate/updateAgentCredId``` | POST | update agent email |
 | ``` /agent/:ac/mandate/clientCancelledNames/:arn/:service``` | GET | get client friendly names where client cancelled within 28 days |
 
-### Usage
+## Usage
 
-#### authorisation call for ATED for agent-client relationship 
+### authorisation call for ATED for agent-client relationship 
 ```GET  /ated/agent/123456789/client/:ated```
 
 **Response**
@@ -122,10 +122,10 @@ Currently RelationshipService.maintainRelationship has only been written to work
 }
 ```
 
-#### create a new Mandate
+### create a new Mandate
 ``` POST /agent/123456789/mandate ```
 
-**Request**
+**Request body**
 
 ```json
   {
@@ -237,7 +237,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### client approves the mandate
 ``` POST /org/987654321/mandate/approve```
 
-**Request**
+**Request body**
 
 ```json
 {
@@ -326,7 +326,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### agent activates/accepts Mandate
 ``` POST /agent/123456789/mandate/activate/95D42795```
 
-**Request**
+**Request body**
 
 ```json
 {
@@ -421,7 +421,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### create relationship for non-uk clients by agent (self-authorised)
 ``` POST /agent/123456789/mandate/non-uk ```
 
-**Request**
+**Request body**
 ```json
 {
 	"safeId": "safeId",
@@ -443,7 +443,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### update an existing non-uk mandate
 ```POST /agent/123456789/mandate/non-uk/update``` 
 
-**Request**
+**Request body**
 ```json
 {
 	"safeId": "safeId",
@@ -465,7 +465,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### edit an existing mandate
 ```POST  /agent/123456789/mandate/edit``` 
 
-**Request**
+**Request body**
 ```json
 {
 	"id": "AS12345678",
@@ -593,7 +593,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### update missing email for agent in mandate
 ```POST /agent/123456789/mandate/updateAgentEmail/JARN1234567/ATED```    
 
-**Request**
+**Request body**
 
 ```json
 {"emailAddress": "agentNewEmail@mail.com"}
@@ -612,7 +612,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### update client email in mandate
 ```POST /org/987654321/mandate/updateClientEmail/95D42795```    
 
-**Request**
+**Request body**
 
 ```json
 {"emailAddress": "clientNewEmail@mail.com"}
@@ -631,7 +631,7 @@ Currently RelationshipService.maintainRelationship has only been written to work
 ### update agent credId in mandate
 ```POST /agent/123456789/mandate/updateAgentCredId``` 
 
-**Request**
+**Request body**
 
 ```json
 {"credId": "credId-new-111"}
