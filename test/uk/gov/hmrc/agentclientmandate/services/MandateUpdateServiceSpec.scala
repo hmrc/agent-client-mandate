@@ -155,11 +155,12 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     clientDisplayName = "client display name"
   )
 
-  val clientApprovedMandate = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
+  val clientApprovedMandate = Mandate(id= "AS12345678",
+    createdBy = User("credid", "Joe Bloggs", None),
     agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails("client@mail.com"))),
-    currentStatus = MandateStatus(Status.Approved, timeToUse, ""),
+    clientParty = Some(Party("ABC12345", "Client Name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+    currentStatus = MandateStatus(Status.Approved, timeToUse, "clientCredId"),
+    statusHistory = Seq(MandateStatus(Status.New, new DateTime(), "credid")),
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
