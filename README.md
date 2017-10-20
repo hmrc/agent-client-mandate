@@ -57,16 +57,75 @@ Currently RelationshipService.maintainRelationship has only been written to work
 
 ```
 
+### Agent Client Mandate APIs
 
-### Create a new Client Mandate
-``` POST /agent-client-mandate/agent/:ac/mandate ```
+| PATH | Supported Methods | Description |
+|------|-------------------|-------------|
+| ```/ated/agent/:ac/client/:ated``` | GET | authorisation Call for ATED for agent-client relationship  |
+|```/agent/:ac/mandate/agentDetails ``` | GET | fetch agent details  |
+| ```/agent/:ac/mandate ``` | POST | create a new mandate |
+| ```/agent/:ac/mandate/:mandateId ``` | GE | agent retrieve mandate |
+| ```/org/:org/mandate/:mandateId ``` | GET | client retrieve mandate |
+| ```/agent/:ac/mandate/service/:arn/:service``` | GET | retrieve all mandates by service for the agent |
+| ```/org/:org/mandate/approve``` | GET | client approves the mandate |
+| ```/agent/:ac/mandate/activate/:mandateId``` | POST | agent activates/accepts mandate |
+| ```/agent/:ac/mandate/rejectClient/:mandateId``` | POST | agent reject the clients with this mandate id |
+| ```/agent/:ac/mandate/remove/:mandateId ``` | POST | agent removes client |
+| ``` /org/:org/mandate/remove/:mandateId ``` | POST | client removes agent |
+| ``` /agent/:ac/mandate/non-uk ``` | POST | create relationship for non-uk clients by agent (self-authorised) |
+| ``` /agent/:ac/mandate/non-uk/update ``` | POST | update an existing non-uk mandate |
+| ``` /agent/:ac/mandate/edit ``` | POST | edit mandate |
+| ``` /org/:org/mandate/:clientId/:service ``` | GET | fetch mandate for client |
+| ``` /agent/:ac/mandate/isAgentMissingEmail/:arn/:service ``` | GET | check for agents missing email |
+| ``` /org/:org/mandate/updateClientEmail/:mandateId ``` | POST | update client email |
+| ``` /agent/:ac/mandate/updateAgentCredId``` | POST | update agent email |
+| ``` /agent/:ac/mandate/clientCancelledNames/:arn/:service``` | GET | get client friendly names where client cancelled within 28 days |
 
-| Status | Message     |
+### Usage
+
+#### authorisation call for ATED for agent-client relationship 
+```GET  /ated/agent/123456789/client/:ated```
+
+**Response**
+
+ Status | Message     |
 |--------|-------------|
 | 200    | Ok          |
-| 400    | Bad Request |
+| 401    | Unauthorised |
 
-**Example request with a valid body**
+ No body
+
+### fetch agent details
+```GET /agent/123456789/mandate/agentDetails ``` 
+
+**Response**
+
+ Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+
+```json
+{
+	"safeId": "safeId",
+	"isAnIndividual": false,
+	"organisation": {
+		"organisationName": "Org Name",
+		"isAGroup": true,
+		"organisationType": "org_type"
+	},
+	"addressDetails": {
+		"addressLine1": "address1",
+		"addressLine2": "address2",
+		"countryCode": "FR"
+	},
+	"contactDetails": {}
+}
+```
+
+#### create a new Mandate
+``` POST /agent/123456789/mandate ```
+
+**Request**
 
 ```json
   {
@@ -76,7 +135,12 @@ Currently RelationshipService.maintainRelationship has only been written to work
   }
 ```
 
-**Response body**
+**Response**
+
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 400    | Bad Request |
 
 ```json
   {
@@ -84,35 +148,37 @@ Currently RelationshipService.maintainRelationship has only been written to work
   }
 ```
 
-### Retrieve the specific mandate
-``` GET /agent-client-mandate/{agent/:ac || org/:org}/mandate/:mandateId```
+### client/agent retrieve mandate
+ ```POST /agent/123456789/mandate/95D42795 ```
+ 
+ ```POST /org/987654321/mandate/95D42795 ``` 
+
+**Response**
 
 | Status | Message     |
 |--------|-------------|
 | 200    | Ok          |
 | 404    | Not Found   |
 
-**Response body**
-
 ```json
 {
-	"id": "123",
+	"id": "AS12345678",
 	"createdBy": {
 		"credId": "credid",
-		"name": "name"
+		"name": "Joe Bloggs"
 	},
 	"agentParty": {
 		"id": "JARN123456",
 		"name": "Joe Bloggs",
 		"type": "Organisation",
 		"contactDetails": {
-			"email": "test@test.com",
-			"phone": "0123456789"
+			"email": "",
+			"phone": ""
 		}
 	},
 	"currentStatus": {
 		"status": "New",
-		"timestamp": 1507809964876,
+		"timestamp": 1508499813255,
 		"updatedBy": "credid"
 	},
 	"statusHistory": [],
@@ -126,8 +192,86 @@ Currently RelationshipService.maintainRelationship has only been written to work
 }
 ```
 
-### Client Approves the mandate
-``` POST /agent-client-mandate/org/:org/mandate/approve```
+### retrieve all mandates by service for the agent
+```GET  /agent/123456789/mandate/service/JARN1234567/ATED```
+
+**Response**
+
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 404    | Not Found   |
+
+```json
+[{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"currentStatus": {
+		"status": "New",
+		"timestamp": 1508499813255,
+		"updatedBy": "credid"
+	},
+	"statusHistory": [],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name"
+}]
+```
+
+### client approves the mandate
+``` POST /org/987654321/mandate/approve```
+
+**Request**
+
+```json
+{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"currentStatus": {
+		"status": "New",
+		"timestamp": 1508499813255,
+		"updatedBy": "credid"
+	},
+	"statusHistory": [],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name"
+}
+```
+
+**Response**
 
 | Status | Message     |
 |--------|-------------|
@@ -135,86 +279,212 @@ Currently RelationshipService.maintainRelationship has only been written to work
 | 404    | Not Found   |
 | 500    | Internal Server Error   |
 
-### Agent activates/accepts Mandate
-``` POST /agent-client-mandate/agent/:ac/mandate/activate/:mandateId```
+```json
+{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"clientParty": {
+		"id": "ABC12345",
+		"name": "Client Name",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "client@mail.com"
+		}
+	},
+	"currentStatus": {
+		"status": "Approved",
+		"timestamp": 1508499660637,
+		"updatedBy": "clientCredId"
+	},
+	"statusHistory": [{
+		"status": "New",
+		"timestamp": 1508499660637,
+		"updatedBy": "credid"
+	}],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name"
+}
+```
+
+### agent activates/accepts Mandate
+``` POST /agent/123456789/mandate/activate/95D42795```
+
+**Request**
+
+```json
+{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"clientParty": {
+		"id": "ABC12345",
+		"name": "Client Name",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "client@mail.com"
+		}
+	},
+	"currentStatus": {
+		"status": "Approved",
+		"timestamp": 1508499660637,
+		"updatedBy": "clientCredId"
+	},
+	"statusHistory": [{
+		"status": "New",
+		"timestamp": 1508499660637,
+		"updatedBy": "credid"
+	}],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name"
+}
+```
+
+**Response**
 
  Status | Message     |
 |--------|-------------|
 | 200    | Ok          |
 | 404    | Not Found   |
 
-### Fetch all Mandates for this agent
-``` GET /agent-client-mandate/agent/:ac/mandate/service/:arn/:service```
+ No body
 
-### Agents Reject the Clients with this mandate Id
-``` POST /agent-client-mandate/agent/:ac/mandate/rejectClient/:mandateId```
+### agent reject the clients with this mandate id
+``` POST /agent/123456789/mandate/rejectClient/95D42795```
 
-### Fetch Agent Details
-``` GET /agent-client-mandate/agent/:ac/mandate/agentDetails```
+**Response**
 
 | Status | Message     |
 |--------|-------------|
 | 200    | Ok          |
 | 404    | Not Found   |
+| 500   | Internal Server Error |
 
-**Example response with a valid body**
+ No body
 
-```json
-  {
-    "agentName": "abc agency",
-    "addressDetails": {
-        "addressLine1": "mandatory line 1",
-        "addressLine2": "mandatory line 2",
-        "addressLine3": "optional line 3",
-        "addressLine4": "optional line 4",
-        "postalCode": "optional NE1 1JE",
-        "countryCode": "GB"
-    }
-  }
-```
+### agent removes client (break relationship)
+``` POST /agent/123456789/mandate/remove/95D42795 ```
 
+**Response**
 
-### Agent Remove Client (break relationship)
-``` POST /agent-client-mandate/agent/:ac/mandate/remove/:mandateId ```
+ Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 404    | Not Found   |
 
-### Client Remove Agent (break relationship)
-``` POST /agent-client-mandate/org/:org/mandate/remove/:mandateId ```
+ No body
 
-### Import Existing Relationship
-``` POST /agent-client-mandate/agent/:ac/mandate/importExisting```
+### client removes agent (break relationship)
+``` POST /org/987654321/mandate/remove/95D42795 ```
 
-### Create relationship for non-uk clients by agent (self-authorised)
-``` POST /agent-client-mandate/agent/:ac/mandate/non-uk ```
+**Response**
 
-### Get client friendly names where client cancelled within 28 days
-``` GET /agent/:ac/mandate/clientCancelledNames/:arn/:service ```
+ Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 404    | Not Found   |
 
-### Update an existing non-uk mandate
-```POST /agent/:ac/mandate/non-uk/update```              
+ No body
 
-### edit an existing mandate
-```POST  /agent/:ac/mandate/edit``` 
+### create relationship for non-uk clients by agent (self-authorised)
+``` POST /agent/123456789/mandate/non-uk ```
 
-**Example request with a valid body**
+**Request**
 ```json
 {
-	"id": "123",
+	"safeId": "safeId",
+	"subscriptionReference": "atedRefNum",
+	"service": "ated",
+	"clientEmail": "aa@mail.com",
+	"arn": "arn",
+	"agentEmail": "bb@mail.com",
+	"clientDisplayName": "client display name"
+}
+```
+
+**Response**
+
+ Status | Message     |
+|--------|-------------|
+| 201    | Created     |
+
+### update an existing non-uk mandate
+```POST /agent/123456789/mandate/non-uk/update``` 
+
+**Request**
+```json
+{
+	"safeId": "safeId",
+	"subscriptionReference": "atedRefNum",
+	"service": "ated",
+	"clientEmail": "aa@mail.com",
+	"arn": "arn",
+	"agentEmail": "bb@mail.com",
+	"clientDisplayName": "client display name"
+}
+```
+
+**Response**
+
+ Status | Message     |
+|--------|-------------|
+| 201    | Created     |
+
+### edit an existing mandate
+```POST  /agent/123456789/mandate/edit``` 
+
+**Request**
+```json
+{
+	"id": "AS12345678",
 	"createdBy": {
 		"credId": "credid",
-		"name": "name"
+		"name": "Joe Bloggs"
 	},
 	"agentParty": {
 		"id": "JARN123456",
-		"name": "Joe Bloggs ---Edited",
+		"name": "Joe Bloggs",
 		"type": "Organisation",
 		"contactDetails": {
-			"email": "test@test.com",
-			"phone": "0123456789"
+			"email": "",
+			"phone": ""
 		}
 	},
 	"currentStatus": {
 		"status": "New",
-		"timestamp": 1507809964876,
+		"timestamp": 1508499813255,
 		"updatedBy": "credid"
 	},
 	"statusHistory": [],
@@ -226,25 +496,198 @@ Currently RelationshipService.maintainRelationship has only been written to work
 	},
 	"clientDisplayName": "client display name"
 }
-```   
+```  
+**Response**
+
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 500    | Internal Server Error   |
+
+```json
+{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"currentStatus": {
+		"status": "New",
+		"timestamp": 1508499813255,
+		"updatedBy": "credid"
+	},
+	"statusHistory": [],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name edited"
+}
+``` 
                 
 ### fetch mandate for client
-```GET  /org/:org/mandate/:clientId/:service```         
+```GET  /org/987654321/mandate/:clientId/ATED```
+
+**Response**
+
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 404    | Not Found   |
+
+```json
+{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"currentStatus": {
+		"status": "New",
+		"timestamp": 1508499813255,
+		"updatedBy": "credid"
+	},
+	"statusHistory": [],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name edited"
+}
+```         
 
 ### check for agents missing email in mandate
-```GET  /agent/:ac/mandate/isAgentMissingEmail/:arn/:service``` 
+```GET  /agent/123456789/mandate/isAgentMissingEmail/JARN1234567/ATED``` 
+
+**Response**
+
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 204    | No Content  |
+
+ No body
 
 ### update missing email for agent in mandate
-```POST /agent/:ac/mandate/updateAgentEmail/:arn/:service```    
+```POST /agent/123456789/mandate/updateAgentEmail/JARN1234567/ATED```    
+
+**Request**
+
+```json
+{"emailAddress": "agentNewEmail@mail.com"}
+```   
+
+**Response**
+
+ Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 400    | Bad Request |
+| 500    | Internal Server Error |
+
+ No body
 
 ### update client email in mandate
-```POST /org/:org/mandate/updateClientEmail/:mandateId```       
+```POST /org/987654321/mandate/updateClientEmail/95D42795```    
+
+**Request**
+
+```json
+{"emailAddress": "clientNewEmail@mail.com"}
+```   
+
+**Response**
+
+ Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 400    | Bad Request |
+| 500    | Internal Server Error |
+
+ No body  
 
 ### update agent credId in mandate
-```POST /agent/:ac/mandate/updateAgentCredId```            
+```POST /agent/123456789/mandate/updateAgentCredId``` 
+
+**Request**
+
+```json
+{"credId": "credId-new-111"}
+```   
+
+**Response**
+
+ Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 400    | Bad Request |
+| 500    | Internal Server Error |
+
+ No body  
 
 ### get client friendly names where client cancelled within 28 days
-```GET  /agent/:ac/mandate/clientCancelledNames/:arn/:service```   
+```GET  /agent/123456789/mandate/clientCancelledNames/JARN1234567/ATED``` 
+
+**Response**
+
+| Status | Message     |
+|--------|-------------|
+| 200    | Ok          |
+| 404    | Not Found   |
+
+```json
+[{
+	"id": "AS12345678",
+	"createdBy": {
+		"credId": "credid",
+		"name": "Joe Bloggs"
+	},
+	"agentParty": {
+		"id": "JARN123456",
+		"name": "Joe Bloggs",
+		"type": "Organisation",
+		"contactDetails": {
+			"email": "",
+			"phone": ""
+		}
+	},
+	"currentStatus": {
+		"status": "New",
+		"timestamp": 1508499813255,
+		"updatedBy": "credid"
+	},
+	"statusHistory": [],
+	"subscription": {
+		"service": {
+			"id": "ated",
+			"name": "ATED"
+		}
+	},
+	"clientDisplayName": "client display name"
+}]
+```
 
 ### License
 
