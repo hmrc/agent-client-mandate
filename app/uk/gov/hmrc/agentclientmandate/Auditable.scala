@@ -63,7 +63,7 @@ trait Auditable extends AppName {
     sendDataEvent(auditType, auditDetails)
   }
 
-  private def sendDataEvent(auditType: String, detail: Map[String, String])
+  def sendDataEvent(auditType: String, detail: Map[String, String])
                    (implicit hc: HeaderCarrier): Unit =
     audit.sendDataEvent(DataEvent(appName, auditType,
       tags = hc.toAuditTags("", "N/A"),

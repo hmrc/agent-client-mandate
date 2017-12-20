@@ -37,6 +37,7 @@ trait Metrics {
 object Metrics extends Metrics with MicroserviceMetrics{
   val registry = metrics.defaultRegistry
   val timers = Map(
+    MetricsEnum.GG_ADMIN_ADD_KNOWN_FACTS -> registry.timer("gga-add-known-facts-agent-response-timer"),
     MetricsEnum.EtmpGetDetails -> registry.timer("etmp-get-details-response-timer"),
     MetricsEnum.MaintainAtedRelationship -> registry.timer("etmp-maintain-ated-relationship-response-timer"),
     MetricsEnum.AtedSubscriptionDetails -> registry.timer("etmp-ated-subscription-details-response-timer"),
@@ -56,6 +57,7 @@ object Metrics extends Metrics with MicroserviceMetrics{
   )
 
   val successCounters = Map(
+    MetricsEnum.GG_ADMIN_ADD_KNOWN_FACTS -> registry.counter("gga-add-known-facts-agent-success-counter"),
     MetricsEnum.EtmpGetDetails -> registry.counter("etmp-get-details-success-counter"),
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-success-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-success-counter"),
@@ -64,6 +66,7 @@ object Metrics extends Metrics with MicroserviceMetrics{
   )
 
   val failedCounters = Map(
+    MetricsEnum.GG_ADMIN_ADD_KNOWN_FACTS -> registry.counter("gga-add-known-facts-agent-failed-counter"),
     MetricsEnum.EtmpGetDetails -> registry.counter("etmp-get-details-failed-counter"),
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-failed-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
