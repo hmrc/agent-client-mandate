@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,4 +35,9 @@ object MandateUtils {
     val msgToXml = scala.xml.XML.loadString(resp.body)
     (msgToXml \\ "ErrorNumber").text
   }
+
+  def validateGroupId(str: String) = if(str.trim.length != 36) {
+    if(str.contains("testGroupId-")) str.replace("testGroupId-", "")
+    else throw new RuntimeException("Invalid groupId from auth")
+  } else str.trim
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,14 +23,18 @@ import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 import uk.gov.hmrc.tasks._
+import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorSystem
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
-import uk.gov.hmrc.http.{ BadRequestException, HeaderCarrier }
+import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
+import uk.gov.hmrc.auth.core.AuthorisedFunctions
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 // $COVERAGE-OFF$
-trait RelationshipService {
+trait RelationshipService extends AuthorisedFunctions {
 
   def authConnector: AuthConnector
 
@@ -42,10 +46,9 @@ trait RelationshipService {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
-      val credId = getCredId()
 
       for {
-        updatedBy <- credId
+        (groupId, credId) <- getUserAuthDetails
       } yield {
         //Then do this each time a 'create' needs to be done
         val task = Task("create", Map("clientId" -> clientId,
@@ -53,7 +56,9 @@ trait RelationshipService {
           "serviceIdentifier" -> identifier,
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
-          "credId" -> updatedBy))
+          "credId" -> credId,
+          "groupId" -> groupId)
+        )
         //execute asynchronously
         TaskController.execute(task)
       }
@@ -86,6 +91,13 @@ trait RelationshipService {
       }
     } else {
       throw new BadRequestException("This is only defined for ATED")
+    }
+  }
+
+  private def getUserAuthDetails(implicit hc: HeaderCarrier): Future[(String, String)] = {
+    authorised().retrieve(credentials and groupIdentifier) {
+      case Credentials(ggCredId, _) ~ Some(groupId) => Future.successful(MandateUtils.validateGroupId(groupId), ggCredId)
+      case _ => throw new RuntimeException("No details found for the agent!")
     }
   }
 

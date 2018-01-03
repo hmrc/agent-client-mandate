@@ -24,10 +24,11 @@ private object AppDependencies {
   private val scalatestPlusPlayVersion = "1.5.1"
   private val mongoLockVersion = "4.1.0"
   private val playSchedulingVersion = "4.1.0"
+  private val authClientVersion = "2.4.0"
+
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
-
     ws,
     "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
     "uk.gov.hmrc" %% "domain" % domainVersion,
@@ -35,7 +36,8 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
     "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
     "com.kenshoo" %% "metrics-play" % "2.3.0_0.1.8",
-    "com.codahale.metrics" % "metrics-graphite" % "3.0.2"
+    "com.codahale.metrics" % "metrics-graphite" % "3.0.2",
+    "uk.gov.hmrc" %% "auth-client" % authClientVersion
   )
 
   trait TestDependencies {
