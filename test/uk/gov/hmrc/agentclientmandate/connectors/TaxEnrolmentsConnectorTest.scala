@@ -16,42 +16,28 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import java.util.UUID
-
-import org.mockito.Matchers
-import org.mockito.Mockito._
+import org.mockito.Mockito.reset
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
-import uk.gov.hmrc.agentclientmandate.utils.TestAudit
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.SessionId
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.audit.model.Audit
-import uk.gov.hmrc.play.config.{AppName, RunMode}
-import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
+import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
+import uk.gov.hmrc.http.{CoreGet, CorePost}
 
-import scala.concurrent.Future
+class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+  trait MockedVerbs extends  CorePost
+  val mockWSHttp: CorePost = mock[MockedVerbs]
 
-  object TestAuditConnector extends AuditConnector with AppName with RunMode {
-    override lazy val auditingConfig = LoadAuditingConfig(s"$env.auditing")
-  }
+  object TestTaxEnrolmentsConnector extends TaxEnrolmentConnector {
 
-  trait MockedVerbs extends CorePut
-  val mockWSHttp: CorePut = mock[MockedVerbs]
+    override val http: CorePost = mockWSHttp
 
-  object TestTaxEnrolmentsConnector extends TaxEnrolmentsConnector {
-    override val serviceUrl = ""
-    override val ggaBaseUrl = ""
-    override val http: CorePut = mockWSHttp
-    override val audit: Audit = new TestAudit
-    override val appName: String = "Test"
-    override def metrics = Metrics
+    override val enrolmentUrl: String = ""
+
+    override def serviceUrl: String = ""
+
+    override val metrics = Metrics
   }
 
   override def beforeEach = {
@@ -59,34 +45,10 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with Mo
   }
 
   "TaxEnrolmentsConnector" must {
+    val request = NewEnrolment("0000000021313132")
+    "works for an agent" in {
 
-    "use correct metrics" in {
-      TaxEnrolmentsConnector.metrics must be(Metrics)
     }
-
-    val successfulJson = Json.parse( """{"rowModified":"1"}""")
-    val failureJson = Json.parse( """{"error":"Constraint error"}""")
-
-    "for successful set of known facts, return response" in {
-      implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-      when(mockWSHttp.PUT[JsValue, HttpResponse](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successfulJson))))
-
-      val knownFacts = Json.toJson("")
-      val result = TestTaxEnrolmentsConnector.addKnownFacts("ATED", knownFacts, "JARN123456")
-      await(result).status must be(OK)
-    }
-
-    "for unsuccessful call of known facts, return response" in {
-      implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-      when(mockWSHttp.PUT[JsValue, HttpResponse](Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
-        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = Some(failureJson))))
-
-      val knownFacts = Json.toJson("")
-      val result = TestTaxEnrolmentsConnector.addKnownFacts("ATED", knownFacts, "JARN123456")
-      await(result).status must be(INTERNAL_SERVER_ERROR)
-    }
-
   }
 
 }
