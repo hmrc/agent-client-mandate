@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.metrics
 import com.codahale.metrics.Timer
 import com.codahale.metrics.Timer.Context
 import com.kenshoo.play.metrics.MetricsRegistry
+import uk.gov.hmrc.agentclientmandate.metrics
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum.MetricsEnum
 import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
@@ -62,7 +63,8 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-success-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-success-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-success-counter"),
-    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-success-counter")
+    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-success-counter"),
+    MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-success-counter")
   )
 
   val failedCounters = Map(

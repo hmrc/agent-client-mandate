@@ -17,14 +17,12 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.Logger
-import play.api.http.ContentTypes.XML
-import play.api.http.HeaderNames.CONTENT_TYPE
 import play.api.http.Status._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
+import uk.gov.hmrc.agentclientmandate.models.{GsoAdminDeallocateAgentXmlInput, NewEnrolment}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
@@ -35,41 +33,54 @@ import scala.concurrent.Future
 
 trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Auditable {
 
-  def serviceUrl: String = baseUrl("government-gateway-proxy")
+  def serviceUrl: String
 
-  val ggUri = "government-gateway-proxy"
+  def enrolmentUrl: String
 
   def http: CorePost
 
   def metrics: Metrics
 
-  def allocateAgent(input: GsoAdminAllocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def allocateAgent(input: NewEnrolment, groupId: String, credId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
-    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$arn"
+    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$credId"
     val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
-    val jsonData = Json.toJson(enrolRequest)
+    val jsonData = Json.toJson(input)
 
-    val timerContext = metrics.startTimer(MetricsEnum.GGProxyAllocate)
-
+    val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentAllocate)
+    http.POST[JsValue, HttpResponse](postUrl, jsonData) map { response =>
+      timerContext.stop()
+      response.status match {
+        case CREATED =>
+          metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
+          response
+        case status =>
+          Logger.warn("allocateAgent failed")
+          metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
+          doFailedAudit("allocateAgentFailed", jsonData.toString, response.body)
+          response //TODO: Do we have process this response in some way
+      }
+    }
   }
 
-  def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
-    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
-      .map({ response =>
-        timerContext.stop()
-        response.status match {
-          case OK =>
-            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-            response
-          case status =>
-            Logger.warn("deAllocateAgent failed")
-            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-            doFailedAudit("deAllocateAgentFailed", input.toXml.toString, response.body)
-            response
-        }
-      })
-  }
+  def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
+//  {
+//    val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
+//    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
+//      .map({ response =>
+//        timerContext.stop()
+//        response.status match {
+//          case OK =>
+//            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+//            response
+//          case status =>
+//            Logger.warn("deAllocateAgent failed")
+//            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+//            doFailedAudit("deAllocateAgentFailed", input.toXml.toString, response.body)
+//            response
+//        }
+//      })
+//  }
 
 }
 
@@ -79,5 +90,7 @@ object TaxEnrolmentConnector extends TaxEnrolmentConnector {
   // $COVERAGE-OFF$
   val http: HttpPost = WSHttp
   val metrics = Metrics
+  val serviceUrl = baseUrl("enrolment-store-proxy")
+  val enrolmentUrl = s"$serviceUrl/enrolment-store-proxy/enrolment-store"
   // $COVERAGE-ON$
 }

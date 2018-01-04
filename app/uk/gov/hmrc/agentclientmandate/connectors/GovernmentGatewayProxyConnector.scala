@@ -23,7 +23,7 @@ import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.agentclientmandate.models.{GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
+import uk.gov.hmrc.agentclientmandate.models.{ GsoAdminAllocateAgentXmlInput, GsoAdminDeallocateAgentXmlInput}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.config.ServicesConfig
 

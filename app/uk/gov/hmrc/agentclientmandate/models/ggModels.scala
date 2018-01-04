@@ -27,7 +27,7 @@ object Identifier {
   implicit val format = Json.format[Identifier]
 }
 
-case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String) {
+case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String)  {
 
   val toXml = {
     <GsoAdminAllocateAgentXmlInput xmlns:xsd="http://www.w3.org/2001/XMLSchema"
@@ -65,4 +65,10 @@ case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentC
   private def getIdentifier(identifier : Identifier):Elem = {
     <Identifier IdentifierType={identifier.`type`}>{identifier.value}</Identifier>
   }
+}
+
+case class NewEnrolment(userId: String, `type`: String = "delegated")
+
+object NewEnrolment {
+  implicit val format = Json.format[NewEnrolment]
 }

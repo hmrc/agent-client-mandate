@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
@@ -28,15 +28,16 @@ import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorSystem
+import uk.gov.hmrc.agentclientmandate.config.AuthClientConnector
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
-import uk.gov.hmrc.auth.core.AuthorisedFunctions
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 // $COVERAGE-OFF$
 trait RelationshipService extends AuthorisedFunctions {
 
-  def authConnector: AuthConnector
+ // def authConnector: uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
 
   def metrics: Metrics
 
@@ -73,10 +74,9 @@ trait RelationshipService extends AuthorisedFunctions {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
-      val credId = getCredId()
 
       for {
-        updatedBy <- credId
+        (groupId, credId) <- getUserAuthDetails
       } yield {
         //Then do this each time a 'break' needs to be done
         val task = Task("break", Map("clientId" -> clientId,
@@ -84,7 +84,7 @@ trait RelationshipService extends AuthorisedFunctions {
           "serviceIdentifier" -> identifier,
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
-          "credId" -> updatedBy,
+          "credId" -> credId,
           "userType" -> userType))
         //execute asynchronously
         TaskController.execute(task)
@@ -101,19 +101,18 @@ trait RelationshipService extends AuthorisedFunctions {
     }
   }
 
-  private def getCredId()(implicit hc: HeaderCarrier): Future[String] = {
-      authConnector.getAuthority() map { authority =>
-      (authority \ "credentials" \ "gatewayId").as[String]
-    }
-  }
+//  private def getCredId()(implicit hc: HeaderCarrier): Future[String] = {
+//      authConnector.getAuthority() map { authority =>
+//      (authority \ "credentials" \ "gatewayId").as[String]
+//    }
+//  }
 
 }
 
 object RelationshipService extends RelationshipService {
  
-  val authConnector: AuthConnector = AuthConnector
   //val taskController: TaskControllerT = TaskController
-
+  val authConnector: AuthConnector = AuthClientConnector
   val metrics = Metrics
 
   TaskController.setupExecutor(TaskConfig("create", classOf[ActivationTaskExecutor], 5, RetryUptoCount(10, true)))

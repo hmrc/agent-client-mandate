@@ -19,11 +19,12 @@ package uk.gov.hmrc.agentclientmandate.tasks
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.http.Status._
-import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
+import uk.gov.hmrc.agentclientmandate.utils.FeatureSwitch
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
@@ -38,6 +39,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
   val etmpConnector: EtmpConnector = EtmpConnector
   val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
+  val taxEnrolmentConnector = TaxEnrolmentConnector
   val updateService: MandateUpdateService = MandateUpdateService
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
@@ -63,32 +65,52 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       }
 
       case Next("gg-proxy-activation", args) => {
-        val request = GsoAdminAllocateAgentXmlInput(
-          List(Identifier(args("serviceIdentifier"), args("clientId"))),
-          args("agentCode"), AtedServiceContractName)
-        Try(Await.result(ggProxyConnector.allocateAgent(request), 120 seconds)) match {
-          case Success(resp) =>
-            resp.status match {
-              case OK =>
-                metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-                Success(Next("finalize-activation", args))
-              case INTERNAL_SERVER_ERROR if parseErrorResp(resp) == "7004" =>
-                // this error means GG already has a relationship for this client
-                metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-                Success(Next("finalize-activation", args))
-              case _ =>
-                Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
-                metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
-                Failure(new Exception("GG Proxy call failed, status: " + resp.status))
-            }
-          case Failure(ex) =>
-            // $COVERAGE-OFF$
-            Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
-            Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
-          // $COVERAGE-ON$
+        if (FeatureSwitch.isEnabled("allocation.usingGG")) {
+          val request = GsoAdminAllocateAgentXmlInput(
+            List(Identifier(args("serviceIdentifier"), args("clientId"))),
+            args("agentCode"), AtedServiceContractName)
+          Try(Await.result(ggProxyConnector.allocateAgent(request), 120 seconds)) match {
+            case Success(resp) =>
+              resp.status match {
+                case OK =>
+                  metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+                  Success(Next("finalize-activation", args))
+                case INTERNAL_SERVER_ERROR if parseErrorResp(resp) == "7004" =>
+                  // this error means GG already has a relationship for this client
+                  metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+                  Success(Next("finalize-activation", args))
+                case _ =>
+                  Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+                  metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
+                  Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+              }
+            case Failure(ex) =>
+              // $COVERAGE-OFF$
+              Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+            // $COVERAGE-ON$
+          }
+        } else {
+          val request =   NewEnrolment(args("clientId"))
+          Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("credID")), 120 seconds)) match {
+            case Success(resp) =>
+              resp.status match {
+                case CREATED =>
+                  metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
+                  Success(Next("finalize-activation", args))
+                case _ =>
+                  Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+                  metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
+                  Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+              }
+            case Failure(ex) =>
+              // $COVERAGE-OFF$
+              Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+            // $COVERAGE-ON$
+          }
         }
       }
-
       case Next("finalize-activation", args) => {
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
         fetchResult match {
