@@ -42,4 +42,5 @@ object MetricsEnum extends Enumeration {
   val RepositoryClientCancelledMandates = Value
   val GG_ADMIN_ADD_KNOWN_FACTS = Value
   val TaxEnrolmentAllocate = Value
+  val TaxEnrolmentDeallocate = Value
 }

@@ -37,12 +37,13 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
 
   def enrolmentUrl: String
 
-  def http: CorePost
+  def http: CoreDelete with CorePost
 
   def metrics: Metrics
 
   def allocateAgent(input: NewEnrolment, groupId: String, credId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
+    Logger.debug("****DB*****"+" calling allocate enrolment")
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$credId"
     val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
     val jsonData = Json.toJson(input)
@@ -63,24 +64,26 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     }
   }
 
-  def deAllocateAgent(input: GsoAdminDeallocateAgentXmlInput)(implicit hc: HeaderCarrier): Future[HttpResponse] = ???
-//  {
-//    val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
-//    http.POSTString(serviceUrl + s"/$ggUri/api/admin/GsoAdminDeallocateAgent", input.toXml.toString, Seq(CONTENT_TYPE -> XML))
-//      .map({ response =>
-//        timerContext.stop()
-//        response.status match {
-//          case OK =>
-//            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-//            response
-//          case status =>
-//            Logger.warn("deAllocateAgent failed")
-//            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-//            doFailedAudit("deAllocateAgentFailed", input.toXml.toString, response.body)
-//            response
-//        }
-//      })
-//  }
+  def deAllocateAgent(groupId: String, credId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =   {
+
+    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$credId"
+    val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
+
+    val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
+    http.DELETE[HttpResponse](deleteUrl).map({ response =>
+        timerContext.stop()
+        response.status match {
+          case NO_CONTENT =>
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+            response
+          case status =>
+            Logger.warn("deAllocateAgent failed")
+            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+            doFailedAudit("deAllocateAgentFailed",s"$groupId-$credId", response.body)
+            response
+        }
+      })
+  }
 
 }
 
@@ -88,7 +91,7 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
 
 object TaxEnrolmentConnector extends TaxEnrolmentConnector {
   // $COVERAGE-OFF$
-  val http: HttpPost = WSHttp
+  val http: CoreDelete with CorePost = WSHttp
   val metrics = Metrics
   val serviceUrl = baseUrl("enrolment-store-proxy")
   val enrolmentUrl = s"$serviceUrl/enrolment-store-proxy/enrolment-store"

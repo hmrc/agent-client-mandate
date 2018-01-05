@@ -16,22 +16,29 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import org.mockito.Mockito.reset
+import org.mockito.Matchers
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.libs.json.{JsValue, Json}
+import play.api.test.Helpers.CREATED
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
-import uk.gov.hmrc.http.{CoreGet, CorePost}
+import uk.gov.hmrc.http._
+import play.api.test.Helpers._
+import play.api.test._
+
+import scala.concurrent.Future
 
 class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  trait MockedVerbs extends  CorePost
-  val mockWSHttp: CorePost = mock[MockedVerbs]
+  trait MockedVerbs extends  CoreDelete with CorePost
+  val mockWSHttp: CoreDelete with CorePost = mock[MockedVerbs]
 
   object TestTaxEnrolmentsConnector extends TaxEnrolmentConnector {
 
-    override val http: CorePost = mockWSHttp
+    override val http: CoreDelete with CorePost = mockWSHttp
 
     override val enrolmentUrl: String = ""
 
@@ -45,9 +52,21 @@ class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with Mo
   }
 
   "TaxEnrolmentsConnector" must {
-    val request = NewEnrolment("0000000021313132")
-    "works for an agent" in {
+    implicit val hc = HeaderCarrier()
 
+    "create allocation" in {
+      val enrolment = NewEnrolment("08123891238127")
+     when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(CREATED, responseJson = None)))
+      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232"))
+      result.status mustBe CREATED
+    }
+
+    "delete allocation" in {
+      when(mockWSHttp.DELETE[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
+        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232"))
+      result.status mustBe NO_CONTENT
     }
   }
 

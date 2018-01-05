@@ -246,7 +246,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
         val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
@@ -354,7 +354,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           mandateRef = Some("B3671590"))
         val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
 
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {

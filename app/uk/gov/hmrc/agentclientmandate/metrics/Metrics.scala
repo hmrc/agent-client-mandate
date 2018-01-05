@@ -54,7 +54,9 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.RepositoryFindOldMandates -> registry.timer("repository-find-old-mandates-timer"),
     MetricsEnum.RepositoryClientCancelledMandates -> registry.timer("repository-find-client-cancelled-timer"),
     MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-response-timer"),
-    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer")
+    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer"),
+    MetricsEnum.TaxEnrolmentAllocate -> registry.timer("tax-enrolment-allocate-response-timer"),
+    MetricsEnum.TaxEnrolmentDeallocate -> registry.timer("tax-enrolment-deallocate-response-timer")
   )
 
   val successCounters = Map(
@@ -64,7 +66,8 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-success-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-success-counter"),
     MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-success-counter"),
-    MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-success-counter")
+    MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-success-counter"),
+    MetricsEnum.TaxEnrolmentDeallocate -> registry.counter("tax-enrolment-deallocate-success-counter")
   )
 
   val failedCounters = Map(
@@ -74,7 +77,9 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
     MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter"),
-    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-counter")
+    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-counter"),
+    MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-failed-counter"),
+    MetricsEnum.TaxEnrolmentDeallocate -> registry.counter("tax-enrolment-deallocate-failed-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()

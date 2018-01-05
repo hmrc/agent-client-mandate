@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.tasks
 
 import org.joda.time.DateTime
-import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, GovernmentGatewayProxyConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
@@ -32,6 +32,7 @@ import scala.util.{Failure, Success, Try}
 import play.api.Logger
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
+import uk.gov.hmrc.agentclientmandate.utils.FeatureSwitch
 import uk.gov.hmrc.http.HeaderCarrier
 
 class DeActivationTaskExecutor extends TaskExecutor with Auditable {
@@ -42,6 +43,8 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
+  val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
+
   override val metrics: Metrics = Metrics
 
   implicit val hc = new HeaderCarrier()
@@ -60,29 +63,49 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
       case Next("gg-proxy-deactivation", args) => {
-        val request = GsoAdminDeallocateAgentXmlInput(
-          List(Identifier(args("serviceIdentifier"), args("clientId"))),
-          args("agentCode"), AtedServiceContractName)
-        Try(Await.result(ggProxyConnector.deAllocateAgent(request), 120 seconds)) match {
-          case Success(resp) =>
-            resp.status match {
-              case OK =>
-                metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-                Success(Next("finalize-deactivation", args))
-              case INTERNAL_SERVER_ERROR if (parseErrorResp(resp) == "9005") =>
-                // this error means GG does not have a relationship with this client
-                metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-                Success(Next("finalize-deactivation", args))
-              case _ =>
-                Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
-                metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-                Failure(new Exception("GG Proxy call failed, status: " + resp.status))
-            }
-          case Failure(ex) =>
-            // $COVERAGE-OFF$
-            Logger.warn(s"[DeActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
-            Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
-          // $COVERAGE-ON$
+        if (FeatureSwitch.isEnabled("allocation.usingGG")) {
+          val request = GsoAdminDeallocateAgentXmlInput(
+            List(Identifier(args("serviceIdentifier"), args("clientId"))),
+            args("agentCode"), AtedServiceContractName)
+          Try(Await.result(ggProxyConnector.deAllocateAgent(request), 120 seconds)) match {
+            case Success(resp) =>
+              resp.status match {
+                case OK =>
+                  metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+                  Success(Next("finalize-deactivation", args))
+                case INTERNAL_SERVER_ERROR if (parseErrorResp(resp) == "9005") =>
+                  // this error means GG does not have a relationship with this client
+                  metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+                  Success(Next("finalize-deactivation", args))
+                case _ =>
+                  Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+                  metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+                  Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+              }
+            case Failure(ex) =>
+              // $COVERAGE-OFF$
+              Logger.warn(s"[DeActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+            // $COVERAGE-ON$
+          }
+        } else {
+          Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("credId")), 120 seconds)) match {
+            case Success(resp) =>
+              resp.status match {
+                case NO_CONTENT =>
+                  metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
+                  Success(Next("finalize-deactivation", args))
+                case _ =>
+                  Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+                  metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
+                  Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+              }
+            case Failure(ex) =>
+              // $COVERAGE-OFF$
+              Logger.warn(s"[DeActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+            // $COVERAGE-ON$
+          }
         }
       }
       case Next("finalize-deactivation", args) => {

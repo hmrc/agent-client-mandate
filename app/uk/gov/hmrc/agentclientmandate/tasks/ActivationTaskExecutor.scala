@@ -39,11 +39,12 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
   val etmpConnector: EtmpConnector = EtmpConnector
   val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
-  val taxEnrolmentConnector = TaxEnrolmentConnector
   val updateService: MandateUpdateService = MandateUpdateService
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
+  val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
+
   override val metrics: Metrics = Metrics
 
   implicit val hc = new HeaderCarrier()
@@ -65,6 +66,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       }
 
       case Next("gg-proxy-activation", args) => {
+        Logger.debug("****DB***** " + "The feature switch is" + FeatureSwitch.isEnabled("allocation.usingGG"))
         if (FeatureSwitch.isEnabled("allocation.usingGG")) {
           val request = GsoAdminAllocateAgentXmlInput(
             List(Identifier(args("serviceIdentifier"), args("clientId"))),
@@ -73,38 +75,47 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
             case Success(resp) =>
               resp.status match {
                 case OK =>
+                  Logger.debug("****DB***** " + "Ok is returned")
                   metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
                   Success(Next("finalize-activation", args))
                 case INTERNAL_SERVER_ERROR if parseErrorResp(resp) == "7004" =>
+                  Logger.debug("****DB***** " + "Internal server error")
                   // this error means GG already has a relationship for this client
                   metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
                   Success(Next("finalize-activation", args))
                 case _ =>
+                  Logger.debug("****DB***** " + "Warn returned")
                   Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
                   metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
                   Failure(new Exception("GG Proxy call failed, status: " + resp.status))
               }
             case Failure(ex) =>
               // $COVERAGE-OFF$
+              Logger.debug("****DB***** " + "Failure")
               Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
               Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
             // $COVERAGE-ON$
           }
         } else {
-          val request =   NewEnrolment(args("clientId"))
+
+          val request = NewEnrolment(args("clientId"))
+          Logger.debug("****DB***** " + " calling tax enrolment connector")
           Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("credID")), 120 seconds)) match {
             case Success(resp) =>
               resp.status match {
                 case CREATED =>
+                  Logger.debug("****DB***** " + " tax created returned")
                   metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
                   Success(Next("finalize-activation", args))
                 case _ =>
+                  Logger.debug("****DB***** " + " tax Warn returned")
                   Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
                   metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
                   Failure(new Exception("GG Proxy call failed, status: " + resp.status))
               }
             case Failure(ex) =>
               // $COVERAGE-OFF$
+              Logger.debug("****DB***** " + " tax failure returned")
               Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
               Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
             // $COVERAGE-ON$
