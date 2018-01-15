@@ -44,6 +44,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
   val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
+  val isGGEnabled: Boolean = FeatureSwitch.isEnabled("allocation.usingGG")
 
   override val metrics: Metrics = Metrics
 
@@ -67,7 +68,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
       case Next("gg-proxy-activation", args) => {
         Logger.debug("****DB***** " + "The feature switch is" + FeatureSwitch.isEnabled("allocation.usingGG"))
-        if (FeatureSwitch.isEnabled("allocation.usingGG")) {
+        if (isGGEnabled) {
           val request = GsoAdminAllocateAgentXmlInput(
             List(Identifier(args("serviceIdentifier"), args("clientId"))),
             args("agentCode"), AtedServiceContractName)

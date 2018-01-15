@@ -20,6 +20,11 @@ import play.api.Play
 import play.api.libs.json.Json
 import uk.gov.hmrc.play.config.RunMode
 
+
+import play.api.Play
+import play.api.libs.json.Json
+import uk.gov.hmrc.play.config.RunMode
+
 case class FeatureSwitch(name: String, enabled: Boolean)
 
 object FeatureSwitch extends RunMode {
@@ -61,3 +66,4 @@ object BusinessCustomerFeatureSwitches {
   }
 
 }
+

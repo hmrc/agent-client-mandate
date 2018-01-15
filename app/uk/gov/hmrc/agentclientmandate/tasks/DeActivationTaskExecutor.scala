@@ -44,6 +44,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
   val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
+  val isGGEnabled: Boolean = FeatureSwitch.isEnabled("allocation.usingGG")
 
   override val metrics: Metrics = Metrics
 
@@ -63,7 +64,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
       case Next("gg-proxy-deactivation", args) => {
-        if (FeatureSwitch.isEnabled("allocation.usingGG")) {
+        if (isGGEnabled) {
           val request = GsoAdminDeallocateAgentXmlInput(
             List(Identifier(args("serviceIdentifier"), args("clientId"))),
             args("agentCode"), AtedServiceContractName)

@@ -36,8 +36,12 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 
 
-class DeActivationTaskExecutorMock(override val etmpConnector: EtmpConnector, override val ggProxyConnector: GovernmentGatewayProxyConnector,
-                                 override val fetchService: MandateFetchService, override val mandateRepository: MandateRepository, override val emailNotificationService: NotificationEmailService) extends DeActivationTaskExecutor
+class DeActivationTaskExecutorMock(override val etmpConnector: EtmpConnector,
+                                   override val ggProxyConnector: GovernmentGatewayProxyConnector,
+                                   override val fetchService: MandateFetchService,
+                                   override val mandateRepository: MandateRepository,
+                                   override val emailNotificationService: NotificationEmailService,
+                                   override val isGGEnabled: Boolean) extends DeActivationTaskExecutor
 
 class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task")) with UnitSpec
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar with BeforeAndAfterEach with OneServerPerSuite {
@@ -51,10 +55,14 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
   val mockMandateRepository = mock[MandateRepository]
   val mockEmailNotificationService = mock[NotificationEmailService]
 
-
   object DeActivationTaskExecutorMock {
-    def props(etmpConnector: EtmpConnector, ggConnector: GovernmentGatewayProxyConnector, mandateFetchService: MandateFetchService, mandateRepository: MandateRepository, emailNotificationService: NotificationEmailService) =
-      Props(classOf[DeActivationTaskExecutorMock], etmpConnector, ggConnector, mandateFetchService, mandateRepository, emailNotificationService)
+    def props(etmpConnector: EtmpConnector,
+              ggConnector: GovernmentGatewayProxyConnector,
+              mandateFetchService: MandateFetchService,
+              mandateRepository: MandateRepository,
+              emailNotificationService: NotificationEmailService,
+              isGGEnabled: Boolean) =
+      Props(classOf[DeActivationTaskExecutorMock], etmpConnector, ggConnector, mandateFetchService, mandateRepository, emailNotificationService, isGGEnabled)
   }
 
   lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
@@ -110,7 +118,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "signal is START" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(New(startSignal))
         expectMsg(TaskCommand(StageComplete(Next("gg-proxy-deactivation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
@@ -121,7 +129,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "signal is Next('gg-proxy-deactivation', args), gg gives error but ok to move on" in {
         when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString = Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>9005</ErrorNumber><Message>The enrolment is not allocated to the Agent Group</Message><RequestID>25DAE8CDF10B4B7CB469AF662643C917</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
         expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
@@ -130,7 +138,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "signal is Next('gg-proxy-deactivation', args)" in {
         when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
         expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
@@ -144,7 +152,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.eq(Some("client")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier", "userType" -> "client", "mandateId" -> "mandateId"), phaseCommit)))
@@ -155,7 +163,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("agent@mail.com"), Matchers.any(), Matchers.eq(Some("agent")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal1, phaseCommit))
         expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier", "userType" -> "agent", "mandateId" -> "mandateId"), phaseCommit)))
@@ -166,7 +174,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.eq(Some("client")), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal1, phaseCommit))
         expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier", "userType" -> "agent"), phaseCommit)))
@@ -178,7 +186,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "signal is START but the ETMP fails" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(New(startSignal))
         expectMsgType[TaskCommand]
@@ -187,7 +195,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "signal is Next('gg-proxy-deactivation', args) but the GG fails" in {
         when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString = Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>1</ErrorNumber><Message>The enrolment is not allocated to the Agent Group</Message><RequestID>25DAE8CDF10B4B7CB469AF662643C917</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
         expectMsgType[TaskCommand]
@@ -198,7 +206,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsgType[TaskCommand]
@@ -209,7 +217,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
         when(mockEmailNotificationService.sendMail(Matchers.eq(updatedMandate.id), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsgType[TaskCommand]
@@ -222,7 +230,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(startSignal1, phaseRollback))
         //executorActor.execSignal must be startArgs
@@ -233,7 +241,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "the signal is Next('gg-proxy-deactivation', args) and move to START signal" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback))
         //executorActor.execSignal must be startArgs
@@ -244,7 +252,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "the signal is Next('finalize-deactivation', args) and move to Next('gg-proxy-deactivation', args) signal" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseRollback))
         //executorActor.execSignal must be startArgs
@@ -257,7 +265,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     "handle rollback failure" when {
 
       "rollback fails at START signal" in {
-       val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+       val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(Failed(startSignal, phaseRollback))
         expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
@@ -268,7 +276,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     "rollback the activity in Next('gg-proxy-deactivation', args)" when {
 
       "rollback fails at Next('gg-proxy-deactivation', args signal" in {
-        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, true))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
 
