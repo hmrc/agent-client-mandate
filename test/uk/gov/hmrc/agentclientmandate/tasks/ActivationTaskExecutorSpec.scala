@@ -67,7 +67,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
   lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
   lazy val startSignal1 = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","credId" -> "credId"))
-  lazy val nextSignal = Next("gg-proxy-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
+  lazy val nextSignal = Next("gg-proxy-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId"))
   lazy val finalizeSignal = Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId"))
 
   val timeToUse = DateTime.now()
@@ -128,24 +128,20 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
     }
 
-    "execute and move to 'finalize' step" when {
+    "execute and move to 'finalize' step GG Proxy" when {
 
       "signal is Next('gg-proxy-activation', args)" in {
 
 
-       println("++++++++++++++++The Feature Switch is " + FeatureSwitch.isEnabled("registration.usingGG"))
-//        if(FeatureSwitch.isEnabled("registration.usingGG")) {
+
+
           when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
-//       }
-//        else {
-//          when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(CREATED))
-//       }
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
 
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
       }
 
       "signal is Next('gg-proxy-activation', args) and gg returns error 7004" in {
@@ -154,10 +150,23 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
       }
     }
 
+    "execute and move to 'finalize' step Tax Enrolment" when {
+      "signal is Next('gg-proxy-activation', args)" in {
+
+
+        when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(CREATED))
+
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, false))
+
+
+        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
+      }
+    }
 
     "execute and FINISH" when {
 
@@ -260,7 +269,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback))
-        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseRollback)))
+        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId" -> "credId")), phaseRollback)))
 
       }
 
@@ -296,7 +305,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
 
-        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
+        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId" -> "credId"))))
       }
     }
 

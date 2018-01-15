@@ -99,9 +99,19 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
           }
         } else {
 
+          Logger.debug("****TX***** " + " client id " + args("clientId").toString)
+          Logger.debug("****TX***** " + " cred id is " + args.getOrElse("credId","NotFound"))
+          Logger.debug("****TX***** " + " group id " + args.getOrElse("groupId","NotFound"))
+
+
           val request = NewEnrolment(args("clientId"))
-          Logger.debug("****DB***** " + " calling tax enrolment connector")
-          Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("credID")), 120 seconds)) match {
+
+          Logger.debug("****TX***** " + " calling tax enrolment connector")
+          Logger.debug("****TX***** " + " Enrolments is " + request.toString)
+
+
+
+          Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("credId")), 120 seconds)) match {
             case Success(resp) =>
               resp.status match {
                 case CREATED =>
@@ -116,7 +126,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
               }
             case Failure(ex) =>
               // $COVERAGE-OFF$
-              Logger.debug("****DB***** " + " tax failure returned")
+              Logger.debug("****TX***** " + " tax failure returned " + ex.getMessage)
               Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
               Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
             // $COVERAGE-ON$
