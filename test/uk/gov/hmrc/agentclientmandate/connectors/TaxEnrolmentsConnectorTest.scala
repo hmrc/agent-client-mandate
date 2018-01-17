@@ -58,7 +58,7 @@ class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with Mo
       val enrolment = NewEnrolment("08123891238127")
      when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(CREATED, responseJson = None)))
-      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232"))
+      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232","JAX023938"))
       result.status mustBe CREATED
     }
 

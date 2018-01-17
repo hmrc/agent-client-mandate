@@ -28,6 +28,7 @@ import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import akka.actor.ActorSystem
+import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.config.AuthClientConnector
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
@@ -42,7 +43,7 @@ trait RelationshipService extends AuthorisedFunctions {
   def metrics: Metrics
 
   def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Unit = {
-
+    Logger.warn("*****HC*** RELATIONSHIP"+hc.toString)
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
@@ -58,7 +59,9 @@ trait RelationshipService extends AuthorisedFunctions {
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
           "credId" -> credId,
-          "groupId" -> groupId)
+          "groupId" -> groupId,
+          "token" -> hc.token.get.value,
+          "authorization" -> hc.authorization.get.value)
         )
         //execute asynchronously
         TaskController.execute(task)
@@ -69,6 +72,8 @@ trait RelationshipService extends AuthorisedFunctions {
   }
 
   def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier): Unit = {
+
+    Logger.warn("*****HC*** RELATIONSHIP"+hc.toString)
 
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
@@ -85,8 +90,8 @@ trait RelationshipService extends AuthorisedFunctions {
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
           "credId" -> credId,
-          "tokaen" -> hc.gaToken.get,
-
+          "token" -> hc.token.get.value,
+          "authorization" -> hc.authorization.get.value,
           "userType" -> userType))
         //execute asynchronously
         TaskController.execute(task)

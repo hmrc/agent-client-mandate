@@ -158,7 +158,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('gg-proxy-activation', args)" in {
 
 
-        when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(CREATED))
+        when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any(),Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(CREATED))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, false))
 

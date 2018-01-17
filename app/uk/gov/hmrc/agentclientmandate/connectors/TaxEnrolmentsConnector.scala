@@ -41,13 +41,14 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
 
   def metrics: Metrics
 
-  def allocateAgent(input: NewEnrolment, groupId: String, clientId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def allocateAgent(input: NewEnrolment, groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     Logger.debug("****DB*****"+" calling allocate enrolment")
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
+    val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
     val jsonData = Json.toJson(input)
 
+    Logger.debug("******TX***** the post string is " + postUrl)
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentAllocate)
     http.POST[JsValue, HttpResponse](postUrl, jsonData) map { response =>
       timerContext.stop()
