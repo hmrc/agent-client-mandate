@@ -67,7 +67,6 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       }
 
       case Next("gg-proxy-activation", args) => {
-        Logger.debug("****DB***** " + "The feature switch is" + FeatureSwitch.isEnabled("allocation.usingGG"))
         if (isGGEnabled) {
           val request = GsoAdminAllocateAgentXmlInput(
             List(Identifier(args("serviceIdentifier"), args("clientId"))),
@@ -93,25 +92,19 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
             case Failure(ex) =>
               // $COVERAGE-OFF$
               Logger.debug("****DB***** " + "Failure")
-              Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+              Logger.warn(s"[ActivationTaskExecutor] exception while calling allocateAgent :: ${ex.getMessage}")
               Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
             // $COVERAGE-ON$
           }
         } else {
 
           Logger.debug("****TX***** " + " client id " + args("clientId").toString)
-          Logger.debug("****TX***** " + " cred id is " + args.getOrElse("credId","NotFound"))
           Logger.debug("****TX***** " + " group id " + args.getOrElse("groupId","NotFound"))
-
+          Logger.debug("*TX* - HEader Carriers " + hc.toString)
 
           val request = NewEnrolment(args("clientId"))
 
-          Logger.debug("****TX***** " + " calling tax enrolment connector")
-          Logger.debug("****TX***** " + " Enrolments is " + request.toString)
-
-
-
-          Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("credId")), 120 seconds)) match {
+          Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("clientId")), 120 seconds)) match {
             case Success(resp) =>
               resp.status match {
                 case CREATED =>

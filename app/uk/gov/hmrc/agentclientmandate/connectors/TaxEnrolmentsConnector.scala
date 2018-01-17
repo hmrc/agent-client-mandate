@@ -41,10 +41,10 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
 
   def metrics: Metrics
 
-  def allocateAgent(input: NewEnrolment, groupId: String, credId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def allocateAgent(input: NewEnrolment, groupId: String, clientId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     Logger.debug("****DB*****"+" calling allocate enrolment")
-    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$credId"
+    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
     val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
     val jsonData = Json.toJson(input)
 
@@ -64,9 +64,9 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     }
   }
 
-  def deAllocateAgent(groupId: String, credId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =   {
+  def deAllocateAgent(groupId: String, clientId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =   {
 
-    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$credId"
+    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
     val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
 
     val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
@@ -79,7 +79,7 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
           case status =>
             Logger.warn("deAllocateAgent failed")
             metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
-            doFailedAudit("deAllocateAgentFailed",s"$groupId-$credId", response.body)
+            doFailedAudit("deAllocateAgentFailed",s"$groupId-$clientId", response.body)
             response
         }
       })

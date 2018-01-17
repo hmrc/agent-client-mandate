@@ -85,6 +85,8 @@ trait RelationshipService extends AuthorisedFunctions {
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
           "credId" -> credId,
+          "tokaen" -> hc.gaToken.get,
+
           "userType" -> userType))
         //execute asynchronously
         TaskController.execute(task)

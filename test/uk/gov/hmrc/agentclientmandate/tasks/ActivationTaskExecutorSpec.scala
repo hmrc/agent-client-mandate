@@ -164,7 +164,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId",
+          "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
       }
     }
 
