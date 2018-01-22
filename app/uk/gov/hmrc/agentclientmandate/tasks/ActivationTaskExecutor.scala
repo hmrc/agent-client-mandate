@@ -52,16 +52,12 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
   override def execute(signal: Signal): Try[Signal] = {
 
-    val auth: String = signal.args.getOrElse("authorization", "dummy auth")
-    val token: String = signal.args.getOrElse("token", "dummy token")
-    val credId = signal.args.getOrElse("credId", "your-dummy-id")
 
-    implicit val hc = new HeaderCarrier(authorization = Some(Authorization(auth)),token = Some(Token(token)), userId = Some(UserId(credId)))
+
+    implicit val hc = createHeaderCarrier(signal)
 
     signal match {
       case Start(args) => {
-
-
         val request = createRelationship(args("clientId"), args("agentPartyId"))
         val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
         result.status match {
@@ -105,14 +101,10 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
             // $COVERAGE-ON$
           }
         } else {
-
           Logger.debug("****TX***** " + " client id " + args("clientId").toString)
           Logger.debug("****TX***** " + " group id " + args.getOrElse("groupId","NotFound"))
           Logger.debug("*TX* - HEader Carriers " + hc.toString)
-
-          val request = NewEnrolment(args("credId"))
-
-          Try(Await.result(taxEnrolmentConnector.allocateAgent(request,args("groupId"),args("clientId"),args("agentCode")), 120 seconds)) match {
+          Try(Await.result(taxEnrolmentConnector.allocateAgent(NewEnrolment(args("credId")),args("groupId"),args("clientId"),args("agentCode")), 120 seconds)) match {
             case Success(resp) =>
               resp.status match {
                 case CREATED =>
@@ -206,4 +198,9 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
     Logger.error("[ActivationTaskExecutor] Rollback action failed")
   }
 
+  private def createHeaderCarrier(signal: Signal): HeaderCarrier = {
+    new HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))),
+      token = Some(Token(signal.args.getOrElse("token", "dummy token"))),
+      userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
+  }
 }
