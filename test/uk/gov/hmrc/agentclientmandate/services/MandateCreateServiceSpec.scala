@@ -245,7 +245,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto)
+        val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
@@ -294,8 +294,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto)
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        an [RuntimeException] should be thrownBy  await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
       }
 
     }
