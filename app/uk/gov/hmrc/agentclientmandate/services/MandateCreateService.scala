@@ -173,23 +173,25 @@ trait MandateCreateService extends Auditable {
       mandateFetched <- mandateFuture
       agentDetails <- agentDetailsJsonFuture
       authJson <- authorityJsonFuture
+      mu <- mandateRepository.updateMandate(updatedExistingNonUKMandateWithNewAgentDetails(getMandateStatus(mandateFetched), agentDetails, authJson))
     } yield {
-      mandateFetched match {
-        case MandateFetched(mandate) =>
-          mandateRepository.updateMandate(updatedExistingNonUKMandateWithNewAgentDetails(mandate, agentDetails, authJson)).map {
-            case MandateUpdated(m) =>
+        mu match {
+            case MandateUpdated(m)=>
               // $COVERAGE-OFF$
-              relationshipService.createAgentClientRelationship(m, ac)
-              doAudit("updateMandateNonUKClient", ac, m)
-            // $COVERAGE-ON$
-            case _ => throw new RuntimeException("Mandate not updated for non-uk")
-          }
-        case _ => throw new RuntimeException("No existing non-uk mandate details found for mandate id")
+            relationshipService.createAgentClientRelationship (m, ac)
+            doAudit ("updateMandateNonUKClient", ac, m)
+              // $COVERAGE-ON$
+            case _ => throw new RuntimeException ("Mandate not updated for non-uk")
+        }
       }
-
     }
 
-  }
+    def getMandateStatus(mfs: MandateFetchStatus): Mandate = {mfs match {
+        case MandateFetched(mandate) => mandate
+        case _ => throw new RuntimeException("No existing non-uk mandate details found for mandate id")
+      }
+    }
+
 }
 
 object MandateCreateService extends MandateCreateService {
