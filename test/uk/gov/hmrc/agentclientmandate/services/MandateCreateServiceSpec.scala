@@ -471,8 +471,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name", mandateRef = Some("B3671590"))
-        val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto))
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        val thrown = the [RuntimeException] thrownBy  await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto))
+        thrown.getMessage must include("Mandate not updated for non-uk")
       }
     }
   }
