@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -245,7 +245,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto)
+        val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
@@ -294,8 +294,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto)
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        an [RuntimeException] should be thrownBy  await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
       }
 
     }
@@ -352,9 +351,10 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           agentEmail = "bb@mail.com",
           clientDisplayName = "client display name",
           mandateRef = Some("B3671590"))
-        val result = TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto)
 
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
+
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {
@@ -471,8 +471,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name", mandateRef = Some("B3671590"))
-        val result = TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto)
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        val thrown = the [RuntimeException] thrownBy  await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto))
+        thrown.getMessage must include("Mandate not updated for non-uk")
       }
     }
   }

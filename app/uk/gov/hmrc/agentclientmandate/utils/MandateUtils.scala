@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
+import javax.xml.parsers.SAXParserFactory
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship, Mandate, Status}
 import uk.gov.hmrc.http.HttpResponse
 
@@ -32,7 +33,16 @@ object MandateUtils {
   def whetherSelfAuthorised(m: Mandate): Boolean = !m.statusHistory.exists(_.status == Status.Approved) //does not have a status approved
 
   def parseErrorResp(resp: HttpResponse): String = {
-    val msgToXml = scala.xml.XML.loadString(resp.body)
+    val msgToXml = scala.xml.XML.withSAXParser(secureSAXParser).loadString(resp.body)
     (msgToXml \\ "ErrorNumber").text
   }
+
+  def secureSAXParser = {
+    val saxParserFactory = SAXParserFactory.newInstance()
+    saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false)
+    saxParserFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+    saxParserFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+    saxParserFactory.newSAXParser()
+  }
+
 }
