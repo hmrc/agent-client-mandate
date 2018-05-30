@@ -246,7 +246,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
         val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
@@ -294,8 +294,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        an [RuntimeException] should be thrownBy  await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
       }
 
     }
@@ -352,6 +351,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           agentEmail = "bb@mail.com",
           clientDisplayName = "client display name",
           mandateRef = Some("B3671590"))
+        
+
         val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
 
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
@@ -471,8 +472,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name", mandateRef = Some("B3671590"))
-        val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto))
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        val thrown = the [RuntimeException] thrownBy  await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto))
+        thrown.getMessage must include("Mandate not updated for non-uk")
       }
     }
   }

@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
+import javax.xml.parsers.SAXParserFactory
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship, Mandate, Status}
 import uk.gov.hmrc.http.HttpResponse
 
@@ -32,7 +33,7 @@ object MandateUtils {
   def whetherSelfAuthorised(m: Mandate): Boolean = !m.statusHistory.exists(_.status == Status.Approved) //does not have a status approved
 
   def parseErrorResp(resp: HttpResponse): String = {
-    val msgToXml = scala.xml.XML.loadString(resp.body)
+    val msgToXml = scala.xml.XML.withSAXParser(secureSAXParser).loadString(resp.body)
     (msgToXml \\ "ErrorNumber").text
   }
 
@@ -40,4 +41,12 @@ object MandateUtils {
     if(str.contains("testGroupId-")) str.replace("testGroupId-", "")
     else throw new RuntimeException("Invalid groupId from auth")
   } else str.trim
+
+def secureSAXParser = {
+    val saxParserFactory = SAXParserFactory.newInstance()
+    saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false)
+    saxParserFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+    saxParserFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+    saxParserFactory.newSAXParser()
+  }
 }
