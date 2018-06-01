@@ -65,12 +65,14 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     }
   }
 
-  def deAllocateAgent(groupId: String, clientId: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =   {
+  def deAllocateAgent(groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =   {
 
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey"""
+    val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
 
+    Logger.debug("***In Deallocate agent url: "+ enrolmentKey)
     val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
+
     http.DELETE[HttpResponse](deleteUrl).map({ response =>
         timerContext.stop()
         response.status match {

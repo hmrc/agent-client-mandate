@@ -90,6 +90,7 @@ trait RelationshipService extends AuthorisedFunctions {
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
           "credId" -> credId,
+          "groupId" -> groupId,
           "token" -> hc.token.get.value,
           "authorization" -> hc.authorization.get.value,
           "userType" -> userType))

@@ -98,7 +98,9 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
             // $COVERAGE-ON$
           }
         } else {
-          Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("credId")), 120 seconds)) match {
+          Logger.debug("*****Running deallocate agent")
+          Logger.debug("**ARGS === " + args.toString())
+          Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("credId"), args("agentCode")), 120 seconds)) match {
             case Success(resp) =>
               resp.status match {
                 case NO_CONTENT =>
@@ -112,7 +114,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
             case Failure(ex) =>
               // $COVERAGE-OFF$
               Logger.warn(s"[DeActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
-              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+              Failure(new Exception("Tax Enrolment call failed, status: " + ex.getMessage))
             // $COVERAGE-ON$
           }
         }
