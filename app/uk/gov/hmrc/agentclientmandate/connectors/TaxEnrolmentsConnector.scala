@@ -96,7 +96,7 @@ object TaxEnrolmentConnector extends TaxEnrolmentConnector {
   // $COVERAGE-OFF$
   val http: CoreDelete with CorePost = WSHttp
   val metrics = Metrics
-  val serviceUrl = baseUrl("enrolment-store-proxy")
-  val enrolmentUrl = s"$serviceUrl/enrolment-store-proxy/enrolment-store"
+  val serviceUrl = baseUrl("tax-enrolments")
+  val enrolmentUrl = s"$serviceUrl/tax-enrolments"
   // $COVERAGE-ON$
 }
