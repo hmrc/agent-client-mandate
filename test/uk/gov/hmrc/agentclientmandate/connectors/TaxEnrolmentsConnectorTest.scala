@@ -65,7 +65,7 @@ class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with Mo
     "delete allocation" in {
       when(mockWSHttp.DELETE[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
-        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232"))
+        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
       result.status mustBe NO_CONTENT
     }
   }
