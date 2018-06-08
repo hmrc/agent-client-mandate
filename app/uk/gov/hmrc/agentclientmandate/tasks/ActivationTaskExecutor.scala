@@ -52,24 +52,12 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
   override def execute(signal: Signal): Try[Signal] = {
 
-
-
     implicit val hc = createHeaderCarrier(signal)
 
     signal match {
       case Start(args) => {
-        val request = createRelationship(args("clientId"), args("agentPartyId"))
-        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
-        result.status match {
-          case OK =>
-            Success(Next("gg-proxy-activation", args))
-          case _ => {
-            Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
-            Failure(new Exception("ETMP call failed, status: " + result.status))
-          }
-        }
+        start(args)
       }
-
       case Next("gg-proxy-activation", args) => {
         if (isGGEnabled) {
           enrolGG(args)
@@ -78,38 +66,7 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
       case Next("finalize-activation", args) => {
-        val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
-        fetchResult match {
-          case MandateFetched(mandate) => {
-            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
-            val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
-            updateResult match {
-              case MandateUpdated(m) => {
-                val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
-                else (m.clientParty.map(_.contactDetails.email).getOrElse(""), None)
-                val service = m.subscription.service.id
-                Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active, userType = receiverParty._2, service = service)) match {
-                  case Success(v) =>
-                    doAudit("emailSent", args("agentCode"), m)
-                  case Failure(reason) =>
-                    // $COVERAGE-OFF$
-                    doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Active} service::$service", reason.getMessage)
-                  // $COVERAGE-ON$
-                }
-                doAudit("activated", args("agentCode"), m)
-                Success(Finish)
-              }
-              case MandateUpdateError => {
-                Logger.warn(s"[ActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
-                Failure(new Exception("Could not update mandate to activate"))
-              }
-            }
-          }
-          case MandateNotFound => {
-            Logger.warn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
-            Failure(new Exception("Could not find mandate to activate"))
-          }
-        }
+          finalize(args)
       }
     }
   }
@@ -209,6 +166,54 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
         Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
         Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
       // $COVERAGE-ON$
+    }
+  }
+
+  private def finalize(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
+    fetchResult match {
+      case MandateFetched(mandate) => {
+        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
+        val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
+        updateResult match {
+          case MandateUpdated(m) => {
+            val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
+            else (m.clientParty.map(_.contactDetails.email).getOrElse(""), None)
+            val service = m.subscription.service.id
+            Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active, userType = receiverParty._2, service = service)) match {
+              case Success(v) =>
+                doAudit("emailSent", args("agentCode"), m)
+              case Failure(reason) =>
+                // $COVERAGE-OFF$
+                doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Active} service::$service", reason.getMessage)
+              // $COVERAGE-ON$
+            }
+            doAudit("activated", args("agentCode"), m)
+            Success(Finish)
+          }
+          case MandateUpdateError => {
+            Logger.warn(s"[ActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
+            Failure(new Exception("Could not update mandate to activate"))
+          }
+        }
+      }
+      case MandateNotFound => {
+        Logger.warn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
+        Failure(new Exception("Could not find mandate to activate"))
+      }
+    }
+  }
+
+  private def start(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    val request = createRelationship(args("clientId"), args("agentPartyId"))
+    val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
+    result.status match {
+      case OK =>
+        Success(Next("gg-proxy-activation", args))
+      case _ => {
+        Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
+        Failure(new Exception("ETMP call failed, status: " + result.status))
+      }
     }
   }
 }
