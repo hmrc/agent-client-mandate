@@ -45,7 +45,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
   val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
-  val isGGEnabled: Boolean = FeatureSwitch.isEnabled("allocation.usingGG")
+  val isGGEnabled: Boolean = FeatureSwitch.isEnabled("deallocation.usingGG")
 
   override val metrics: Metrics = Metrics
 
@@ -61,15 +61,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
 
     signal match {
       case Start(args) => {
-        val request = breakRelationship(args("clientId"), args("agentPartyId"))
-        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
-        result.status match {
-          case OK => Success(Next("gg-proxy-deactivation", args))
-          case _ => {
-            Logger.warn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
-            Failure(new Exception("ETMP call failed, status: " + result.status))
-          }
-        }
+        start(args)
       }
       case Next("gg-proxy-deactivation", args) => {
         if (isGGEnabled) {
@@ -79,51 +71,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         }
       }
       case Next("finalize-deactivation", args) => {
-        val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
-        fetchResult match {
-          case MandateFetched(mandate) => {
-            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Cancelled, DateTime.now, args("credId")))
-            val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
-            updateResult match {
-              case MandateUpdated(m) => {
-                val service = m.subscription.service.id
-                args("userType") match {
-                  case "agent" =>
-                    val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
-                    else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
-                    Try(emailNotificationService.sendMail(receiverParty._1, models.Status.Cancelled, receiverParty._2, service)) match {
-                      case Success(v) =>
-                        doAudit("emailSent", args("agentCode"), m)
-                      case Failure(reason) =>
-                        // $COVERAGE-OFF$
-                        doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
-                      // $COVERAGE-ON$
-                    }
-                  case _ =>
-                    val agentEmail = m.agentParty.contactDetails.email
-                    Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))) match {
-                      case Success(v) =>
-                        doAudit("emailSent", args("agentCode"), m)
-                      case Failure(reason) =>
-                        // $COVERAGE-OFF$
-                        doFailedAudit("emailSentFailed", s"agent email::$agentEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
-                      // $COVERAGE-ON$
-                    }
-                }
-                doAudit("removed", args("agentCode"), m)
-                Success(Finish)
-              }
-              case MandateUpdateError => {
-                Logger.warn(s"[DeActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
-                Failure(new Exception("Could not update mandate to activate"))
-              }
-            }
-          }
-          case MandateNotFound => {
-            Logger.warn(s"[DeActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
-            Failure(new Exception("Could not find mandate to activate"))
-          }
-        }
+        finalize(args)
       }
     }
   }
@@ -163,7 +111,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
     Logger.error("[DeActivationTaskExecutor] Rollback action failed")
   }
 
-  def UnEnrolGG(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+  private def UnEnrolGG(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
     val request = GsoAdminDeallocateAgentXmlInput(
       List(Identifier(args("serviceIdentifier"), args("clientId"))),
       args("agentCode"), AtedServiceContractName)
@@ -190,7 +138,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
     }
   }
 
-  def UnEnrolTaxEnrolments(args: Map[String, String])(implicit hc : HeaderCarrier): Try[Signal] = {
+  private def UnEnrolTaxEnrolments(args: Map[String, String])(implicit hc : HeaderCarrier): Try[Signal] = {
     Logger.debug("*****Running deallocate agent")
     Logger.debug("**ARGS === " + args.toString())
     Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("credId"), args("agentCode")), 120 seconds)) match {
@@ -209,6 +157,67 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
         Logger.warn(s"[DeActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
         Failure(new Exception("Tax Enrolment call failed, status: " + ex.getMessage))
       // $COVERAGE-ON$
+    }
+  }
+
+  private def finalize(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
+    fetchResult match {
+      case MandateFetched(mandate) => {
+        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Cancelled, DateTime.now, args("credId")))
+        val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
+        updateResult match {
+          case MandateUpdated(m) => {
+            val service = m.subscription.service.id
+            args("userType") match {
+              case "agent" =>
+                val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
+                else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
+                Try(emailNotificationService.sendMail(receiverParty._1, models.Status.Cancelled, receiverParty._2, service)) match {
+                  case Success(v) =>
+                    doAudit("emailSent", args("agentCode"), m)
+                  case Failure(reason) =>
+                    // $COVERAGE-OFF$
+                    doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
+                  // $COVERAGE-ON$
+                }
+              case _ =>
+                val agentEmail = m.agentParty.contactDetails.email
+                Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))) match {
+                  case Success(v) =>
+                    doAudit("emailSent", args("agentCode"), m)
+                  case Failure(reason) =>
+                    // $COVERAGE-OFF$
+                    doFailedAudit("emailSentFailed", s"agent email::$agentEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
+                  // $COVERAGE-ON$
+                }
+            }
+            doAudit("removed", args("agentCode"), m)
+            Success(Finish)
+          }
+          case MandateUpdateError => {
+            Logger.warn(s"[DeActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
+            Failure(new Exception("Could not update mandate to activate"))
+          }
+        }
+      }
+      case MandateNotFound => {
+        Logger.warn(s"[DeActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
+        Failure(new Exception("Could not find mandate to activate"))
+      }
+    }
+
+  }
+
+  private def start(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    val request = breakRelationship(args("clientId"), args("agentPartyId"))
+    val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
+    result.status match {
+      case OK => Success(Next("gg-proxy-deactivation", args))
+      case _ => {
+        Logger.warn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
+        Failure(new Exception("ETMP call failed, status: " + result.status))
+      }
     }
   }
 }

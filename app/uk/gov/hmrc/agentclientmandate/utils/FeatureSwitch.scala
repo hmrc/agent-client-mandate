@@ -59,11 +59,3 @@ object FeatureSwitch extends RunMode {
   implicit val format = Json.format[FeatureSwitch]
 }
 
-object BusinessCustomerFeatureSwitches {
-
-  def byName(name: String): Option[FeatureSwitch] = name match {
-    case _ => None
-  }
-
-}
-
