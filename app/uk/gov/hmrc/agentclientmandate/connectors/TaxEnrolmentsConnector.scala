@@ -56,11 +56,11 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
         case CREATED =>
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
           response
-        case status =>
+        case _ =>
           Logger.warn("allocateAgent failed")
           metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
           doFailedAudit("allocateAgentFailed", jsonData.toString, response.body)
-          response //TODO: Do we have process this response in some way
+          response
       }
     }
   }

@@ -118,8 +118,6 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   object TestRelationshipService extends RelationshipService {
     override val metrics = Metrics
     override val authConnector = mockAuthConnector
-    //override val taskController: TaskControllerT = tc1mock
-
   }
 
 }

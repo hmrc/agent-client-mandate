@@ -72,58 +72,9 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
       case Next("gg-proxy-activation", args) => {
         if (isGGEnabled) {
-          val request = GsoAdminAllocateAgentXmlInput(
-            List(Identifier(args("serviceIdentifier"), args("clientId"))),
-            args("agentCode"), AtedServiceContractName)
-          Try(Await.result(ggProxyConnector.allocateAgent(request), 120 seconds)) match {
-            case Success(resp) =>
-              resp.status match {
-                case OK =>
-                  Logger.debug("****DB***** " + "Ok is returned")
-                  metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-                  Success(Next("finalize-activation", args))
-                case INTERNAL_SERVER_ERROR if parseErrorResp(resp) == "7004" =>
-                  Logger.debug("****DB***** " + "Internal server error")
-                  // this error means GG already has a relationship for this client
-                  metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-                  Success(Next("finalize-activation", args))
-                case _ =>
-                  Logger.debug("****DB***** " + "Warn returned")
-                  Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
-                  metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
-                  Failure(new Exception("GG Proxy call failed, status: " + resp.status))
-              }
-            case Failure(ex) =>
-              // $COVERAGE-OFF$
-              Logger.debug("****DB***** " + "Failure")
-              Logger.warn(s"[ActivationTaskExecutor] exception while calling allocateAgent :: ${ex.getMessage}")
-              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
-            // $COVERAGE-ON$
-          }
+          enrolGG(args)
         } else {
-          Logger.debug("****TX***** " + " client id " + args("clientId").toString)
-          Logger.debug("****TX***** " + " group id " + args.getOrElse("groupId","NotFound"))
-          Logger.debug("*TX* - HEader Carriers " + hc.toString)
-          Try(Await.result(taxEnrolmentConnector.allocateAgent(NewEnrolment(args("credId")),args("groupId"),args("clientId"),args("agentCode")), 120 seconds)) match {
-            case Success(resp) =>
-              resp.status match {
-                case CREATED =>
-                  Logger.debug("****DB***** " + " tax created returned")
-                  metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
-                  Success(Next("finalize-activation", args))
-                case _ =>
-                  Logger.debug("****DB***** " + " tax Warn returned")
-                  Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
-                  metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
-                  Failure(new Exception("GG Proxy call failed, status: " + resp.status))
-              }
-            case Failure(ex) =>
-              // $COVERAGE-OFF$
-              Logger.debug("****TX***** " + " tax failure returned " + ex.getMessage)
-              Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
-              Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
-            // $COVERAGE-ON$
-          }
+          enrolTaxEnrolments(args)
         }
       }
       case Next("finalize-activation", args) => {
@@ -202,5 +153,62 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
     new HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))),
       token = Some(Token(signal.args.getOrElse("token", "dummy token"))),
       userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
+  }
+
+  private def enrolGG(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    val request = GsoAdminAllocateAgentXmlInput(
+      List(Identifier(args("serviceIdentifier"), args("clientId"))),
+      args("agentCode"), AtedServiceContractName)
+    Try(Await.result(ggProxyConnector.allocateAgent(request), 120 seconds)) match {
+      case Success(resp) =>
+        resp.status match {
+          case OK =>
+            Logger.debug("****DB***** " + "Ok is returned")
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+            Success(Next("finalize-activation", args))
+          case INTERNAL_SERVER_ERROR if parseErrorResp(resp) == "7004" =>
+            Logger.debug("****DB***** " + "Internal server error")
+            // this error means GG already has a relationship for this client
+            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
+            Success(Next("finalize-activation", args))
+          case _ =>
+            Logger.debug("****DB***** " + "Warn returned")
+            Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+            metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
+            Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+        }
+      case Failure(ex) =>
+        // $COVERAGE-OFF$
+        Logger.debug("****DB***** " + "Failure")
+        Logger.warn(s"[ActivationTaskExecutor] exception while calling allocateAgent :: ${ex.getMessage}")
+        Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+      // $COVERAGE-ON$
+    }
+  }
+
+  private def enrolTaxEnrolments(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    Logger.debug("****TX***** " + " client id " + args("clientId").toString)
+    Logger.debug("****TX***** " + " group id " + args.getOrElse("groupId","NotFound"))
+    Logger.debug("*TX* - HEader Carriers " + hc.toString)
+    Try(Await.result(taxEnrolmentConnector.allocateAgent(NewEnrolment(args("credId")),args("groupId"),args("clientId"),args("agentCode")), 120 seconds)) match {
+      case Success(resp) =>
+        resp.status match {
+          case CREATED =>
+            Logger.debug("****DB***** " + " tax created returned")
+            metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
+            Success(Next("finalize-activation", args))
+          case _ =>
+            Logger.debug("****DB***** " + " tax Warn returned")
+            Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+            metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
+            Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+        }
+      case Failure(ex) =>
+        // $COVERAGE-OFF$
+        Logger.debug("****TX***** " + " tax failure returned " + ex.getMessage)
+        Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+        Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
+      // $COVERAGE-ON$
+    }
   }
 }
