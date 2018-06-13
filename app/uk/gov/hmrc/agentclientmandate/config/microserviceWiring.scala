@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.config
 
+import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.auth.microservice.connectors.AuthConnector
@@ -35,4 +36,9 @@ object MicroserviceAuditConnector extends AuditConnector with RunMode {
 
 object MicroserviceAuthConnector extends AuthConnector with ServicesConfig with WSHttp {
   override val authBaseUrl = baseUrl("auth")
+}
+
+object AuthClientConnector extends PlayAuthConnector with ServicesConfig {
+  val serviceUrl: String = baseUrl("auth")
+  lazy val http = WSHttp
 }

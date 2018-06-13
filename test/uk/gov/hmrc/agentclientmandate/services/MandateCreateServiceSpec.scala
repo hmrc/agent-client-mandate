@@ -351,6 +351,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           agentEmail = "bb@mail.com",
           clientDisplayName = "client display name",
           mandateRef = Some("B3671590"))
+        
 
         val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
 

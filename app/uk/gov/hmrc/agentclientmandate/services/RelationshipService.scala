@@ -16,36 +16,36 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import play.api.http.Status._
+import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
+import uk.gov.hmrc.agentclientmandate.config.AuthClientConnector
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
+import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
+import uk.gov.hmrc.auth.core.retrieve.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.tasks._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import akka.actor.ActorSystem
-import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
-import uk.gov.hmrc.http.{ BadRequestException, HeaderCarrier }
 // $COVERAGE-OFF$
-trait RelationshipService {
-
-  def authConnector: AuthConnector
+trait RelationshipService extends AuthorisedFunctions {
 
   def metrics: Metrics
 
   def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Unit = {
-
+    Logger.warn("*****HC*** RELATIONSHIP"+hc.toString)
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
-      val credId = getCredId()
 
       for {
-        updatedBy <- credId
+        (groupId, credId) <- getUserAuthDetails
       } yield {
         //Then do this each time a 'create' needs to be done
         val task = Task("create", Map("clientId" -> clientId,
@@ -53,7 +53,11 @@ trait RelationshipService {
           "serviceIdentifier" -> identifier,
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
-          "credId" -> updatedBy))
+          "credId" -> credId,
+          "groupId" -> groupId,
+          "token" -> hc.token.get.value,
+          "authorization" -> hc.authorization.get.value)
+        )
         //execute asynchronously
         TaskController.execute(task)
       }
@@ -64,14 +68,15 @@ trait RelationshipService {
 
   def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier): Unit = {
 
+    Logger.warn("*****HC*** RELATIONSHIP"+hc.toString)
+
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
       val clientId = mandate.subscription.referenceNumber.getOrElse("")
-      val credId = getCredId()
 
       for {
-        updatedBy <- credId
+        (groupId, credId) <- getUserAuthDetails
       } yield {
         //Then do this each time a 'break' needs to be done
         val task = Task("break", Map("clientId" -> clientId,
@@ -79,7 +84,10 @@ trait RelationshipService {
           "serviceIdentifier" -> identifier,
           "agentCode" -> agentCode,
           "mandateId" -> mandate.id,
-          "credId" -> updatedBy,
+          "credId" -> credId,
+          "groupId" -> groupId,
+          "token" -> hc.token.get.value,
+          "authorization" -> hc.authorization.get.value,
           "userType" -> userType))
         //execute asynchronously
         TaskController.execute(task)
@@ -89,9 +97,10 @@ trait RelationshipService {
     }
   }
 
-  private def getCredId()(implicit hc: HeaderCarrier): Future[String] = {
-      authConnector.getAuthority() map { authority =>
-      (authority \ "credentials" \ "gatewayId").as[String]
+  private def getUserAuthDetails(implicit hc: HeaderCarrier): Future[(String, String)] = {
+    authorised().retrieve(credentials and groupIdentifier) {
+      case Credentials(ggCredId, _) ~ Some(groupId) => Future.successful(MandateUtils.validateGroupId(groupId), ggCredId)
+      case _ => throw new RuntimeException("No details found for the agent!")
     }
   }
 
@@ -99,9 +108,7 @@ trait RelationshipService {
 
 object RelationshipService extends RelationshipService {
  
-  val authConnector: AuthConnector = AuthConnector
-  //val taskController: TaskControllerT = TaskController
-
+  val authConnector: AuthConnector = AuthClientConnector
   val metrics = Metrics
 
   TaskController.setupExecutor(TaskConfig("create", classOf[ActivationTaskExecutor], 5, RetryUptoCount(10, true)))

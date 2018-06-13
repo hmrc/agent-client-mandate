@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.metrics
 import com.codahale.metrics.Timer
 import com.codahale.metrics.Timer.Context
 import com.kenshoo.play.metrics.MetricsRegistry
+import uk.gov.hmrc.agentclientmandate.metrics
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum.MetricsEnum
 import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
@@ -37,6 +38,7 @@ trait Metrics {
 object Metrics extends Metrics with MicroserviceMetrics{
   val registry = metrics.defaultRegistry
   val timers = Map(
+    MetricsEnum.GGAdminAddKnownFacts -> registry.timer("gga-add-known-facts-agent-response-timer"),
     MetricsEnum.EtmpGetDetails -> registry.timer("etmp-get-details-response-timer"),
     MetricsEnum.MaintainAtedRelationship -> registry.timer("etmp-maintain-ated-relationship-response-timer"),
     MetricsEnum.AtedSubscriptionDetails -> registry.timer("etmp-ated-subscription-details-response-timer"),
@@ -52,24 +54,32 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.RepositoryFindOldMandates -> registry.timer("repository-find-old-mandates-timer"),
     MetricsEnum.RepositoryClientCancelledMandates -> registry.timer("repository-find-client-cancelled-timer"),
     MetricsEnum.GGProxyAllocate -> registry.timer("gg-proxy-allocate-response-timer"),
-    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer")
+    MetricsEnum.GGProxyDeallocate -> registry.timer("gg-proxy-deallocate-response-timer"),
+    MetricsEnum.TaxEnrolmentAllocate -> registry.timer("tax-enrolment-allocate-response-timer"),
+    MetricsEnum.TaxEnrolmentDeallocate -> registry.timer("tax-enrolment-deallocate-response-timer")
   )
 
   val successCounters = Map(
+    MetricsEnum.GGAdminAddKnownFacts -> registry.counter("gga-add-known-facts-agent-success-counter"),
     MetricsEnum.EtmpGetDetails -> registry.counter("etmp-get-details-success-counter"),
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-success-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-success-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-success-counter"),
-    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-success-counter")
+    MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-success-counter"),
+    MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-success-counter"),
+    MetricsEnum.TaxEnrolmentDeallocate -> registry.counter("tax-enrolment-deallocate-success-counter")
   )
 
   val failedCounters = Map(
+    MetricsEnum.GGAdminAddKnownFacts -> registry.counter("gga-add-known-facts-agent-failed-counter"),
     MetricsEnum.EtmpGetDetails -> registry.counter("etmp-get-details-failed-counter"),
     MetricsEnum.MaintainAtedRelationship -> registry.counter("etmp-maintain-ated-relationship-failed-counter"),
     MetricsEnum.AtedSubscriptionDetails -> registry.counter("etmp-ated-subscription-details-failed-counter"),
     MetricsEnum.GGProxyAllocate -> registry.counter("gg-proxy-allocate-failed-counter"),
     MetricsEnum.GGProxyDeallocate -> registry.counter("gg-proxy-deallocate-failed-counter"),
-    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-counter")
+    MetricsEnum.StageStartSignalFailed -> registry.counter("stage-start-signal-failure-retry-counter"),
+    MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-failed-counter"),
+    MetricsEnum.TaxEnrolmentDeallocate -> registry.counter("tax-enrolment-deallocate-failed-counter")
   )
 
   override def startTimer(api: MetricsEnum): Context = timers(api).time()

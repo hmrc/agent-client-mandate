@@ -25,4 +25,7 @@ object MandateConstants {
 
   val AtedServiceContractName = "HMRC-ATED-ORG"
 
+  val AtedIdentifier = "ATEDRefNumber"
+  val AtedServiceName = "ATED"
+
 }

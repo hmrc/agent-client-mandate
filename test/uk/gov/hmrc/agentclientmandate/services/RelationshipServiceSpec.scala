@@ -17,24 +17,20 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.Matchers._
 import org.scalatest._
 import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
-import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig.identifiers
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector, GovernmentGatewayProxyConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.Metrics
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
-import uk.gov.hmrc.tasks._
-
-import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.tasks._
+import uk.gov.hmrc.agentclientmandate.config.AuthClientConnector
+import uk.gov.hmrc.auth.core.AuthConnector
 
 class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -121,9 +117,7 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
   object TestRelationshipService extends RelationshipService {
     override val metrics = Metrics
-    override def authConnector: AuthConnector = mockAuthConnector
-    //override val taskController: TaskControllerT = tc1mock
-
+    override val authConnector = mockAuthConnector
   }
 
 }
