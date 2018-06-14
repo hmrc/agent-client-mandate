@@ -39,12 +39,12 @@ import uk.gov.hmrc.http.logging.Authorization
 class DeActivationTaskExecutor extends TaskExecutor with Auditable {
 
   val etmpConnector: EtmpConnector = EtmpConnector
+  val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
   val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
   val updateService: MandateUpdateService = MandateUpdateService
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
   val mandateRepository: MandateRepository = MandateRepository()
-  val taxEnrolmentConnector: TaxEnrolmentConnector = TaxEnrolmentConnector
   val isGGEnabled: Boolean = FeatureSwitch.isEnabled("deallocation.usingGG")
 
   override val metrics: Metrics = Metrics
@@ -150,7 +150,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
           case _ =>
             Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
             metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
-            Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+            Failure(new Exception("Tax Enrolment call failed, status: " + resp.status))
         }
       case Failure(ex) =>
         // $COVERAGE-OFF$

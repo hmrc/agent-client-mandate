@@ -65,5 +65,23 @@ class MandateUtilsSpec extends PlaySpec {
         result must be ("9005")
       }
     }
+
+    "validate groupid" when {
+      "remove testGroup string " in {
+        val testGroupId = "testGroupId-42424200-0000-0000-0000-000000000000"
+        MandateUtils.validateGroupId(testGroupId) must be ("42424200-0000-0000-0000-000000000000")
+      }
+
+      "trim a long string" in {
+        val paddedGroupId = "42424200-0000-0000-0000-000000000000   "
+        MandateUtils.validateGroupId(paddedGroupId) must be ("42424200-0000-0000-0000-000000000000")
+      }
+
+      "Throws an exception with an invalid string" in {
+        val invalidGroupId = "42424200-0000-0000-0000"
+        intercept[RuntimeException] {MandateUtils.validateGroupId(invalidGroupId)}
+      }
+
+    }
   }
 }
