@@ -31,7 +31,7 @@ import play.api.test._
 
 import scala.concurrent.Future
 
-class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   trait MockedVerbs extends  CoreDelete with CorePost
   val mockWSHttp: CoreDelete with CorePost = mock[MockedVerbs]
@@ -62,11 +62,26 @@ class TaxEnrolmentsConnectorTest extends PlaySpec with OneServerPerSuite with Mo
       result.status mustBe CREATED
     }
 
+    "create allocation error code" in {
+      val enrolment = NewEnrolment("08123891238127")
+     when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
+      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232","JAX023938"))
+      result.status mustBe INTERNAL_SERVER_ERROR
+    }
+
     "delete allocation" in {
       when(mockWSHttp.DELETE[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
         val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
       result.status mustBe NO_CONTENT
+    }
+
+    "delete allocation error code" in {
+      when(mockWSHttp.DELETE[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
+        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
+      result.status mustBe INTERNAL_SERVER_ERROR
     }
   }
 

@@ -35,6 +35,7 @@ import uk.gov.hmrc.tasks._
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.tasks
 
 
 class ActivationTaskExecutorMock(override val etmpConnector: EtmpConnector, override val ggProxyConnector: GovernmentGatewayProxyConnector,
@@ -131,10 +132,6 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "execute and move to 'finalize' step GG Proxy" when {
 
       "signal is Next('gg-proxy-activation', args)" in {
-
-
-
-
           when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
@@ -167,6 +164,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId",
           "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
       }
+
     }
 
     "execute and FINISH" when {
@@ -310,6 +308,18 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
     }
 
+    "Error condition taxenrolments " when {
+      "Return StageFailure when tax enrolments returns status other than CREATED" in {
+
+          when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any(),Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
+
+          val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, false))
+
+          actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
+
+          assert(expectMsgType[TaskCommand].status.isInstanceOf[StageFailed])
+        }
+    }
   }
 
 }

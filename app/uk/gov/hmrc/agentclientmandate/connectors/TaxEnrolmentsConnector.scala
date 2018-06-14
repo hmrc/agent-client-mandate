@@ -55,13 +55,12 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
       response.status match {
         case CREATED =>
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
-          response
         case _ =>
           Logger.warn("allocateAgent failed")
           metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
           doFailedAudit("allocateAgentFailed", jsonData.toString, response.body)
-          response
       }
+      response
     }
   }
 
@@ -78,14 +77,13 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
         response.status match {
           case NO_CONTENT =>
             metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
-            response
           case status =>
             Logger.warn("deAllocateAgent failed")
             metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
             doFailedAudit("deAllocateAgentFailed",s"$groupId-$clientId", response.body)
-            response
         }
-      })
+        response
+    })
   }
 
 }
