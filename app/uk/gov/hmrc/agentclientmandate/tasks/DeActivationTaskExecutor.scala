@@ -150,7 +150,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
           case _ =>
             Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
             metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
-            Failure(new Exception("GG Proxy call failed, status: " + resp.status))
+            Failure(new Exception("Tax Enrolment call failed, status: " + resp.status))
         }
       case Failure(ex) =>
         // $COVERAGE-OFF$
