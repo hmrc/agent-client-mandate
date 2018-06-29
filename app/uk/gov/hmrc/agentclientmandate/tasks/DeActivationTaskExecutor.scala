@@ -141,7 +141,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
   private def UnEnrolTaxEnrolments(args: Map[String, String])(implicit hc : HeaderCarrier): Try[Signal] = {
     Logger.debug("*****Running deallocate agent")
     Logger.debug("**ARGS === " + args.toString())
-    Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("credId"), args("agentCode")), 120 seconds)) match {
+    Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("clientId"), args("agentCode")), 120 seconds)) match {
       case Success(resp) =>
         resp.status match {
           case NO_CONTENT =>
