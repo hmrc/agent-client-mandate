@@ -43,12 +43,10 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
 
   def allocateAgent(input: NewEnrolment, groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
-    Logger.debug("****DB*****"+" calling allocate enrolment")
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
     val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
     val jsonData = Json.toJson(input)
 
-    Logger.debug("******TX***** the post string is " + postUrl)
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentAllocate)
     http.POST[JsValue, HttpResponse](postUrl, jsonData) map { response =>
       timerContext.stop()
@@ -69,7 +67,6 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
     val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
 
-    Logger.debug("***In Deallocate agent url: "+ enrolmentKey)
     val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
 
     http.DELETE[HttpResponse](deleteUrl).map({ response =>
