@@ -38,7 +38,6 @@ trait RelationshipService extends AuthorisedFunctions {
   def metrics: Metrics
 
   def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Unit = {
-    Logger.warn("*****HC*** RELATIONSHIP"+hc.toString)
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
@@ -67,9 +66,6 @@ trait RelationshipService extends AuthorisedFunctions {
   }
 
   def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier): Unit = {
-
-    Logger.warn("*****HC*** RELATIONSHIP"+hc.toString)
-
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")

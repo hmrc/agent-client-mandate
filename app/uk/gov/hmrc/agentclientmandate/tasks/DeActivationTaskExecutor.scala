@@ -139,8 +139,6 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
   }
 
   private def UnEnrolTaxEnrolments(args: Map[String, String])(implicit hc : HeaderCarrier): Try[Signal] = {
-    Logger.debug("*****Running deallocate agent")
-    Logger.debug("**ARGS === " + args.toString())
     Try(Await.result(taxEnrolmentConnector.deAllocateAgent(args("groupId"), args("clientId"), args("agentCode")), 120 seconds)) match {
       case Success(resp) =>
         resp.status match {
@@ -148,7 +146,7 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
             metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
             Success(Next("finalize-deactivation", args))
           case _ =>
-            Logger.warn(s"[DeActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+            Logger.warn(s"[DeActivationTaskExecutor] - call to tax-enrolments failed with status ${resp.status} for mandate reference::${args("mandateId")}")
             metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
             Failure(new Exception("Tax Enrolment call failed, status: " + resp.status))
         }
