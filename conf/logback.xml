@@ -50,13 +50,13 @@
 
     <logger name="com.google.inject" level="INFO"/>
 
-    <logger name="application" level="INFO"/>
+    <logger name="application" level="DEBUG"/>
 
     <logger name="connector" level="TRACE">
         <appender-ref ref="STDOUT"/>
     </logger>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="FILE"/>
         <appender-ref ref="STDOUT"/>
     </root>
