@@ -67,16 +67,16 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
     val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
 
-    val timerContext = metrics.startTimer(MetricsEnum.GGProxyDeallocate)
+    val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
 
     http.DELETE[HttpResponse](deleteUrl).map({ response =>
         timerContext.stop()
         response.status match {
           case NO_CONTENT =>
-            metrics.incrementSuccessCounter(MetricsEnum.GGProxyDeallocate)
+            metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
           case status =>
             Logger.warn("deAllocateAgent failed")
-            metrics.incrementFailedCounter(MetricsEnum.GGProxyDeallocate)
+            metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
             doFailedAudit("deAllocateAgentFailed",s"$groupId-$clientId", response.body)
         }
         response
