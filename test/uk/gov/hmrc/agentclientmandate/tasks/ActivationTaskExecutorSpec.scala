@@ -25,7 +25,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.play.OneServerPerSuite
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, GovernmentGatewayProxyConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, NotificationEmailService}
@@ -38,11 +38,10 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.tasks
 
 
-class ActivationTaskExecutorMock(override val etmpConnector: EtmpConnector, override val ggProxyConnector: GovernmentGatewayProxyConnector,
+class ActivationTaskExecutorMock(override val etmpConnector: EtmpConnector,
                                  override val fetchService: MandateFetchService, override val mandateRepository: MandateRepository,
                                  override val emailNotificationService: NotificationEmailService,
-                                 override val taxEnrolmentConnector: TaxEnrolmentConnector,
-                                 override val isGGEnabled: Boolean)
+                                 override val taxEnrolmentConnector: TaxEnrolmentConnector)
   extends ActivationTaskExecutor
 
 class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task")) with UnitSpec
@@ -53,7 +52,6 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
   lazy val phaseCommit = Phase.Commit
   lazy val phaseRollback = Phase.Rollback
 
-  val ggProxyMock = mock[GovernmentGatewayProxyConnector]
   val etmpMock = mock[EtmpConnector]
   val mockMandateFetchService = mock[MandateFetchService]
   val mockMandateRepository = mock[MandateRepository]
@@ -61,9 +59,9 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
   val taxEnrolmentMock = mock[TaxEnrolmentConnector]
 
   object ActivationTaskExecutorMock {
-    def props(etmpConnector: EtmpConnector, ggConnector: GovernmentGatewayProxyConnector, mandateFetchService: MandateFetchService,
-              mandateRepository: MandateRepository, emailNotificationService: NotificationEmailService, taxEnrolmentConnector: TaxEnrolmentConnector, isGGEnabled: Boolean) =
-      Props(classOf[ActivationTaskExecutorMock], etmpConnector, ggConnector, mandateFetchService, mandateRepository, emailNotificationService, taxEnrolmentConnector, isGGEnabled)
+    def props(etmpConnector: EtmpConnector, mandateFetchService: MandateFetchService,
+              mandateRepository: MandateRepository, emailNotificationService: NotificationEmailService, taxEnrolmentConnector: TaxEnrolmentConnector) =
+      Props(classOf[ActivationTaskExecutorMock], etmpConnector, mandateFetchService, mandateRepository, emailNotificationService, taxEnrolmentConnector)
   }
 
   lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
@@ -101,7 +99,6 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
 
   override def beforeEach(): Unit = {
-    reset(ggProxyMock)
     reset(etmpMock)
     reset(taxEnrolmentMock)
     reset(mockMandateFetchService)
@@ -122,34 +119,34 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is START" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(New(startSignal))
         expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
       }
     }
 
-    "execute and move to 'finalize' step GG Proxy" when {
-
-      "signal is Next('gg-proxy-activation', args)" in {
-          when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
-
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
-
-
-        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
-      }
-
-      "signal is Next('gg-proxy-activation', args) and gg returns error 7004" in {
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString=Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>7004</ErrorNumber><Message>The principal enrolments service does not allow allocations to more than one agent</Message><RequestID>BCC50A4B872440C38002A4C1FF613327</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
-
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
-
-        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
-      }
-    }
+//    "execute and move to 'finalize' step GG Proxy" when {
+//
+//      "signal is Next('gg-proxy-activation', args)" in {
+//          when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
+//
+//        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
+//
+//
+//        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
+//        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
+//      }
+//
+//      "signal is Next('gg-proxy-activation', args) and gg returns error 7004" in {
+//        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString=Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>7004</ErrorNumber><Message>The principal enrolments service does not allow allocations to more than one agent</Message><RequestID>BCC50A4B872440C38002A4C1FF613327</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
+//
+//        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
+//
+//        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
+//        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId"->"credId")), phaseCommit)))
+//      }
+//    }
 
     "execute and move to 'finalize' step Tax Enrolment" when {
       "signal is Next('gg-proxy-activation', args)" in {
@@ -157,7 +154,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any(),Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(CREATED))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, false))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
@@ -174,7 +171,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier"), phaseCommit)))
@@ -185,7 +182,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier"), phaseCommit)))
@@ -197,27 +194,27 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is START but the ETMP fails" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(New(startSignal))
         expectMsgType[TaskCommand]
       }
 
-      "signal is Next('gg-proxy', args) but the GG fails" in {
-        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString=Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>1</ErrorNumber><Message>The principal enrolments service does not allow allocations to more than one agent</Message><RequestID>BCC50A4B872440C38002A4C1FF613327</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
-
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
-
-        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-        expectMsgType[TaskCommand]
-      }
+//      "signal is Next('gg-proxy', args) but the GG fails" in {
+//        when(ggProxyMock.allocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString=Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>1</ErrorNumber><Message>The principal enrolments service does not allow allocations to more than one agent</Message><RequestID>BCC50A4B872440C38002A4C1FF613327</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
+//
+//        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+//
+//        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
+//        expectMsgType[TaskCommand]
+//      }
 
       "signal is Next('finalize', args) but no mandate is returned" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateNotFound))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsgType[TaskCommand]
@@ -228,7 +225,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
         when(mockEmailNotificationService.sendMail(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(EmailSent))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsgType[TaskCommand]
@@ -242,7 +239,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(Matchers.eq("client@mail.com"), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenThrow exception
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit))
         expectMsgType[TaskCommand]
@@ -255,7 +252,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(startSignal1, phaseRollback))
         expectMsg(TaskCommand(Complete(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","credId" -> "credId"), phaseRollback)))
@@ -265,7 +262,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "the signal is Next('gg-proxy-activation', args) and move to START signal" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback))
         expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId","groupId"->"groupId","credId" -> "credId")), phaseRollback)))
@@ -275,7 +272,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "the signal is Next('finalize', args) and move to Next('gg-proxy-activation', args) signal" in {
         when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseRollback))
         expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation",Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier")), phaseRollback)))
@@ -288,7 +285,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
       "rollback fails at START signal" in {
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(Failed(startSignal, phaseRollback))
         expectMsg(TaskCommand(RollbackFailureHandled(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))))
@@ -300,7 +297,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
       "rollback fails at Next('gg-proxy-activation', args signal" in {
 
-        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, true))
+        val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback))
 
@@ -313,7 +310,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
           when(taxEnrolmentMock.allocateAgent(Matchers.any(), Matchers.any(), Matchers.any(),Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
 
-          val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock, false))
+          val actorRef = system.actorOf(ActivationTaskExecutorMock.props(etmpMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService, taxEnrolmentMock))
 
           actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
 
