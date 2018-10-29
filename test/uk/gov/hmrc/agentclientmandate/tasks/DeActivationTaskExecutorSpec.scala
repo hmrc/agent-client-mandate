@@ -113,39 +113,6 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
   implicit val hc = HeaderCarrier()
 
   "DeActivationTaskExecutor" should {
-
-//    "execute and move to gg-proxy-deactivation allocation step" when {
-//      "signal is START" in {
-//        when(etmpMock.maintainAtedRelationship(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
-//
-//        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, taxEnrolmentMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
-//
-//        actorRef ! TaskCommand(New(startSignal))
-//        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-deactivation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
-//      }
-//    }
-//
-//    "execute and move to 'finalize-deactivation' step" when {
-//      "signal is Next('gg-proxy-deactivation', args), gg gives error but ok to move on" in {
-//        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString = Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>9005</ErrorNumber><Message>The enrolment is not allocated to the Agent Group</Message><RequestID>25DAE8CDF10B4B7CB469AF662643C917</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
-//
-//        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, taxEnrolmentMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
-//
-//        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-//        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
-//      }
-//
-//      "signal is Next('gg-proxy-deactivation', args)" in {
-//        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(OK))
-//
-//        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, taxEnrolmentMock, ggProxyMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
-//
-//        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-//        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit)))
-//      }
-//    }
-
-
     "execute and FINISH" when {
       "signal is Next('finalize-deactivation', args) and userType is Client" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
@@ -191,15 +158,6 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         actorRef ! TaskCommand(New(startSignal))
         expectMsgType[TaskCommand]
       }
-
-//      "signal is Next('gg-proxy-deactivation', args) but the GG fails" in {
-//        when(ggProxyMock.deAllocateAgent(Matchers.any())(Matchers.any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseString = Some("""<soap:Body xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/03/addressing" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Fault><faultcode>soap:Client</faultcode><faultstring>Business Rule Error</faultstring><faultactor>http://www.gateway.gov.uk/soap/2007/02/admin</faultactor><detail><GatewayDetails xmlns="urn:GSO-System-Services:external:SoapException"><ErrorNumber>1</ErrorNumber><Message>The enrolment is not allocated to the Agent Group</Message><RequestID>25DAE8CDF10B4B7CB469AF662643C917</RequestID></GatewayDetails></detail></soap:Fault></soap:Body>""")))
-//
-//        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(etmpMock, taxEnrolmentMock, mockMandateFetchService, mockMandateRepository, mockEmailNotificationService))
-//
-//        actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit))
-//        expectMsgType[TaskCommand]
-//      }
 
       "signal is Next('finalize-deactivation', args) but no mandate is returned" in {
         when(mockMandateFetchService.fetchClientMandate(Matchers.any())).thenReturn(Future.successful(MandateNotFound))

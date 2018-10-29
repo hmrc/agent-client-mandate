@@ -24,8 +24,6 @@ import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
-import uk.gov.hmrc.agentclientmandate.utils.FeatureSwitch
-import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
 import uk.gov.hmrc.tasks._
@@ -40,7 +38,6 @@ import uk.gov.hmrc.http.logging.Authorization
 class ActivationTaskExecutor extends TaskExecutor with Auditable {
 
   val etmpConnector: EtmpConnector = EtmpConnector
-//  val ggProxyConnector: GovernmentGatewayProxyConnector = GovernmentGatewayProxyConnector
   val updateService: MandateUpdateService = MandateUpdateService
   val fetchService: MandateFetchService = MandateFetchService
   val emailNotificationService: NotificationEmailService = NotificationEmailService
@@ -106,33 +103,6 @@ class ActivationTaskExecutor extends TaskExecutor with Auditable {
       token = Some(Token(signal.args.getOrElse("token", "dummy token"))),
       userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
   }
-
-//  private def enrolGG(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
-//    val request = GsoAdminAllocateAgentXmlInput(
-//      List(Identifier(args("serviceIdentifier"), args("clientId"))),
-//      args("agentCode"), AtedServiceContractName)
-//    Try(Await.result(ggProxyConnector.allocateAgent(request), 120 seconds)) match {
-//      case Success(resp) =>
-//        resp.status match {
-//          case OK =>
-//            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-//            Success(Next("finalize-activation", args))
-//          case INTERNAL_SERVER_ERROR if parseErrorResp(resp) == "7004" =>
-//            // this error means GG already has a relationship for this client
-//            metrics.incrementSuccessCounter(MetricsEnum.GGProxyAllocate)
-//            Success(Next("finalize-activation", args))
-//          case _ =>
-//            Logger.warn(s"[ActivationTaskExecutor] - call to gg-proxy failed with status ${resp.status} for mandate reference::${args("mandateId")}")
-//            metrics.incrementFailedCounter(MetricsEnum.GGProxyAllocate)
-//            Failure(new Exception("GG Proxy call failed, status: " + resp.status))
-//        }
-//      case Failure(ex) =>
-//        // $COVERAGE-OFF$
-//        Logger.warn(s"[ActivationTaskExecutor] exception while calling allocateAgent :: ${ex.getMessage}")
-//        Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
-//      // $COVERAGE-ON$
-//    }
-//  }
 
   private def enrolTaxEnrolments(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
     Try(Await.result(taxEnrolmentConnector.allocateAgent(NewEnrolment(args("credId")),args("groupId"),args("clientId"),args("agentCode")), 120 seconds)) match {
