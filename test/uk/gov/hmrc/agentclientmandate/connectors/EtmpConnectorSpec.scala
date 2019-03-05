@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import java.util.UUID
 
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
@@ -46,7 +47,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
   "EtmpConnector" must {
     "getDetails" must {
       "return valid response, for ARN as identifier type" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "arn"))
@@ -54,7 +55,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       }
 
       "return valid response, for SafeId as identifier type" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "safeid"))
@@ -62,7 +63,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       }
 
       "return valid response, for UTR as identifier type" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
 
         val result = await(TestEtmpConnector.getRegistrationDetails("ABC", "utr"))
@@ -75,7 +76,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       }
 
       "throw exception when response is not OK" in {
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
 
         val thrown = the[RuntimeException] thrownBy await(TestEtmpConnector.getRegistrationDetails("ABC", "arn"))
@@ -87,7 +88,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "return valid response, if create/update relationship is successful in ETMP" in {
         val successResponse = Json.parse( """{"processingDate" :  "2014-12-17T09:30:47Z"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
@@ -100,7 +101,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "Check for a failure response when we try to create/update ATED relation in ETMP" in {
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = Some(failureResponse))))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
@@ -114,7 +115,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "return valid response, if success response received from ETMP" in {
         val successResponse = Json.parse( """{"safeId" :  "safe-id"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
 
         val response = await(TestEtmpConnector.getAtedSubscriptionDetails("ated-ref-num"))
@@ -124,7 +125,7 @@ class EtmpConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
       "throws error, if response status is not OK from ETMP" in {
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
         implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
-        when(mockWSHttp.GET[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any()))
+        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
 
         val result = TestEtmpConnector.getAtedSubscriptionDetails("ated-ref-num")

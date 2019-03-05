@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@ import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.DB
+import reactivemongo.api.{Cursor, DB}
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONObjectID}
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.{ReactiveRepository, Repository}
+import uk.gov.hmrc.mongo.ReactiveRepository
+import reactivemongo.play.json.ImplicitBSONHandlers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -50,7 +51,7 @@ sealed trait MandateRemove
 case object MandateRemoved extends MandateRemove
 case object MandateRemoveError extends MandateRemove
 
-trait MandateRepository extends Repository[Mandate, BSONObjectID] {
+trait MandateRepository extends ReactiveRepository[Mandate, BSONObjectID] {
 
   def insertMandate(mandate: Mandate): Future[MandateCreate]
 
@@ -214,7 +215,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
       )
     }
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandatesByService)
-    val result = collection.find(query).sort(Json.obj("clientDisplayName" -> 1)).cursor[Mandate]().collect[Seq]().map {
+    val result = collection.find(query).sort(Json.obj("clientDisplayName" -> 1)).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()).map {
       x => if (displayName.isDefined){
         x.filter(mandate => mandate.currentStatus.status != Status.Active || (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase)))
       }
@@ -237,7 +238,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
       "subscription.service.id" -> service.toUpperCase)
 
     val result = Try {
-      val queryResult = collection.find(query).cursor[Mandate]().collect[Seq]()
+      val queryResult = collection.find(query).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError())
 
       queryResult onComplete {
         _ => timerContext.stop()
@@ -329,7 +330,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
       "$or" -> Json.arr(Json.obj("currentStatus.status" -> Status.New.toString), Json.obj("currentStatus.status" -> Status.Approved.toString), Json.obj("currentStatus.status" -> Status.PendingCancellation.toString), Json.obj("currentStatus.status" -> Status.PendingActivation.toString))
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindOldMandates)
-    val result = collection.find(query).cursor[Mandate]().collect[Seq]()
+    val result = collection.find(query).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError())
 
     result onComplete {
       _ => timerContext.stop()
@@ -347,7 +348,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryClientCancelledMandates)
-    val result = Try(collection.find(query).cursor[Mandate]().collect[Seq]())
+    val result = Try(collection.find(query).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()))
 
     result match {
       case Success(s) =>

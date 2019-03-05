@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
@@ -79,11 +80,11 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         """.stripMargin
       )
 
-      when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+      when(authConnectorMock.getAuthority()(any())) thenReturn {
         Future.successful(successResponseJsonAuth)
       }
 
-      when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+      when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
         Future.successful(successResponseJsonETMP)
       }
 
@@ -117,11 +118,11 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         """.stripMargin
       )
 
-      when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+      when(authConnectorMock.getAuthority()(any())) thenReturn {
         Future.successful(successResponseJsonAuth)
       }
 
-      when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+      when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
         Future.successful(successResponseJsonETMP)
       }
 
@@ -132,27 +133,27 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     "returns true - for delegation authorization check for Ated" when {
       "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
-        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(mandate)))
+        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandate)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
       }
     }
 
     "returns false - for delegation authorization check for Ated" when {
       "authority doesn't return registered Agents" in {
-        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
+        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(authConnectorMock.getAuthority()(Matchers.any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(Matchers.any(), Matchers.eq("ated"), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(successResponseJsonAuth))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
     }

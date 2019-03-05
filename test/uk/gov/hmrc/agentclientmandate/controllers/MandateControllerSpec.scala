@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.Logger
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
@@ -32,10 +32,10 @@ import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.agentclientmandate.utils.TestAudit
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.model.Audit
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 
 
 class MandateControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
@@ -46,8 +46,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
       "request is valid and client mandate found " in {
 
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(Matchers.eq(approvedMandate), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(updateServiceMock.updateMandate(ArgumentMatchers.eq(approvedMandate), any())(any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
         status(result) must be (OK)
       }
@@ -56,15 +56,15 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "not activate the client" when {
 
       "status of mandate returned is not ACTIVE" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.activate(agentCode, mandateId).apply(FakeRequest()))
         thrown.getMessage must include("Mandate with status New cannot be activated")
       }
 
       "cant find mandate while changing the status to PENDINGACTIVATION" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
-        when(notificationServiceMock.sendMail(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -72,7 +72,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "cant find mandate" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -83,23 +83,23 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "remove the mandate" when {
 
       "request is valid and client mandate found and status is active" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "request is valid and client mandate found and status is approved" in {
-        when(notificationServiceMock.sendMail(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(EmailSent)
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "request is valid and client mandate found and status is New" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -108,7 +108,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "cant remove the mandate" when {
 
       "mandate with no agent code is fetched" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate1))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate1))
 
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest()))
 
@@ -116,8 +116,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "mongo update error occurs while changing the status to PENDING_CANCELLATION" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -125,8 +125,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "mongo update error occurs while changing the status to CANCELLED" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -134,8 +134,8 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "mongo update error occurs while changing the New status to CANCELLED" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -143,7 +143,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "status of mandate returned is not ACTIVE" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(cancelledMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(cancelledMandate))
 
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest()))
 
@@ -151,7 +151,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       }
 
       "no mandate is fetched" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -162,7 +162,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "create a mandate and return mandate Id" when {
 
       "an agent request it and passes valid DTO" in {
-        when(createServiceMock.createMandate(Matchers.eq(agentCode), Matchers.eq(createMandateDto))(Matchers.any())).thenReturn(Future.successful(mandateId))
+        when(createServiceMock.createMandate(ArgumentMatchers.eq(agentCode), ArgumentMatchers.eq(createMandateDto))(any())).thenReturn(Future.successful(mandateId))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(createMandateDto))
         val result = TestMandateController.create(agentCode).apply(fakeRequest)
         status(result) must be(CREATED)
@@ -181,27 +181,27 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "fetch a mandate" when {
       "a valid mandate id is passed" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.fetch(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(newMandate))
       }
 
       "return not found with invalid or non-existing mandateId is passed" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
         val result = TestMandateController.fetch(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
 
       "mandate found when fetching by client and valid clientId" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(any(), any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(newMandate))
       }
 
       "mandate not found when fetching by client using invalid clientId" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(any(), any())) thenReturn Future.successful(MandateNotFound)
 
         val result = TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
@@ -210,7 +210,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "fetch all mandates with respect to a service and ARN" when {
       "agent supplies valid service and ARN" in {
-        when(fetchServiceMock.getAllMandates(Matchers.eq(arn), Matchers.eq(service), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Seq(newMandate)))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Seq(newMandate)))
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq(newMandate)))
@@ -219,7 +219,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "return not-found when trying to fetch all mandates with respect to a service and ARN" when {
       "agent supplies invalid/non-existing service and ARN" in {
-        when(fetchServiceMock.getAllMandates(Matchers.eq(arn), Matchers.eq(service), Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(Nil))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Nil))
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
@@ -227,7 +227,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "update mandate for a client" when {
       "client provided valid payload and mandate has been successfully updated in mongo" in {
-        when(updateServiceMock.approveMandate(Matchers.eq(newMandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(OK)
@@ -236,7 +236,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "throw error while trying to update mandate for a client" when {
       "client provided valid payload but mandate wasn't successfully updated in mongo" in {
-        when(updateServiceMock.approveMandate(Matchers.eq(newMandate))(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -253,21 +253,21 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "update mandate with pending cancellation status" when {
       "agent has rejected client and status returned ok" in {
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "agent has rejected client and status returned not ok" in {
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
 
       "agent has rejected client and status returned not found" in {
-        when(fetchServiceMock.fetchClientMandate(Matchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
@@ -275,7 +275,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "get agent details" when {
       "agent requests details" in {
-        when(agentDetailsServiceMock.getAgentDetails(Matchers.any())(Matchers.any())).thenReturn(Future.successful(agentDetails))
+        when(agentDetailsServiceMock.getAgentDetails(any())(any())).thenReturn(Future.successful(agentDetails))
         val result = TestMandateController.getAgentDetails(agentCode).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -286,10 +286,10 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.createMandateForNonUKClient(Matchers.any(), Matchers.eq(dto))(Matchers.any())).thenReturn(Future.successful())
+        when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any())).thenReturn(Future.successful())
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
-        verify(createServiceMock, times(1)).createMandateForNonUKClient(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(createServiceMock, times(1)).createMandateForNonUKClient(any(), any())(any())
       }
 
     }
@@ -299,10 +299,10 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "bb@mail.com", "arn", "@mail.com", "client display name", mandateRef = Some("ABCD1234"))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.updateMandateForNonUKClient(Matchers.any(), Matchers.eq(dto))(Matchers.any())).thenReturn(Future.successful())
+        when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any())).thenReturn(Future.successful())
         val result = TestMandateController.updateRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
-        verify(createServiceMock, times(1)).updateMandateForNonUKClient(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(createServiceMock, times(1)).updateMandateForNonUKClient(any(), any())(any())
       }
 
     }
@@ -310,13 +310,13 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "edit mandate details" must {
       "return OK, when mandate is updated in MongoDB" in {
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
         status(result) must be(OK)
       }
       "return INTERNAL_SERVER_ERROR, when update fail in MongoDB" in {
-        when(updateServiceMock.updateMandate(Matchers.any(), Matchers.any())(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -325,13 +325,13 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "isAgentMissingEmail" must {
       "return Found when mandates found" in {
-        when(fetchServiceMock.getMandatesMissingAgentsEmails(Matchers.any(), Matchers.any())) thenReturn Future.successful(mandates)
+        when(fetchServiceMock.getMandatesMissingAgentsEmails(any(), any())) thenReturn Future.successful(mandates)
         val result = TestMandateController.isAgentMissingEmail(agentCode, arn, service).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "return Ok when no mandates found without email addresses" in {
-        when(fetchServiceMock.getMandatesMissingAgentsEmails(Matchers.any(), Matchers.any())) thenReturn Future.successful(Nil)
+        when(fetchServiceMock.getMandatesMissingAgentsEmails(any(), any())) thenReturn Future.successful(Nil)
         val result = TestMandateController.isAgentMissingEmail(agentCode, arn, service).apply(FakeRequest())
         status(result) must be(NO_CONTENT)
       }
@@ -339,14 +339,14 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "updateAgentEmail" must {
       "return ok if agents email updated" in {
-        when(updateServiceMock.updateAgentEmail(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedEmail)
+        when(updateServiceMock.updateAgentEmail(any(), any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("test@mail.com"))
         val result = TestMandateController.updateAgentEmail(agentCode, arn, service).apply(fakeRequest)
         status(result) must be(OK)
       }
 
       "return error if agents email not updated" in {
-        when(updateServiceMock.updateAgentEmail(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateAgentEmail(any(), any(), any())) thenReturn Future.successful(MandateUpdateError)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("test@mail.com"))
         val result = TestMandateController.updateAgentEmail(agentCode, arn, service).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -361,14 +361,14 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "updateClientEmail" must {
       "return ok if clients email updated" in {
-        when(updateServiceMock.updateClientEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedEmail)
+        when(updateServiceMock.updateClientEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("test@mail.com"))
         val result = TestMandateController.updateClientEmail(orgId, mandateId).apply(fakeRequest)
         status(result) must be(OK)
       }
 
       "return error if clients email not updated" in {
-        when(updateServiceMock.updateClientEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateClientEmail(any(), any())) thenReturn Future.successful(MandateUpdateError)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("test@mail.com"))
         val result = TestMandateController.updateClientEmail(orgId, mandateId).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -383,14 +383,14 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "updateCredId" must {
       "return ok if credId updated" in {
-        when(updateServiceMock.updateAgentCredId(Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdatedCredId)
+        when(updateServiceMock.updateAgentCredId(any())(any())) thenReturn Future.successful(MandateUpdatedCredId)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(OK)
       }
 
       "return error if credId not updated" in {
-        when(updateServiceMock.updateAgentCredId(Matchers.any())(Matchers.any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateAgentCredId(any())(any())) thenReturn Future.successful(MandateUpdateError)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -405,14 +405,14 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
 
     "getClientsThatCancelled" must {
       "return ok if mandates found and return client display names" in {
-        when(fetchServiceMock.fetchClientCancelledMandates(Matchers.any(), Matchers.any())) thenReturn Future.successful(List("AAA", "BBB"))
+        when(fetchServiceMock.fetchClientCancelledMandates(any(), any())) thenReturn Future.successful(List("AAA", "BBB"))
         val result = TestMandateController.getClientsThatCancelled(agentCode, arn, service).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq("AAA", "BBB")))
       }
 
       "return NotFound if no mandates returned" in {
-        when(fetchServiceMock.fetchClientCancelledMandates(Matchers.any(), Matchers.any())) thenReturn Future.successful(Nil)
+        when(fetchServiceMock.fetchClientCancelledMandates(any(), any())) thenReturn Future.successful(Nil)
         val result = TestMandateController.getClientsThatCancelled(agentCode, arn, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }

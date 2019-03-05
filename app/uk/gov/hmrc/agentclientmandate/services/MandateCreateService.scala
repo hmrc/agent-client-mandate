@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
+import play.api.{Configuration, Play}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
@@ -29,6 +30,8 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 
 trait MandateCreateService extends Auditable {
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 
   def mandateRepository: MandateRepository
 

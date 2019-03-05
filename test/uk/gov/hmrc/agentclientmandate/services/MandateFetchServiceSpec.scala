@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -41,7 +42,7 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
       "a client mandate is found for a valid mandate id in MongoDB" in {
 
-        when(mockMandateRepository.fetchMandate(Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
+        when(mockMandateRepository.fetchMandate(any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
         val response = TestFetchMandateService.fetchClientMandate(mandateId)
         await(response) must be(MandateFetched(clientMandate))
@@ -52,7 +53,7 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     "list of client mandate is found for a valid arn and service name in MongoDB" in {
 
-      when(mockMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
 
       val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED", None, None)
       await(response) must be(List(clientMandate))
@@ -74,10 +75,10 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
                }
              }""")
 
-      when(mockAuthConnector.getAuthority()(Matchers.any())) thenReturn {
+      when(mockAuthConnector.getAuthority()(any())) thenReturn {
         Future.successful(successResponseJsonAuth)
       }
-      when(mockMandateRepository.getAllMandatesByServiceName(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
 
       val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED", Some("credId"), None)
       await(response) must be(List(clientMandate))
@@ -85,7 +86,7 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     "a mandate is found for a valid client id and service" in {
 
-      when(mockMandateRepository.fetchMandateByClient(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateFetched(clientMandate))
+      when(mockMandateRepository.fetchMandateByClient(any(), any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
       val response = TestFetchMandateService.fetchClientMandate("clientId", "service")
       await(response) must be(MandateFetched(clientMandate))
@@ -93,14 +94,14 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     }
 
     "a list of mandates is found for an agent id" in {
-      when(mockMandateRepository.findMandatesMissingAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(List(clientMandate.id))
+      when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(List(clientMandate.id))
 
       val response = TestFetchMandateService.getMandatesMissingAgentsEmails("agentId", "ated")
       await(response) must be(List(clientMandate.id))
     }
 
     "a list of client display names" in {
-      when(mockMandateRepository.getClientCancelledMandates(Matchers.any(), Matchers.any(), Matchers.any())) thenReturn Future.successful(List("AAA", "BBB"))
+      when(mockMandateRepository.getClientCancelledMandates(any(), any(), any())) thenReturn Future.successful(List("AAA", "BBB"))
       val response = TestFetchMandateService.fetchClientCancelledMandates("arn", "service")
       await(response) must be(List("AAA", "BBB"))
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import play.api.Logger
+import play.api.{Configuration, Logger, Play}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
 import uk.gov.hmrc.agentclientmandate._
@@ -31,6 +31,8 @@ import scala.concurrent.Future
 
 //scalastyle:off public.methods.have.type
 trait MandateController extends BaseController with Auditable {
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 
   def createService: MandateCreateService
 
