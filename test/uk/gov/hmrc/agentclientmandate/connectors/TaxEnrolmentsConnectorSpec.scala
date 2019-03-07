@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers.CREATED
@@ -56,7 +57,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with Mo
 
     "create allocation" in {
       val enrolment = NewEnrolment("08123891238127")
-     when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
+     when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(CREATED, responseJson = None)))
       val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232","JAX023938"))
       result.status mustBe CREATED
@@ -64,21 +65,21 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with Mo
 
     "create allocation error code" in {
       val enrolment = NewEnrolment("08123891238127")
-     when(mockWSHttp.POST[JsValue, HttpResponse](Matchers.any(), Matchers.any(), Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any(), Matchers.any())).
+     when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
       val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232","JAX023938"))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
 
     "delete allocation" in {
-      when(mockWSHttp.DELETE[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
         val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
       result.status mustBe NO_CONTENT
     }
 
     "delete allocation error code" in {
-      when(mockWSHttp.DELETE[HttpResponse](Matchers.any())(Matchers.any(), Matchers.any(), Matchers.any())).
+      when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
         val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
       result.status mustBe INTERNAL_SERVER_ERROR

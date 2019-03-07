@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package uk.gov.hmrc.agentclientmandate.config
 
 import com.typesafe.config.ConfigFactory
+import play.api.{Configuration, Play}
+import play.api.Mode.Mode
 import uk.gov.hmrc.play.config.ServicesConfig
 
 object ApplicationConfig extends ServicesConfig {
@@ -26,4 +28,8 @@ object ApplicationConfig extends ServicesConfig {
   lazy val expiryAfterDays = getInt("expiry-after-days")
 
   lazy val clientCancelledMandateNotification = getInt("client-cancelled-mandate-notification-days")
+
+  override protected def mode: Mode = Play.current.mode
+
+  override protected def runModeConfiguration: Configuration = Play.current.configuration
 }

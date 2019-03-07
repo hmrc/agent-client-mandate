@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import uk.gov.hmrc.tasks._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
-import play.api.Logger
+import play.api.{Configuration, Logger, Play}
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
 import uk.gov.hmrc.http.{HeaderCarrier, Token, UserId}
@@ -183,4 +183,6 @@ class DeActivationTaskExecutor extends TaskExecutor with Auditable {
       }
     }
   }
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 }

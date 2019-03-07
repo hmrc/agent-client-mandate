@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,13 @@ package uk.gov.hmrc.tasks
 import akka.actor.ActorSystem
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.BeforeAndAfterAll
+import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.util.{Failure, Success, Try}
 
 class TaskExecutorSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender {
+  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with OneAppPerSuite {
 
   val executorRef = TestActorRef[TestExecutorA]
   val executorActor = executorRef.underlyingActor

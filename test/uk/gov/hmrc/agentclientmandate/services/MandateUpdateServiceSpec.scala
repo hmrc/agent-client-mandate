@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.{DateTime, DateTimeUtils}
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -40,8 +41,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "update data in mongo with given data provided" when {
 
       "requested to do so - updateMandate" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
+        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
 
         await(TestMandateUpdateService.updateMandate(mandate, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
       }
@@ -51,20 +52,20 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "approveMandate" must {
       "change status of mandate to approve, if all calls are successful and service name is ated" in {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
-        when(mockMandateRepository.fetchMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
-        when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
+        when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         val result = await(TestMandateUpdateService.approveMandate(clientApprovedMandate))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "throw exception, if post was made without client party in it" in {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
-        when(mockMandateRepository.fetchMandate(Matchers.any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
-        when(mockEtmpConnector.getAtedSubscriptionDetails(Matchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
+        when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandate))
         thrown.getMessage must be("Client party not found")
       }
@@ -76,7 +77,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       }
 
       "throw exception if no mandate is fetched" in {
-        when(mockMandateRepository.fetchMandate(Matchers.any())).thenReturn(Future.successful(MandateNotFound))
+        when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateNotFound))
         val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandate))
         thrown.getMessage must be("mandate not found for mandate id::AS12345678")
 
@@ -85,16 +86,16 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
     "updateStatus" must {
       "change mandate status and send email for client" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
         val result = await(TestMandateUpdateService.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "change mandate status and send email for agent" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson1))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
         val result = await(TestMandateUpdateService.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
@@ -103,8 +104,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
     "updateAgentEmail" must {
       "update all mandates with email for agent" in {
-        when(mockMandateRepository.findMandatesMissingAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(mandateIds)
-        when(mockMandateRepository.updateAgentEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedEmail)
+        when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(mandateIds)
+        when(mockMandateRepository.updateAgentEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
         val result = await(TestMandateUpdateService.updateAgentEmail("agentId", "test@mail.com", "ated"))
         result must be(MandateUpdatedEmail)
       }
@@ -112,7 +113,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
     "updateClientEmail" must {
       "update the mandate with email for client" in {
-        when(mockMandateRepository.updateClientEmail(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedEmail)
+        when(mockMandateRepository.updateClientEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
         val result = await(TestMandateUpdateService.updateClientEmail("mandateId", "test@mail.com"))
         result must be(MandateUpdatedEmail)
       }
@@ -120,8 +121,8 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
     "updateAgentCredId" must {
       "update the mandate with the proper cred id" in {
-        when(mockAuthConnector.getAuthority()(Matchers.any())).thenReturn(Future.successful(authJson1))
-        when(mockMandateRepository.updateAgentCredId(Matchers.any(), Matchers.any())) thenReturn Future.successful(MandateUpdatedCredId)
+        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson1))
+        when(mockMandateRepository.updateAgentCredId(any(), any())) thenReturn Future.successful(MandateUpdatedCredId)
         val result = await(TestMandateUpdateService.updateAgentCredId("credId"))
         result must be(MandateUpdatedCredId)
       }
@@ -129,17 +130,17 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
 
     "checkExpiry" must {
       "get expired mandate list and update all to be expired" in {
-        when(mockMandateRepository.findOldMandates(Matchers.any())).thenReturn(Future.successful(List(mandate)))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdated(mandate)))
+        when(mockMandateRepository.findOldMandates(any())).thenReturn(Future.successful(List(mandate)))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(mandate)))
         await(TestMandateUpdateService.checkExpiry())
-        verify(mockMandateRepository, times(1)).updateMandate(Matchers.any())
+        verify(mockMandateRepository, times(1)).updateMandate(any())
       }
 
       "get expired mandate list but fail when updating mandate" in {
-        when(mockMandateRepository.findOldMandates(Matchers.any())).thenReturn(Future.successful(List(mandate)))
-        when(mockMandateRepository.updateMandate(Matchers.any())).thenReturn(Future.successful(MandateUpdateError))
+        when(mockMandateRepository.findOldMandates(any())).thenReturn(Future.successful(List(mandate)))
+        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdateError))
         await(TestMandateUpdateService.checkExpiry())
-        verify(mockMandateRepository, times(1)).updateMandate(Matchers.any())
+        verify(mockMandateRepository, times(1)).updateMandate(any())
       }
     }
   }

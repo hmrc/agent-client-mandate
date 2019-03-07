@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -75,15 +76,15 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
                }
              }""")
 
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
           Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
         }
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -120,15 +121,15 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
                }
              }""")
 
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
           Future.successful(MandateCreateError)
         }
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -229,24 +230,24 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
              }""")
 
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("safeid"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
           Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
         val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
@@ -278,18 +279,18 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
              }""")
 
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("safeid"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("safeid"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
-        when(mandateRepositoryMock.insertMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
           Future.successful(MandateCreateError)
         }
 
@@ -330,16 +331,16 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
                }
              }""")
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(newAgentJsonAuth)
         }
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(newAgentETMPRegJson)
         }
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
-        when(mandateRepositoryMock.updateMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(any())) thenReturn {
           Future.successful(MandateUpdated(mandateWithClient(mandateId, DateTime.now())))
         }
 
@@ -355,7 +356,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
 
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any())
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {
@@ -373,7 +374,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           """.stripMargin
         )
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.eq("KARN123123"), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq("KARN123123"),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
@@ -409,21 +410,21 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
                }
              }""")
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.eq("KARN123123"), Matchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq("KARN123123"),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
           Future.successful(MandateNotFound)
         }
 
         val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "KARN123123", "bb@mail.com", "client display name", mandateRef = Some("AAAA"))
         val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
         thrown.getMessage must include("No existing non-uk mandate details found for mandate id")
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(Matchers.any(), Matchers.any())(Matchers.any())
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(any(), any())(any())
       }
 
 
@@ -456,18 +457,18 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
              }""")
 
 
-        when(authConnectorMock.getAuthority()(Matchers.any())) thenReturn {
+        when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(Matchers.any(), Matchers.any())) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(any(), any())) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(Matchers.any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
 
-        when(mandateRepositoryMock.updateMandate(Matchers.any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(any())) thenReturn {
           Future.successful(MandateUpdateError)
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers.auth
 
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr, Generator}
@@ -35,7 +36,7 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with OneServerPerSui
 
     "return OK" when {
       "agent is authorised to act on behalf of ated customers" in {
-        when(mockRelationshipService.isAuthorisedForAted(Matchers.eq(atedUtr))(Matchers.any())).thenReturn(Future.successful(true))
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.successful(true))
         val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -43,7 +44,7 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with OneServerPerSui
 
     "return UnAuthorised" when {
       "agent is not authorised to act on behalf of ated customers" in {
-        when(mockRelationshipService.isAuthorisedForAted(Matchers.eq(atedUtr))(Matchers.any())).thenReturn(Future.successful(false))
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.successful(false))
         val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
         status(result) must be(UNAUTHORIZED)
       }

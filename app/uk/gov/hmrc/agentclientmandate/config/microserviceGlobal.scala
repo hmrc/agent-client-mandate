@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.config
 
 import com.typesafe.config.Config
 import net.ceedubs.ficus.Ficus._
+import play.api.Mode.Mode
 
 import scala.concurrent.duration._
 import play.api.{Application, Configuration, Play}
@@ -30,7 +31,7 @@ import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, RunningOfScheduledJob
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
-import uk.gov.hmrc.play.microservice.filters.{ AuditFilter, LoggingFilter, MicroserviceFilterSupport }
+import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
 //scalastyle:off public.methods.have.type
 object ControllerConfiguration extends ControllerConfig {
@@ -45,6 +46,8 @@ object MicroserviceAuditFilter extends AuditFilter with AppName with Microservic
   override val auditConnector = MicroserviceAuditConnector
 
   override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
+
+  override protected def appNameConfiguration: Configuration = Play.current.configuration
 }
 
 object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSupport {
@@ -58,7 +61,7 @@ object MicroserviceAuthFilter extends AuthorisationFilter with MicroserviceFilte
   override def controllerNeedsAuth(controllerName: String): Boolean = ControllerConfiguration.paramsForController(controllerName).needsAuth
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with RunningOfScheduledJobs {
+object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunningOfScheduledJobs {
   override val auditConnector = MicroserviceAuditConnector
 
   override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
@@ -82,4 +85,5 @@ object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with Ru
       override def initialDelay: FiniteDuration = 0 seconds
     })
   }
+
 }

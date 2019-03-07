@@ -12,32 +12,15 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  private val microserviceBootstrapVersion = "6.18.0"
-  private val domainVersion = "5.2.0"
-  private val hmrcTestVersion = "3.1.0"
-  private val scalaTestVersion = "3.0.5"
-  private val pegdownVersion = "1.6.0"
-  private val akkaContribVersion = "2.3.4"
-  private val playReactivemongoVersion = "5.2.0"
-  private val reactivemongoTestVersion = "2.0.0"
-  private val mockitoVersion = "1.9.0"
-  private val scalatestPlusPlayVersion = "2.0.1"
-  private val mongoLockVersion = "4.1.0"
-  private val playSchedulingVersion = "4.1.0"
-  private val authClientVersion = "2.16.0-play-25"
-
-
   val compile = Seq(
-    "uk.gov.hmrc" %% "play-reactivemongo" % playReactivemongoVersion,
+    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.14.0-play-25",
     ws,
-    "uk.gov.hmrc" %% "microservice-bootstrap" % microserviceBootstrapVersion,
-    "uk.gov.hmrc" %% "domain" % domainVersion,
-    "com.typesafe.akka" %% "akka-contrib" % akkaContribVersion,
-    "uk.gov.hmrc" %% "mongo-lock" % mongoLockVersion,
-    "uk.gov.hmrc" %% "play-scheduling" % playSchedulingVersion,
-    "com.kenshoo" %% "metrics-play" % "2.3.0_0.1.8",
-    "com.codahale.metrics" % "metrics-graphite" % "3.0.2",
-    "uk.gov.hmrc" %% "auth-client" % authClientVersion
+    "uk.gov.hmrc" %% "microservice-bootstrap" % "10.4.0",
+    "uk.gov.hmrc" %% "domain" % "5.3.0",
+    "com.typesafe.akka" %% "akka-contrib" % "2.3.4",
+    "uk.gov.hmrc" %% "mongo-lock" % "6.10.0-play-25",
+    "uk.gov.hmrc" %% "play-scheduling" % "6.0.0",
+    "uk.gov.hmrc" %% "auth-client" % "2.16.0-play-25"
   )
 
   trait TestDependencies {
@@ -48,14 +31,14 @@ private object AppDependencies {
   object Test {
     def apply() = new TestDependencies {
       override lazy val test = Seq(
-        "uk.gov.hmrc" %% "hmrctest" % hmrcTestVersion % scope,
-        "org.scalatest" %% "scalatest" % scalaTestVersion % scope,
-        "org.scalatestplus.play" %% "scalatestplus-play" % scalatestPlusPlayVersion,
-        "org.pegdown" % "pegdown" % pegdownVersion % scope,
+        "uk.gov.hmrc" %% "hmrctest" % "3.5.0-play-25" % scope,
+        "org.scalatest" %% "scalatest" % "3.0.5" % scope,
+        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1",
+        "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-        "uk.gov.hmrc" %% "reactivemongo-test" % reactivemongoTestVersion % scope,
-        "com.typesafe.akka" % "akka-testkit_2.11" % akkaContribVersion % scope,
-        "org.mockito" % "mockito-core" % mockitoVersion % scope
+        "uk.gov.hmrc" %% "reactivemongo-test" % "4.8.0-play-25" % scope,
+        "com.typesafe.akka" % "akka-testkit_2.11" % "2.5.21" % scope,
+        "org.mockito" % "mockito-core" % "2.24.5" % scope
       )
     }.test
   }
