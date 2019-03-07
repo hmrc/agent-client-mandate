@@ -123,6 +123,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     )
   }
 
+  // $COVERAGE-OFF$
   def insertMandate(mandate: Mandate): Future[MandateCreate] = {
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryInsertMandate)
     collection.insert[Mandate](mandate).map { writeResult =>
@@ -132,11 +133,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
         case _ => MandateCreateError
       }
     }.recover {
-      // $COVERAGE-OFF$
       case e => Logger.warn("Failed to insert mandate", e)
         timerContext.stop()
         MandateCreateError
-      // $COVERAGE-ON$
     }
   }
 
@@ -152,11 +151,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
         case _ => MandateUpdateError
       }
     }.recover {
-      // $COVERAGE-OFF$
       case e => Logger.warn("Failed to update mandate", e)
         timerContext.stop()
         MandateUpdateError
-      // $COVERAGE-ON$
     }
   }
 
@@ -170,9 +167,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
         timerContext.stop()
         MandateFetched(mandate)
       case _ =>
-        // $COVERAGE-OFF$
         timerContext.stop()
-        // $COVERAGE-ON$
         MandateNotFound
     }
   }
@@ -190,9 +185,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
         timerContext.stop()
         MandateFetched(mandate)
       case _ =>
-        // $COVERAGE-OFF$
         timerContext.stop()
-        // $COVERAGE-ON$
         MandateNotFound
     }
   }
@@ -253,10 +246,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
           x.map { _.id }
         }
       case Failure(f) =>
-        // $COVERAGE-OFF$
         Logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
         Future.successful(Nil)
-        // $COVERAGE-ON$
     }
   }
 
@@ -274,11 +265,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
         case _ => MandateUpdateError
       }
     }.recover {
-      // $COVERAGE-OFF$
       case e => Logger.warn("Failed to update agent email", e)
         timerContext.stop()
         MandateUpdateError
-      // $COVERAGE-ON$
     }
   }
 
@@ -295,11 +284,9 @@ class MandateMongoRepository(implicit mongo: () => DB)
         case _ => MandateUpdateError
       }
     }.recover {
-      // $COVERAGE-OFF$
       case e => Logger.warn("Failed to update client email", e)
         timerContext.stop()
         MandateUpdateError
-      // $COVERAGE-ON$
     }
   }
 
@@ -316,13 +303,12 @@ class MandateMongoRepository(implicit mongo: () => DB)
         case _ => MandateUpdateError
       }
     }.recover {
-      // $COVERAGE-OFF$
       case e => Logger.warn("Failed to update agent cred id", e)
         timerContext.stop()
         MandateUpdateError
-      // $COVERAGE-ON$
     }
   }
+  // $COVERAGE-ON$
 
   def findOldMandates(dateFrom: DateTime): Future[Seq[Mandate]] = {
     val query = BSONDocument(
@@ -338,6 +324,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     result
   }
 
+  // $COVERAGE-OFF$
   def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String): Future[Seq[String]] = {
     val query = BSONDocument(
       "agentParty.id" -> arn,
@@ -356,15 +343,11 @@ class MandateMongoRepository(implicit mongo: () => DB)
           x.map { _.clientDisplayName }
         }
       case Failure(f) =>
-        // $COVERAGE-OFF$
         Logger.warn(s"[MandateRepository][getClientCancelledMandates] failed: ${f.getMessage}")
         Future.successful(Nil)
-      // $COVERAGE-ON$
     }
   }
 
-  // $COVERAGE-OFF$
-  // used for test-only
   def removeMandate(mandateId: String): Future[MandateRemove] = {
     val query = BSONDocument("id" -> mandateId)
 
@@ -374,10 +357,8 @@ class MandateMongoRepository(implicit mongo: () => DB)
         case _ => MandateRemoveError
       }
     }.recover {
-      // $COVERAGE-OFF$
       case e => Logger.warn("Failed to delete mandate", e)
         MandateRemoveError
-      // $COVERAGE-ON$
     }
   }
   // $COVERAGE-ON$
