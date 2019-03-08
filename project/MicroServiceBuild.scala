@@ -33,12 +33,13 @@ private object AppDependencies {
       override lazy val test = Seq(
         "uk.gov.hmrc" %% "hmrctest" % "3.5.0-play-25" % scope,
         "org.scalatest" %% "scalatest" % "3.0.5" % scope,
-        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1",
+        "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % scope,
         "org.pegdown" % "pegdown" % "1.6.0" % scope,
         "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
         "uk.gov.hmrc" %% "reactivemongo-test" % "4.8.0-play-25" % scope,
         "com.typesafe.akka" % "akka-testkit_2.11" % "2.5.21" % scope,
-        "org.mockito" % "mockito-core" % "2.24.5" % scope
+        "org.mockito" % "mockito-core" % "2.24.5" % scope,
+        "org.scalacheck" %% "scalacheck" % "1.14.0" % scope
       )
     }.test
   }

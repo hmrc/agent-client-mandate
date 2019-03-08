@@ -18,11 +18,12 @@ package uk.gov.hmrc.agentclientmandate.models
 
 import org.joda.time.DateTime
 import org.scalatestplus.play.PlaySpec
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class MandateSpec extends PlaySpec {
 
-  val mandate = Mandate(id = "ABC123", createdBy = User("credId", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+  val mandate = Mandate(id = mandateReferenceGen.sample.get, createdBy = User("credId", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
     clientParty = None,
     currentStatus = MandateStatus(Status.New, DateTime.now, "credId"),
     statusHistory = Nil,

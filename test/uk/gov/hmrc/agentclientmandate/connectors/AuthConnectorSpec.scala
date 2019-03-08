@@ -27,6 +27,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -39,12 +40,13 @@ class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSuga
 
   "AuthConnector" must {
     "return json response when authority found" in {
-      val successResponseJson = Json.parse( """{"accounts": {"agent": {"agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"}}}""")
+      val agentBusinessUtr = agentBusinessUtrGen.sample.get
+      val successResponseJson = Json.parse( s"""{"accounts": {"agent": {"agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtr}"}}}""")
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, Some(successResponseJson))))
 
       val result = await(TestAuthConnector.getAuthority()(new HeaderCarrier()))
-      (result \ "accounts" \ "agent" \ "agentBusinessUtr").as[String] must be("JARN1234567")
+      (result \ "accounts" \ "agent" \ "agentBusinessUtr").as[String] must be(agentBusinessUtr)
     }
 
     "throw exception when response is not OK" in {

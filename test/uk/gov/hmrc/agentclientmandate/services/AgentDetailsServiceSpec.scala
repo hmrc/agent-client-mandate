@@ -20,32 +20,32 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.domain.{AtedUtr, Generator}
-
-import scala.concurrent.Future
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.Future
 
 
 
 class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   val successResponseJsonAuth = Json.parse(
-    """{
+    s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -54,25 +54,26 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
     "get agent details for individual" in {
 
+
       val successResponseJsonETMP = Json.parse(
-        """
+        s"""
       {
-          |  "sapNumber":"1234567890", "safeId": "EX0012345678909",
-          |  "agentReferenceNumber": "AARN1234567",
+          |  "sapNumber":"${sapNumberGen.sample.get}", "safeId": "${safeIDGen.sample.get}",
+          |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
           |  "isAnIndividual": true,
           |  "isAnAgent": true,
           |  "isEditable": true,
           |  "individual": {
-          |    "firstName": "Jon",
-          |    "lastName": "Snow",
-          |    "dateOfBirth": "1962-10-12"
+          |    "firstName": "${firstNameGen.sample.get}",
+          |    "lastName": "${lastNameGen.sample.get}",
+          |    "dateOfBirth": "${dateOfBirthGen.sample.get}"
           |  },
           |  "addressDetails": {
-          |    "addressLine1": "Melbourne House",
-          |    "addressLine2": "Eastgate",
-          |    "addressLine3": "Accrington",
-          |    "addressLine4": "Lancashire",
-          |    "postalCode": "BB5 6PU",
+          |    "addressLine1": "${Gen.alphaStr}",
+          |    "addressLine2": "${Gen.alphaStr}",
+          |    "addressLine3": "${Gen.alphaStr}",
+          |    "addressLine4": "${Gen.alphaStr}",
+          |    "postalCode": "${postcodeGen.sample.get}",
           |    "countryCode": "GB"
           |  },
           |  "contactDetails" : {}
@@ -94,23 +95,24 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     }
 
     "get agent details for organisation" in {
+      val companyName = companyNameGen.sample.get
       val successResponseJsonETMP = Json.parse(
-        """
+        s"""
       {
-          |  "sapNumber":"1234567890", "safeId": "EX0012345678909",
-          |  "agentReferenceNumber": "AARN1234567",
+          |  "sapNumber":"${sapNumberGen.sample.get}", "safeId": "${safeIDGen.sample.get}",
+          |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
           |  "isAnIndividual": false,
           |  "isAnAgent": true,
           |  "isEditable": true,
              "organisation": {
-          |    "organisationName": "ABC Limited"
+          |    "organisationName": "$companyName"
           |  },
           |  "addressDetails": {
-          |    "addressLine1": "Melbourne House",
-          |    "addressLine2": "Eastgate",
-          |    "addressLine3": "Accrington",
-          |    "addressLine4": "Lancashire",
-          |    "postalCode": "BB5 6PU",
+          |    "addressLine1": "${Gen.alphaStr}",
+          |    "addressLine2": "${Gen.alphaStr}",
+          |    "addressLine3": "${Gen.alphaStr}",
+          |    "addressLine4": "${Gen.alphaStr}",
+          |    "postalCode": "${postcodeGen.sample.get}",
           |    "countryCode": "GB"
           |  },
           |  "contactDetails" : {}
@@ -126,9 +128,9 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
         Future.successful(successResponseJsonETMP)
       }
 
-      implicit val hc = new HeaderCarrier()
-      val result = await(TestAgentDetailsService.getAgentDetails("ac"))
-      result.organisation.map(_.organisationName) must be(Some("ABC Limited"))
+      implicit val hc: HeaderCarrier = HeaderCarrier()
+      val result: AgentDetails = await(TestAgentDetailsService.getAgentDetails("ac"))
+      result.organisation.map(_.organisationName) must be(Some(companyName))
     }
 
     "returns true - for delegation authorization check for Ated" when {
@@ -159,15 +161,14 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     }
   }
 
-  val atedUtr: AtedUtr = new Generator().nextAtedUtr
-  val atedUtr2: AtedUtr = new Generator().nextAtedUtr
+
 
   val mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
-      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
@@ -175,18 +176,18 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     )
 
   val notRegisteredAgentJsonAuth = Json.parse(
-    """
+    s"""
       {
         "accounts": {
           "agent": {
-            "agentCode":"AGENT-123"
+            "agentCode":"${agentCodeGen.sample.get}"
           }
         }
       }
     """
   )
 
-  implicit val hc = new HeaderCarrier()
+  implicit val hc = HeaderCarrier()
 
   val authConnectorMock = mock[AuthConnector]
   val etmpConnectorMock = mock[EtmpConnector]
