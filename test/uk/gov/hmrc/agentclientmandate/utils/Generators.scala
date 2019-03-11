@@ -42,6 +42,13 @@ object Generators {
       number <- digitString(4)
     } yield s"$prefix$number"
 
+  val clientIdGen: Gen[String] =
+    for{
+      prefix <- Gen.const("ATED-")
+      char <-   Gen.const("-")
+      number <- digitString(6)
+    } yield s"$prefix$char$number"
+
   val telephoneNumberGen:Gen[String] = digitString(10)
 
   val sapNumberGen:Gen[String] = digitString(10)
@@ -99,6 +106,10 @@ object Generators {
       prefix <- upperStrGen(1)
       number <- digitString(7)
     } yield s"$prefix$number"
+
+  val newEnrolmentGen:Gen[String] = digitString(14)
+
+
 
   private val yearMonthDayFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH)
                                                        .withZone(ZoneId.systemDefault())

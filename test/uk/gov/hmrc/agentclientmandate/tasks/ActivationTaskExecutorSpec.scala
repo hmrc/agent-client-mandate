@@ -37,6 +37,7 @@ import uk.gov.hmrc.tasks._
 import scala.concurrent.Future
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.tasks
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 
 class ActivationTaskExecutorMock(override val etmpConnector: EtmpConnector,
@@ -71,27 +72,27 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
   lazy val finalizeSignal = Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId"))
 
   val timeToUse = DateTime.now()
-  val mandate = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+  val mandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get,  nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
     currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
-  val updatedMandate = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+  val updatedMandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid",  nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get,  nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
     statusHistory = Seq(MandateStatus(Status.New, new DateTime(), "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
-  val updatedMandate1 = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some("agent@mail.com"))),
-    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+  val updatedMandate1 = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get,  nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(emailGen.sample.get))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
     currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
     statusHistory = Seq(MandateStatus(Status.PendingActivation, new DateTime(), "credid"), MandateStatus(Status.Approved, timeToUse, "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),

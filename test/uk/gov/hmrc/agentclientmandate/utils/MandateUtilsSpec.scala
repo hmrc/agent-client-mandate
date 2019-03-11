@@ -21,6 +21,8 @@ import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.http.HttpResponse
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
+
 
 class MandateUtilsSpec extends PlaySpec {
 
@@ -28,10 +30,10 @@ class MandateUtilsSpec extends PlaySpec {
 
     "return true" when {
       "status = APPROVED is NOT FOUND in status History" in {
-        val mandate1 = Mandate("AS12345678",
-          User("credid", "Joe Bloggs", None),
-          agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
-          clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+        val mandate1 = Mandate(mandateReferenceGen.sample.get,
+          User("credid", nameGen.sample.get, None),
+          agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+          clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
           currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
           statusHistory = Seq(MandateStatus(Status.PendingActivation, new DateTime(), "credid")),
           subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
@@ -45,13 +47,13 @@ class MandateUtilsSpec extends PlaySpec {
       "status = APPROVED is FOUND in status History" in {
         val mandate1 =
           Mandate(
-            id = "123",
+            id = mandateReferenceGen.sample.get,
             createdBy = User("credid", "name", None),
-            agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
-            clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
+            agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+            clientParty = Some(Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
             currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "credid"),
             statusHistory = Seq(MandateStatus(Status.Approved, new DateTime(), "credid"), MandateStatus(Status.New, new DateTime(), "credid2")),
-            subscription = Subscription(Some("1111111111"), Service("ebc", "ABC")),
+            subscription = Subscription(Some(subscriptionReferenceGen.sample.get), Service("ebc", "ABC")),
             clientDisplayName = "client display name"
           )
         MandateUtils.whetherSelfAuthorised(mandate1) must be (false)
