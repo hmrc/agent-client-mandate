@@ -31,6 +31,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.tasks._
 import uk.gov.hmrc.agentclientmandate.config.AuthClientConnector
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -66,9 +67,9 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   val mandate =
     Mandate(
       id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
-      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
+      createdBy = User("credid",nameGen.sample.get, None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
@@ -86,8 +87,8 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
-      clientParty = Some(Party("ABCD1234", "Client Name", PartyType.Organisation, ContactDetails("somewhere@someplace.com", Some("98765433210")))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(Some(atedUtr.utr), Service("ebc", "ABC")),
@@ -98,14 +99,14 @@ class RelationshipServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   val mockAuthConnector = mock[AuthConnector]
   val tc1mock = mock[TaskControllerT]
   val successResponseJsonAuth = Json.parse(
-    """{
+    s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")

@@ -31,6 +31,7 @@ import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateRepos
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -55,7 +56,7 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
 
       when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
 
-      val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED", None, None)
+      val response = TestFetchMandateService.getAllMandates(agentReferenceNumberGen.sample.get, "ATED", None, None)
       await(response) must be(List(clientMandate))
 
     }
@@ -63,14 +64,14 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
     "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in {
 
       val successResponseJsonAuth = Json.parse(
-        """{
+        s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -78,9 +79,10 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       when(mockAuthConnector.getAuthority()(any())) thenReturn {
         Future.successful(successResponseJsonAuth)
       }
+      val agentRefNumber = agentReferenceNumberGen.sample.get
       when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
 
-      val response = TestFetchMandateService.getAllMandates("JARN123456", "ATED", Some("credId"), None)
+      val response = TestFetchMandateService.getAllMandates(agentRefNumber, "ATED", Some("credId"), None)
       await(response) must be(List(clientMandate))
     }
 
@@ -111,8 +113,8 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
   val clientMandate =
     Mandate(
       id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      createdBy = User("credid", nameGen.sample.get, None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,

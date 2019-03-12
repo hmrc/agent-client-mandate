@@ -33,6 +33,7 @@ import uk.gov.hmrc.play.audit.model.Audit
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -51,27 +52,27 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
-          """
+          s"""
             |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
+            |  "sapNumber":"${sapNumberGen.sample.get}",
+            |  "safeId": "${safeIDGen.sample.get}",
+            |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
             |  "isAnIndividual": false,
             |  "organisation": {
-            |    "organisationName": "ABC Limited"
+            |    "organisationName": "${companyNameGen.sample.get}"
             |  }
             |}
           """.stripMargin
         )
         val successResponseJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -96,27 +97,27 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       "results in error" in {
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
         val successResponseJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -148,43 +149,46 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
     "getAgentPartyName" must {
       "get agent name for individual" in {
+        val firstName = firstNameGen.sample.get
+        val lastName = lastNameGen.sample.get
+
         val etmpAgentDetails = Json.parse(
-          """
+          s"""
             |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
+            |  "sapNumber":"${sapNumberGen.sample.get}",
+            |  "safeId": "${safeIDGen.sample.get}",
+            |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
             |  "isAnIndividual": true,
             |  "individual" : {
-            |    "firstName": "firstName",
-            |    "lastName": "lastName"
+            |    "firstName": "${firstName}",
+            |    "lastName": "${lastName}"
             |  }
             |}
           """.stripMargin
         )
 
         val agentPartyName = TestClientMandateCreateService.getPartyName(etmpAgentDetails, isAnIndividual = true)
-        agentPartyName mustBe "firstName lastName"
+        agentPartyName mustBe s"${firstName} ${lastName}"
       }
 
       "get agent name for organisation" in {
-
+        val companyName = companyNameGen.sample.get
         val etmpAgentDetails = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyName}"
+             |  }
+             |}
           """.stripMargin
         )
 
         val agentPartyName = TestClientMandateCreateService.getPartyName(etmpAgentDetails, isAnIndividual = false)
-        agentPartyName mustBe "ABC Limited"
+        agentPartyName mustBe companyName
       }
     }
 
@@ -204,27 +208,27 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       "agent registers a Non-UK Client" in {
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
         val successResponseJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -245,35 +249,35 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
         }
 
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        val result = await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, "arn", emailGen.sample.get, "client display name")
+        val result = await(TestClientMandateCreateService.createMandateForNonUKClient(agentCodeGen.sample.get, dto))
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
         val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
         val successResponseJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -294,8 +298,8 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(MandateCreateError)
         }
 
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
-        an [RuntimeException] should be thrownBy  await(TestClientMandateCreateService.createMandateForNonUKClient("agentCode", dto))
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name")
+        an [RuntimeException] should be thrownBy  await(TestClientMandateCreateService.createMandateForNonUKClient(agentCodeGen.sample.get, dto))
       }
 
     }
@@ -306,27 +310,27 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val mandateId = TestClientMandateCreateService.createMandateId
         val newAgentETMPRegJson = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
         val newAgentJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
-                 "gatewayId": "cred-id-112145698732",
+                 "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-345", "agentBusinessUtr":"KARN123123"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -344,85 +348,90 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(MandateUpdated(mandateWithClient(mandateId, DateTime.now())))
         }
 
-        val dto = NonUKClientDto(safeId = "safeId",
-          subscriptionReference = "X12345678",
+        val dto = NonUKClientDto(safeId = safeIDGen.sample.get,
+          subscriptionReference = subscriptionReferenceGen.sample.get,
           service = "ated",
-          clientEmail = "aa@mail.com",
-          arn = "KARN123123",
-          agentEmail = "bb@mail.com",
+          clientEmail = emailGen.sample.get,
+          arn = agentReferenceNumberGen.sample.get,
+          agentEmail = emailGen.sample.get,
           clientDisplayName = "client display name",
-          mandateRef = Some("B3671590"))
+          mandateRef = mandateReferenceGen.sample)
         
 
-        val result = await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
+        val result = await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
 
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any())
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {
         val successResponseJsonETMP = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
 
-        when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq("KARN123123"),ArgumentMatchers.eq("arn"))) thenReturn {
+        val agentReferenceNumber = agentReferenceNumberGen.sample.get
+
+        when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq(agentReferenceNumber),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
 
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "KARN123123", "bb@mail.com", "client display name", mandateRef = None)
-        val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumber, emailGen.sample.get, "client display name", mandateRef = None)
+        val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
         thrown.getMessage must include("No Old Non-UK Mandate ID recieved for updating mandate")
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no mandate fetched" in {
         val successResponseJsonETMP = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
         val successResponseJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
-                 "gatewayId": "cred-id-112145698732",
+                 "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-345", "agentBusinessUtr":"KARN123123"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
+        
+        val agentReferenceNumber = agentReferenceNumberGen.sample.get
 
         when(authConnectorMock.getAuthority()(any())) thenReturn {
           Future.successful(successResponseJsonAuth)
         }
 
-        when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq("KARN123123"),ArgumentMatchers.eq("arn"))) thenReturn {
+        when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq(agentReferenceNumber),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
         when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
           Future.successful(MandateNotFound)
         }
-
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "KARN123123", "bb@mail.com", "client display name", mandateRef = Some("AAAA"))
-        val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-345", dto))
+        
+        
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumber, emailGen.sample.get, "client display name", mandateReferenceGen.sample)
+        val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
         thrown.getMessage must include("No existing non-uk mandate details found for mandate id")
         verify(relationshipServiceMock, times(0)).createAgentClientRelationship(any(), any())(any())
       }
@@ -431,27 +440,27 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       "agent registers a Non-UK Client but fails to update mandate" in {
 
         val successResponseJsonETMP = Json.parse(
-          """
-            |{
-            |  "sapNumber":"1234567890",
-            |  "safeId": "EX0012345678909",
-            |  "agentReferenceNumber": "AARN1234567",
-            |  "isAnIndividual": false,
-            |  "organisation": {
-            |    "organisationName": "ABC Limited"
-            |  }
-            |}
+          s"""
+             |{
+             |  "sapNumber":"${sapNumberGen.sample.get}",
+             |  "safeId": "${safeIDGen.sample.get}",
+             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
+             |  "isAnIndividual": false,
+             |  "organisation": {
+             |    "organisationName": "${companyNameGen.sample.get}"
+             |  }
+             |}
           """.stripMargin
         )
         val successResponseJsonAuth = Json.parse(
-          """{
+          s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -472,18 +481,18 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
           Future.successful(MandateUpdateError)
         }
 
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name", mandateRef = Some("B3671590"))
-        val thrown = the [RuntimeException] thrownBy  await(TestClientMandateCreateService.updateMandateForNonUKClient("AGENT-123", dto))
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name", mandateReferenceGen.sample)
+        val thrown = the [RuntimeException] thrownBy  await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
         thrown.getMessage must include("Mandate not updated for non-uk")
       }
     }
   }
 
-  val mandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
+  val mandateDto = CreateMandateDto(emailGen.sample.get, "ated", "client display name")
 
   def mandate(id: String, statusTime: DateTime): Mandate =
-    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), nameGen.sample.get, Some(agentCode)),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, statusTime, "credid"),
       statusHistory = Nil,
@@ -494,29 +503,29 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
   val mandate =
     Mandate(
       id = "B3671590",
-      createdBy = User("cred-id-113244018119", "ABC Limited", Some("agentCode")),
-      agentParty = Party("arn", "ABC Limited", PartyType.Organisation, ContactDetails("bb@mail.com", None)),
-      clientParty = Some(Party("safeId", "ABC Limited", PartyType.Organisation, ContactDetails("aa@mail.com", None))),
+      createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
+      agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
+      clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
       currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
       statusHistory = Nil,
-      subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
+      subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ated")),
       clientDisplayName = "client display name")
 
   val mandateUpdated =
     Mandate(
       id = "B3671590",
-      createdBy = User("cred-id-113244018119", "ABC Limited", Some("agentCode")),
-      agentParty = Party("KARN123123", "DEF Limited", PartyType.Organisation, ContactDetails("zz@mail.com", None)),
-      clientParty = Some(Party("safeId", "ABC Limited", PartyType.Organisation, ContactDetails("aa@mail.com", None))),
+      createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
+      agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
+      clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
       currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
       statusHistory = Seq(MandateStatus(Status.Cancelled, new DateTime(), "cred-id-113244018119"), MandateStatus(Status.PendingCancellation, new DateTime(), "cred-id-113244018119")),
       subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
       clientDisplayName = "client display name")
 
   def mandateWithClient(id: String, statusTime: DateTime): Mandate =
-    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), "Joe Bloggs", Some(agentCode)),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
-      clientParty = Some(Party("clientId", "client name", PartyType.Organisation, ContactDetails("client@test.com", Some("0123456789")))),
+    Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), nameGen.sample.get, Some(agentCode)),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = Some(Party("clientId", "client name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
       currentStatus = MandateStatus(Status.New, statusTime, "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),

@@ -36,6 +36,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.model.Audit
 
 import scala.concurrent.Future
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 
 class MandateControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
@@ -284,7 +285,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "trying to create mandate for non-uk client by an agent" when {
 
       "return CREATED as status code, for successful creation" in {
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "aa@mail.com", "arn", "bb@mail.com", "client display name")
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name")
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
         when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any())).thenReturn(Future.successful())
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
@@ -297,7 +298,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     "trying to update mandate for non-uk client by an agent" when {
 
       "return CREATED as status code, for successful creation" in {
-        val dto = NonUKClientDto("safeId", "atedRefNum", "ated", "bb@mail.com", "arn", "@mail.com", "client display name", mandateRef = Some("ABCD1234"))
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get,  emailGen.sample.get, "client display name", mandateReferenceGen.sample)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
         when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any())).thenReturn(Future.successful())
         val result = TestMandateController.updateRelationship("agentCode").apply(fakeRequest)
@@ -452,14 +453,14 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       """
 
   val successResponseJsonAuth = Json.parse(
-    """{
+    s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
                  "idaPids": []
                },
                "accounts": {
                  "agent": {
-                   "agentCode":"AGENT-123", "agentBusinessUtr":"JARN1234567"
+                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
                  }
                }
              }""")
@@ -525,7 +526,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
@@ -537,7 +538,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "credid"),
       statusHistory = Nil,
@@ -549,7 +550,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", Some("agent-code")),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.Approved, new DateTime(), "credid"),
       statusHistory = Nil,
@@ -561,7 +562,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", Some("agent-code")),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
       statusHistory = Nil,
@@ -573,7 +574,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
       statusHistory = Nil,
@@ -585,7 +586,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
-      agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("test@test.com", Some("0123456789"))),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
       currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
       statusHistory = Nil,
@@ -593,7 +594,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
       clientDisplayName = "client display name"
     )
 
-  val createMandateDto = CreateMandateDto("test@test.com", "ated", "client display name")
+  val createMandateDto = CreateMandateDto(emailGen.sample.get, "ated", "client display name")
 
   val registeredAddressDetails = RegisteredAddressDetails("123 Fake Street", "Somewhere", None, None, None, "GB")
   val agentDetails = AgentBuilder.buildAgentDetails

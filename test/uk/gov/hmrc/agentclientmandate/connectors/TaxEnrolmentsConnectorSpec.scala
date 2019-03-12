@@ -29,6 +29,7 @@ import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
 import uk.gov.hmrc.http._
 import play.api.test.Helpers._
 import play.api.test._
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 import scala.concurrent.Future
 
@@ -46,42 +47,48 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with Mo
     override def serviceUrl: String = ""
 
     override val metrics = Metrics
+
+
   }
 
   override def beforeEach = {
     reset(mockWSHttp)
   }
 
+  val agentCode = agentCodeGen.sample.get
+  val clientID = clientIdGen.sample.get
+  val newEnrolment = newEnrolmentGen.sample.get
+
   "TaxEnrolmentsConnector" must {
     implicit val hc = HeaderCarrier()
 
     "create allocation" in {
-      val enrolment = NewEnrolment("08123891238127")
+      val enrolment = NewEnrolment(newEnrolment)
      when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(CREATED, responseJson = None)))
-      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232","JAX023938"))
+      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group",clientID,agentCode))
       result.status mustBe CREATED
     }
 
     "create allocation error code" in {
-      val enrolment = NewEnrolment("08123891238127")
+      val enrolment = NewEnrolment(newEnrolment)
      when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
-      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group","ATED-223232","JAX023938"))
+      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group",clientID,agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
 
     "delete allocation" in {
       when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
-        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
+        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group",clientID,agentCode))
       result.status mustBe NO_CONTENT
     }
 
     "delete allocation error code" in {
       when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
-        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group","ATED-223232","123456789"))
+        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group",clientID,agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
   }

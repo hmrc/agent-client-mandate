@@ -28,6 +28,7 @@ import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 
 class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
@@ -53,7 +54,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
 
       "correct emailId Id is passed" in {
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        val emailString = "test@mail.com"
+        val emailString = emailGen.sample.get
         val templateId = "client_approves_mandate"
         val params = Map("emailAddress" -> emailString, "service" -> serviceString)
 
@@ -76,7 +77,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
 
       "incorrect email Id are passed" in {
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        val invalidEmailString = "test@test1.com"
+        val invalidEmailString = emailGen.sample.get
         val templateId = "client_approves_mandate"
         val params = Map("emailAddress" -> invalidEmailString, "service" -> serviceString)
 

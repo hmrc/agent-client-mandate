@@ -31,6 +31,7 @@ import uk.gov.hmrc.agentclientmandate.repositories._
 
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
@@ -79,7 +80,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       "throw exception if no mandate is fetched" in {
         when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateNotFound))
         val thrown = the[RuntimeException] thrownBy await(TestMandateUpdateService.approveMandate(mandate))
-        thrown.getMessage must be("mandate not found for mandate id::AS12345678")
+        thrown.getMessage must startWith("mandate not found for mandate id")
 
       }
     }
@@ -106,7 +107,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
       "update all mandates with email for agent" in {
         when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(mandateIds)
         when(mockMandateRepository.updateAgentEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
-        val result = await(TestMandateUpdateService.updateAgentEmail("agentId", "test@mail.com", "ated"))
+        val result = await(TestMandateUpdateService.updateAgentEmail("agentId", emailGen.sample.get, "ated"))
         result must be(MandateUpdatedEmail)
       }
     }
@@ -114,7 +115,7 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
     "updateClientEmail" must {
       "update the mandate with email for client" in {
         when(mockMandateRepository.updateClientEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
-        val result = await(TestMandateUpdateService.updateClientEmail("mandateId", "test@mail.com"))
+        val result = await(TestMandateUpdateService.updateClientEmail("mandateId", emailGen.sample.get))
         result must be(MandateUpdatedEmail)
       }
     }
@@ -148,27 +149,27 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
   val timeToUse = DateTime.now()
   val currentMillis = timeToUse.getMillis
 
-  val mandate = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
+  val mandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
     currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
 
-  val clientApprovedMandate = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails("client@mail.com"))),
+  val clientApprovedMandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, ""),
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
 
-  val updatedMandate = Mandate("AS12345678",
-    User("credid", "Joe Bloggs", None),
-    agentParty = Party("JARN123456", "Joe Bloggs", PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails("client@mail.com"))),
+  val updatedMandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
@@ -191,14 +192,14 @@ class MandateUpdateServiceSpec extends PlaySpec with OneServerPerSuite with Befo
   )
 
   val authJson1 = Json.parse(
-    """
+    s"""
       |{
       |  "credentials": {
       |    "gatewayId": "cred-id-1234567890"
       |  },
       |  "accounts": {
       |    "agent": {
-      |      "agentBusinessUtr": "JARN1234567",
+      |      "agentBusinessUtr": "${agentBusinessUtrGen.sample.get}",
       |      "link": "/link"
       |    }
       |  }
