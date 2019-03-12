@@ -44,7 +44,7 @@ object Generators {
 
   val clientIdGen: Gen[String] =
     for{
-      prefix <- Gen.const("ATED-")
+      prefix <- Gen.const("ATED")
       char <-   Gen.const("-")
       number <- digitString(6)
     } yield s"$prefix$char$number"
