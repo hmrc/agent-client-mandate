@@ -16,28 +16,39 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import com.typesafe.config.{Config, ConfigFactory}
+import javax.inject.Inject
 import play.api.Logger
-import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
-import uk.gov.hmrc.agentclientmandate.config.AuthClientConnector
-import uk.gov.hmrc.agentclientmandate.metrics.Metrics
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, DeActivationTaskExecutor}
+import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, ActivationTaskService, DeActivationTaskService, DeactivationTaskExecutor}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
 import uk.gov.hmrc.auth.core.retrieve.Retrievals._
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
+import uk.gov.hmrc.auth.core.{AuthorisedFunctions, PlayAuthConnector}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.tasks._
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-// $COVERAGE-OFF$
+import scala.concurrent.{ExecutionContext, Future}
+
+class DefaultRelationshipService @Inject()(val serviceMetrics: ServiceMetrics,
+                                           val authConnector: PlayAuthConnector,
+                                           val activationTaskService: ActivationTaskService,
+                                           val deactivationTaskService: DeActivationTaskService) extends RelationshipService {
+  TaskController.setupExecutor(TaskConfig("create", classOf[ActivationTaskExecutor], 5, RetryUptoCount(10, exponentialBackoff = true)))
+  TaskController.setupExecutor(TaskConfig("break", classOf[DeactivationTaskExecutor], 5, RetryUptoCount(10, exponentialBackoff = true)))
+
+  val identifiers: Config = ConfigFactory.load("identifiers.properties")
+}
+
 trait RelationshipService extends AuthorisedFunctions {
+  val serviceMetrics: ServiceMetrics
+  val identifiers: Config
+  val activationTaskService: ActivationTaskService
+  val deactivationTaskService: DeActivationTaskService
 
-  def metrics: Metrics
-
-  def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier): Unit = {
+  def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
@@ -46,7 +57,6 @@ trait RelationshipService extends AuthorisedFunctions {
       for {
         (groupId, credId) <- getUserAuthDetails
       } yield {
-        //Then do this each time a 'create' needs to be done
         val task = Task("create", Map("clientId" -> clientId,
           "agentPartyId" -> mandate.agentParty.id,
           "serviceIdentifier" -> identifier,
@@ -55,9 +65,8 @@ trait RelationshipService extends AuthorisedFunctions {
           "credId" -> credId,
           "groupId" -> groupId,
           "token" -> hc.token.get.value,
-          "authorization" -> hc.authorization.get.value)
-        )
-        //execute asynchronously
+          "authorization" -> hc.authorization.get.value
+        ), ActivationTaskMessage(activationTaskService, serviceMetrics))
         TaskController.execute(task)
       }
     } else {
@@ -65,7 +74,7 @@ trait RelationshipService extends AuthorisedFunctions {
     }
   }
 
-  def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier): Unit = {
+  def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
@@ -74,7 +83,6 @@ trait RelationshipService extends AuthorisedFunctions {
       for {
         (groupId, credId) <- getUserAuthDetails
       } yield {
-        //Then do this each time a 'break' needs to be done
         val task = Task("break", Map("clientId" -> clientId,
           "agentPartyId" -> mandate.agentParty.id,
           "serviceIdentifier" -> identifier,
@@ -84,8 +92,8 @@ trait RelationshipService extends AuthorisedFunctions {
           "groupId" -> groupId,
           "token" -> hc.token.get.value,
           "authorization" -> hc.authorization.get.value,
-          "userType" -> userType))
-        //execute asynchronously
+          "userType" -> userType
+        ), DeActivationTaskMessage(deactivationTaskService, serviceMetrics))
         TaskController.execute(task)
       }
     } else {
@@ -93,22 +101,12 @@ trait RelationshipService extends AuthorisedFunctions {
     }
   }
 
-  private def getUserAuthDetails(implicit hc: HeaderCarrier): Future[(String, String)] = {
+  private def getUserAuthDetails(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[(String, String)] = {
     authorised().retrieve(credentials and groupIdentifier) {
       case Credentials(ggCredId, _) ~ Some(groupId) => Future.successful(MandateUtils.validateGroupId(groupId), ggCredId)
-      case _ => throw new RuntimeException("No details found for the agent!")
+      case _ =>
+        Logger.warn("No details found for agent")
+        throw new RuntimeException("No details found for the agent!")
     }
   }
-
 }
-
-object RelationshipService extends RelationshipService {
- 
-  val authConnector: AuthConnector = AuthClientConnector
-  val metrics = Metrics
-
-  TaskController.setupExecutor(TaskConfig("create", classOf[ActivationTaskExecutor], 5, RetryUptoCount(10, true)))
-  TaskController.setupExecutor(TaskConfig("break", classOf[DeActivationTaskExecutor], 5, RetryUptoCount(10, true)))
-
-}
-// $COVERAGE-ON$

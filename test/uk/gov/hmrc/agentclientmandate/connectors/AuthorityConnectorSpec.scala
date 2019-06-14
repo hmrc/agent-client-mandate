@@ -16,50 +16,60 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.Future
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
-class AuthConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class AuthorityConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  trait MockedVerbs extends CoreGet
-  val mockWSHttp: CoreGet = mock[MockedVerbs]
+  val mockWSHttp: CoreGet = mock[HttpClient]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   override def beforeEach: Unit = {
-    reset(mockWSHttp)
+    reset(mockWSHttp, mockAuditConnector)
+  }
+
+  val testServiceUrl = "test"
+
+  trait Setup {
+    class TestAuthorityConnector extends AuthorityConnector {
+      val http: CoreGet = mockWSHttp
+
+      override def serviceUrl: String = testServiceUrl
+      override val auditConnector: AuditConnector = mockAuditConnector
+    }
+
+    val connector = new TestAuthorityConnector
   }
 
   "AuthConnector" must {
-    "return json response when authority found" in {
+    "return json response when authority found" in new Setup {
       val agentBusinessUtr = agentBusinessUtrGen.sample.get
       val successResponseJson = Json.parse( s"""{"accounts": {"agent": {"agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtr}"}}}""")
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, Some(successResponseJson))))
 
-      val result = await(TestAuthConnector.getAuthority()(new HeaderCarrier()))
+      val result = await(connector.getAuthority()(new HeaderCarrier()))
       (result \ "accounts" \ "agent" \ "agentBusinessUtr").as[String] must be(agentBusinessUtr)
     }
 
-    "throw exception when response is not OK" in {
+    "throw exception when response is not OK" in new Setup {
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
 
-      val thrown = the[RuntimeException] thrownBy await(TestAuthConnector.getAuthority()(new HeaderCarrier()))
+      val thrown = the[RuntimeException] thrownBy await(connector.getAuthority()(HeaderCarrier()))
       thrown.getMessage must include("No authority found")
     }
   }
-
-  object TestAuthConnector extends AuthConnector {
-    val http: CoreGet = mockWSHttp
-  }
-
 }

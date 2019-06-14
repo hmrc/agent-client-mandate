@@ -18,14 +18,22 @@ package uk.gov.hmrc.agentclientmandate.utils
 
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
 
 class FeatureSwitchSpec  extends PlaySpec with GuiceOneAppPerSuite {
 
-  override def fakeApplication() = new GuiceApplicationBuilder().configure(Map("features.allocation.usingGG"
-    -> "true","features.deallocation.usingGG" -> "false")).build()
+  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(
+    Map(
+      "features.allocation.usingGG" -> "true",
+      "features.deallocation.usingGG" -> "false"
+    )
+  ).build()
+  implicit override lazy val app: Application = fakeApplication()
 
   "Feature switch returns correct config values" when {
+
+    implicit lazy val config: Configuration = app.injector.instanceOf[Configuration]
 
     "Return true for allocation" in {
       FeatureSwitch.isEnabled("allocation.usingGG") must be (true)
@@ -36,11 +44,11 @@ class FeatureSwitchSpec  extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "set prop works for dummy key " in {
-      FeatureSwitch.setProp("dummy-value",true)
+      FeatureSwitch.setProp("dummy-value", value = true)
       FeatureSwitch.isEnabled("dummy-value") must be (true)
-      FeatureSwitch.disable(FeatureSwitch("dummy-value",true))
+      FeatureSwitch.disable(FeatureSwitch("dummy-value", enabled = true))
       FeatureSwitch.isEnabled("dummy-value") must be (false)
-      FeatureSwitch.enable(FeatureSwitch("dummy-value",false))
+      FeatureSwitch.enable(FeatureSwitch("dummy-value", enabled = false))
       FeatureSwitch.isEnabled("dummy-value") must be (true)
     }
   }

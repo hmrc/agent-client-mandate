@@ -16,37 +16,37 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
+import javax.inject.Inject
+import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.config.WSHttp
-import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.agentclientmandate.models.{GsoAdminDeallocateAgentXmlInput, NewEnrolment}
+import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
+import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Auditable {
+class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
+                                             val auditConnector: AuditConnector,
+                                             val servicesConfig: ServicesConfig,
+                                             val http: HttpClient) extends TaxEnrolmentConnector {
+  val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
+  val enrolmentUrl = s"$serviceUrl/tax-enrolments"
+}
 
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
+trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
 
   def serviceUrl: String
-
   def enrolmentUrl: String
-
   def http: CoreDelete with CorePost
-
-  def metrics: Metrics
+  def metrics: ServiceMetrics
 
   def allocateAgent(input: NewEnrolment, groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
@@ -69,7 +69,7 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     }
   }
 
-  def deAllocateAgent(groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =   {
+  def deAllocateAgent(groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
     val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
@@ -77,28 +77,16 @@ trait TaxEnrolmentConnector extends ServicesConfig with RawResponseReads with Au
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
 
     http.DELETE[HttpResponse](deleteUrl).map({ response =>
-        timerContext.stop()
-        response.status match {
-          case NO_CONTENT =>
-            metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
-          case status =>
-            Logger.warn("deAllocateAgent failed")
-            metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
-            doFailedAudit("deAllocateAgentFailed",s"$groupId-$clientId", response.body)
-        }
-        response
+      timerContext.stop()
+      response.status match {
+        case NO_CONTENT =>
+          metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
+        case status =>
+          Logger.warn("deAllocateAgent failed")
+          metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
+          doFailedAudit("deAllocateAgentFailed", s"$groupId-$clientId", response.body)
+      }
+      response
     })
   }
-
-}
-
-
-
-object TaxEnrolmentConnector extends TaxEnrolmentConnector {
-  // $COVERAGE-OFF$
-  val http: CoreDelete with CorePost = WSHttp
-  val metrics = Metrics
-  val serviceUrl = baseUrl("tax-enrolments")
-  val enrolmentUrl = s"$serviceUrl/tax-enrolments"
-  // $COVERAGE-ON$
 }

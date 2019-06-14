@@ -16,19 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailStatus}
 import uk.gov.hmrc.agentclientmandate.models.Status
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-
-import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.Future
+
+class DefaultNotificationEmailService @Inject()(val emailConnector: EmailConnector) extends NotificationEmailService
 
 trait NotificationEmailService {
-
   def emailConnector: EmailConnector
 
   def sendMail(emailString: String, action: Status, userType: Option[String] = None, service: String, prevStatus: Option[Status] = None)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
@@ -53,10 +51,4 @@ trait NotificationEmailService {
     emailConnector.sendTemplatedEmail(emailString, template, serviceString)
   }
 
-}
-
-object NotificationEmailService extends NotificationEmailService {
-  // $COVERAGE-OFF$
-  val emailConnector = EmailConnector
-  // $COVERAGE-ON$
 }

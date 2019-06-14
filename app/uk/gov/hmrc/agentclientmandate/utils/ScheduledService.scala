@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.config
+package utils
 
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import ApplicationConfig.identifiers
+import uk.gov.hmrc.tasks.Signal
 
-class ApplicationConfigSpec extends PlaySpec with OneServerPerSuite {
+import scala.util.Try
 
-  "Application Config" must {
-    "load errors properties file" in {
-
-      identifiers.getString("ated.identifier") must be("ATEDRefNumber")
-    }
-  }
+trait ScheduledService {
+  def execute(signal: Signal): Try[Signal]
+  def rollback(signal: Signal): Try[Signal]
+  def onRollbackFailure(lastSignal: Signal): Unit
 }

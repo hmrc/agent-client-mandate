@@ -16,26 +16,56 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import com.typesafe.config.{Config, ConfigFactory}
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.utils.TestAudit
-import uk.gov.hmrc.play.audit.model.Audit
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
-class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+
+  implicit val hc = HeaderCarrier()
+  val agentCode = "ac"
+
+  val mandateRepositoryMock = mock[MandateRepository]
+  val authConnectorMock = mock[AuthorityConnector]
+  val etmpConnectorMock = mock[EtmpConnector]
+  val relationshipServiceMock = mock[RelationshipService]
+  val mockMandateFetchService = mock[MandateFetchService]
+  val mockAuditConnector = mock[AuditConnector]
+
+  object TestClientMandateCreateService extends MandateCreateService {
+    override val mandateRepository = mandateRepositoryMock
+    override val authConnector = authConnectorMock
+    override val mandateFetchService = mockMandateFetchService
+    override val etmpConnector = etmpConnectorMock
+    override val relationshipService = relationshipServiceMock
+    override val auditConnector = mockAuditConnector
+    override val identifiers: Config = ConfigFactory.load("identifiers.properties")
+  }
+
+  override def beforeEach(): Unit = {
+    reset(mandateRepositoryMock)
+    reset(authConnectorMock)
+    reset(etmpConnectorMock)
+    reset(relationshipServiceMock)
+    reset(authConnectorMock)
+    reset(mockMandateFetchService)
+  }
 
   "MandateCreateService" should {
 
@@ -251,7 +281,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, "arn", emailGen.sample.get, "client display name")
         val result = await(TestClientMandateCreateService.createMandateForNonUKClient(agentCodeGen.sample.get, dto))
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any(), any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
@@ -360,7 +390,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
 
         val result = await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
 
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any(), any())
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {
@@ -433,7 +463,7 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumber, emailGen.sample.get, "client display name", mandateReferenceGen.sample)
         val thrown = the [RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
         thrown.getMessage must include("No existing non-uk mandate details found for mandate id")
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(any(), any())(any())
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(any(), any())(any(), any())
       }
 
 
@@ -531,32 +561,5 @@ class MandateCreateServiceSpec extends PlaySpec with OneServerPerSuite with Mock
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
     )
-
-  implicit val hc = HeaderCarrier()
-  val agentCode = "ac"
-
-  val mandateRepositoryMock = mock[MandateRepository]
-  val authConnectorMock = mock[AuthConnector]
-  val etmpConnectorMock = mock[EtmpConnector]
-  val relationshipServiceMock = mock[RelationshipService]
-  val mockMandateFetchService = mock[MandateFetchService]
-
-  object TestClientMandateCreateService extends MandateCreateService {
-    override val mandateRepository = mandateRepositoryMock
-    override val authConnector = authConnectorMock
-    override val mandateFetchService = mockMandateFetchService
-    override val etmpConnector = etmpConnectorMock
-    override val relationshipService = relationshipServiceMock
-    override val audit: Audit = new TestAudit
-  }
-
-  override def beforeEach(): Unit = {
-    reset(mandateRepositoryMock)
-    reset(authConnectorMock)
-    reset(etmpConnectorMock)
-    reset(relationshipServiceMock)
-    reset(authConnectorMock)
-    reset(mockMandateFetchService)
-  }
 
 }

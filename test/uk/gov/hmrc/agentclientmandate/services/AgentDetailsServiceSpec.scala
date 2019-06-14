@@ -23,10 +23,11 @@ import org.mockito.Mockito._
 import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.libs.json.Json
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -35,9 +36,27 @@ import scala.concurrent.Future
 
 
 
-class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class AgentDetailsServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  val successResponseJsonAuth = Json.parse(
+  implicit val hc = HeaderCarrier()
+
+  val authConnectorMock = mock[AuthorityConnector]
+  val etmpConnectorMock = mock[EtmpConnector]
+  val mockMandateFetchService = mock[MandateFetchService]
+
+  override def beforeEach(): Unit = {
+    reset(authConnectorMock)
+    reset(etmpConnectorMock)
+    reset(mockMandateFetchService)
+  }
+
+  object TestAgentDetailsService extends AgentDetailsService {
+    override val authConnector = authConnectorMock
+    override val etmpConnector = etmpConnectorMock
+    override val mandateFetchService: MandateFetchService = mockMandateFetchService
+  }
+
+  val successResponseJsonAuth: JsValue = Json.parse(
     s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",
@@ -186,22 +205,4 @@ class AgentDetailsServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       }
     """
   )
-
-  implicit val hc = HeaderCarrier()
-
-  val authConnectorMock = mock[AuthConnector]
-  val etmpConnectorMock = mock[EtmpConnector]
-  val mockMandateFetchService = mock[MandateFetchService]
-
-  override def beforeEach(): Unit = {
-    reset(authConnectorMock)
-    reset(etmpConnectorMock)
-    reset(mockMandateFetchService)
-  }
-
-  object TestAgentDetailsService extends AgentDetailsService {
-    override val authConnector = authConnectorMock
-    override val etmpConnector = etmpConnectorMock
-    override val mandateFetchService: MandateFetchService = mockMandateFetchService
-  }
 }

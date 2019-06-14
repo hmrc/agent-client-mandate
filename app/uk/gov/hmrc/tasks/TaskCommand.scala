@@ -16,10 +16,25 @@
 
 package uk.gov.hmrc.tasks
 
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskService, DeActivationTaskService}
+import utils.ScheduledService
+
+sealed trait ScheduledMessage {
+  val service: ScheduledService
+  val metrics: ServiceMetrics
+}
+
+case class ActivationTaskMessage(service: ActivationTaskService,
+                                 metrics: ServiceMetrics) extends ScheduledMessage
+case class DeActivationTaskMessage(service: DeActivationTaskService,
+                                   metrics: ServiceMetrics) extends ScheduledMessage
+
 // Akka message. Represents a command to execute a task. Contains
 // the task to be executed as provided by the client as well as
 // an ExecutionStatus (see below)
-case class TaskCommand(status:ExecutionStatus)
+case class TaskCommand(status: ExecutionStatus,
+                       message: ScheduledMessage)
 
 // Specifies the current state of processing of a TaskCommand. This
 // is used by the processing system o decide on the next action to be taken

@@ -16,28 +16,36 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.{Configuration, Logger, Play}
+import play.api.Logger
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailStatus, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
+
+class DefaultMandateUpdateService @Inject()(val etmpConnector: EtmpConnector,
+                                            val auditConnector: AuditConnector,
+                                            val authConnector: AuthorityConnector,
+                                            val mandateRepo: MandateRepo,
+                                            val servicesConfig: ServicesConfig) extends MandateUpdateService {
+  val mandateRepository: MandateRepository = mandateRepo.repository
+  lazy val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
+}
 
 trait MandateUpdateService extends Auditable {
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
+  val expiryAfterDays: Int
 
   def mandateRepository: MandateRepository
-
   def etmpConnector: EtmpConnector
-
-  def authConnector: AuthConnector
+  def authConnector: AuthorityConnector
 
   def approveMandate(approvedMandate: Mandate)(implicit hc: HeaderCarrier): Future[MandateUpdate] = {
     val service = approvedMandate.subscription.service.id.toLowerCase
@@ -101,8 +109,8 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
-  def checkExpiry(): Future[_] = {
-    val dateFrom = DateTime.now().minusDays(ApplicationConfig.expiryAfterDays)
+  def checkStaleDocuments(): Future[_] = {
+    val dateFrom = DateTime.now().minusDays(expiryAfterDays)
     for {
       mandates <- mandateRepository.findOldMandates(dateFrom)
     } yield {
@@ -110,19 +118,11 @@ trait MandateUpdateService extends Auditable {
         val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, DateTime.now, "SYSTEM"))
         mandateRepository.updateMandate(updatedMandate).map {
           case MandateUpdated(m) =>
-            implicit val hc = new HeaderCarrier()
+            implicit val hc: HeaderCarrier = HeaderCarrier()
             doAudit("expire", "", m)
           case MandateUpdateError => Logger.warn("Could not expire mandate")
         }
       }
     }
   }
-}
-
-object MandateUpdateService extends MandateUpdateService {
-  // $COVERAGE-OFF$
-  val mandateRepository = MandateRepository()
-  val etmpConnector: EtmpConnector = EtmpConnector
-  val authConnector: AuthConnector = AuthConnector
-  // $COVERAGE-ON$
 }

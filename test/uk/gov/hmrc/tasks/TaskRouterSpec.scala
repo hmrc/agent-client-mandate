@@ -16,15 +16,19 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
+import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.play.test.UnitSpec
+import utils.ScheduledService
 
 import scala.util.{Success, Try}
 
 class TaskRouterSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender {
+  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)
@@ -41,33 +45,28 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
 
   "TaskRouter" must {
     "receive a task and route to an executor" in {
-      routerRef ! TaskCommand(StageComplete(Next("1", args1), phaseCommit))
+      val message = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)
 
-      expectMsg(TaskCommand(StageComplete(Next("1",args1), phaseCommit)))
+      routerRef ! TaskCommand(StageComplete(Next("1", args1), phaseCommit), message)
+
+      expectMsg(TaskCommand(StageComplete(Next("1",args1), phaseCommit), message))
     }
   }
 
 
 }
 
-case class TestRouterConfig_TaskRouter[A <: Actor](val taskType:String,
-                                  val executorType:Class[A],
-                                  val instances:Int,
-                                  val retryPolicy:RetryPolicy
-                                 ) extends ConfigProvider[A]{
-
+case class TestRouterConfig_TaskRouter[A <: Actor](taskType:String,
+                                                   executorType:Class[A],
+                                                   instances:Int,
+                                                   retryPolicy:RetryPolicy
+                                                  ) extends ConfigProvider[A] {
 }
 
 class TestExecutor_TaskRouter extends TaskExecutor {
 
-  override def execute(signal: Signal): Try[Signal] = {
-    Success(signal)
-  }
-
-  override def rollback(signal: Signal): Try[Signal] = {
-    Success(signal)
-  }
-
-  override def onRollbackFailure(lastSignal: Signal) = {}
+  override def execute(signal: Signal, service: ScheduledService): Try[Signal] = Success(signal)
+  override def rollback(signal: Signal, service: ScheduledService): Try[Signal] = Success(signal)
+  override def onRollbackFailure(lastSignal: Signal, service: ScheduledService): Unit = {}
 
 }

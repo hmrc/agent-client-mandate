@@ -30,7 +30,7 @@ protected class TaskRouter[A <: Actor] (config:ConfigProvider[A]) extends Actor 
   //Create an akka router with N instances of the
   // Executor as routees and a round robbin
   // load balancing policy
-  var router = {
+  var router: Router = {
     val routees = Vector.fill(config.instances) {
       val r = config.newExecutor(context)
       context.watch(r)
@@ -41,16 +41,12 @@ protected class TaskRouter[A <: Actor] (config:ConfigProvider[A]) extends Actor 
   }
 
   def receive: Receive = {
-    //All task commands go the Executor instances
     case cmd: TaskCommand =>
       router.route(cmd, sender())
-
-    // $COVERAGE-OFF$
     case Terminated(a) =>
       router = router.removeRoutee(a)
       val r = config.newExecutor(context)
       context watch r
       router = router.addRoutee(r)
-    // $COVERAGE-ON$
   }
 }

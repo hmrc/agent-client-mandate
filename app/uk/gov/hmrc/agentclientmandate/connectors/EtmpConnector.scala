@@ -16,48 +16,39 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
+import javax.inject.Inject
+import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.config.WSHttp
-import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
+import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-object EtmpConnector extends EtmpConnector {
-  // $COVERAGE-OFF$
-  val urlHeaderEnvironment: String = config("etmp-hod").getString("environment").fold("")(x => x)
-  val urlHeaderAuthorization: String = s"Bearer ${config("etmp-hod").getString("authorization-token").fold("")(x => x)}"
-  val http: CoreGet with CorePost = WSHttp
-  val metrics: Metrics = Metrics
-  // $COVERAGE-ON$
+class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
+                                     val auditConnector: AuditConnector,
+                                     val servicesConfig: ServicesConfig,
+                                     val http: HttpClient) extends EtmpConnector {
+  val urlHeaderEnvironment: String = servicesConfig.getConfString("etmp-hod.environment", "")
+  val urlHeaderAuthorization: String = s"Bearer ${servicesConfig.getConfString("etmp-hod.authorization-token", "")}"
+  val etmpUrl: String = servicesConfig.baseUrl("etmp-hod")
 }
 
-trait EtmpConnector extends ServicesConfig with RawResponseReads with Auditable {
+trait EtmpConnector extends RawResponseReads with Auditable {
 
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
-
-  val etmpUrl: String = baseUrl("etmp-hod")
+  val etmpUrl: String
 
   def urlHeaderEnvironment: String
-
   def urlHeaderAuthorization: String
-
   def http: CoreGet with CorePost
-
-  def metrics: Metrics
-
+  def metrics: ServiceMetrics
 
   def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
 

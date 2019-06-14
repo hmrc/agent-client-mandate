@@ -16,31 +16,39 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import com.typesafe.config.{Config, ConfigFactory}
+import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.{Configuration, Play}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+
+class DefaultMandateCreateService @Inject()(val etmpConnector: EtmpConnector,
+                                            val relationshipService: RelationshipService,
+                                            val mandateFetchService: MandateFetchService,
+                                            val auditConnector: AuditConnector,
+                                            val authConnector: AuthorityConnector,
+                                            val mandateRepo: MandateRepo) extends MandateCreateService {
+  val mandateRepository: MandateRepository = mandateRepo.repository
+  val identifiers: Config = ConfigFactory.load("identifiers.properties")
+}
 
 trait MandateCreateService extends Auditable {
 
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
+  val identifiers: Config
 
   def mandateRepository: MandateRepository
-
-  def authConnector: AuthConnector
-
+  def authConnector: AuthorityConnector
   def etmpConnector: EtmpConnector
-
   def mandateFetchService: MandateFetchService
-
   def relationshipService: RelationshipService
 
   def createMandateId: String = {
@@ -180,10 +188,10 @@ trait MandateCreateService extends Auditable {
     } yield {
         mu match {
             case MandateUpdated(m)=>
-              // $COVERAGE-OFF$
+
             relationshipService.createAgentClientRelationship (m, ac)
             doAudit ("updateMandateNonUKClient", ac, m)
-              // $COVERAGE-ON$
+
             case _ => throw new RuntimeException ("Mandate not updated for non-uk")
         }
       }
@@ -195,14 +203,4 @@ trait MandateCreateService extends Auditable {
       }
     }
 
-}
-
-object MandateCreateService extends MandateCreateService {
-  // $COVERAGE-OFF$
-  val mandateRepository = MandateRepository()
-  val authConnector = AuthConnector
-  val etmpConnector = EtmpConnector
-  val relationshipService: RelationshipService = RelationshipService
-  val mandateFetchService: MandateFetchService = MandateFetchService
-  // $COVERAGE-ON$
 }

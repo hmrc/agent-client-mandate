@@ -17,51 +17,72 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
+import uk.gov.hmrc.agentclientmandate.connectors.AuthorityConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateRepository}
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
-class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class MandateFetchServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   val mandateId = "123"
+
+  implicit val hc = HeaderCarrier()
+
+  val mockMandateRepository = mock[MandateRepository]
+  val mockAuthConnector = mock[AuthorityConnector]
+
+  trait Setup {
+
+    class TestFetchMandateService extends MandateFetchService {
+      override val mandateRepository = mockMandateRepository
+      override val authConnector = mockAuthConnector
+      override val clientCancelledMandateNotification: Int = 5
+    }
+
+    val service = new TestFetchMandateService
+  }
+
+  override def beforeEach(): Unit = {
+    reset(mockMandateRepository)
+    reset(mockAuthConnector)
+  }
 
   "FetchClientMandateService" should {
 
     "return a success response" when {
 
-      "a client mandate is found for a valid mandate id in MongoDB" in {
+      "a client mandate is found for a valid mandate id in MongoDB" in new Setup {
 
         when(mockMandateRepository.fetchMandate(any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
-        val response = TestFetchMandateService.fetchClientMandate(mandateId)
+        val response = service.fetchClientMandate(mandateId)
         await(response) must be(MandateFetched(clientMandate))
 
       }
 
     }
 
-    "list of client mandate is found for a valid arn and service name in MongoDB" in {
+    "list of client mandate is found for a valid arn and service name in MongoDB" in new Setup {
 
       when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
 
-      val response = TestFetchMandateService.getAllMandates(agentReferenceNumberGen.sample.get, "ATED", None, None)
+      val response = service.getAllMandates(agentReferenceNumberGen.sample.get, "ATED", None, None)
       await(response) must be(List(clientMandate))
 
     }
 
-    "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in {
+    "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in new Setup {
 
       val successResponseJsonAuth = Json.parse(
         s"""{
@@ -82,29 +103,29 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       val agentRefNumber = agentReferenceNumberGen.sample.get
       when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
 
-      val response = TestFetchMandateService.getAllMandates(agentRefNumber, "ATED", Some("credId"), None)
+      val response = service.getAllMandates(agentRefNumber, "ATED", Some("credId"), None)
       await(response) must be(List(clientMandate))
     }
 
-    "a mandate is found for a valid client id and service" in {
+    "a mandate is found for a valid client id and service" in new Setup {
 
       when(mockMandateRepository.fetchMandateByClient(any(), any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
-      val response = TestFetchMandateService.fetchClientMandate("clientId", "service")
+      val response = service.fetchClientMandate("clientId", "service")
       await(response) must be(MandateFetched(clientMandate))
 
     }
 
-    "a list of mandates is found for an agent id" in {
+    "a list of mandates is found for an agent id" in new Setup {
       when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(List(clientMandate.id))
 
-      val response = TestFetchMandateService.getMandatesMissingAgentsEmails("agentId", "ated")
+      val response = service.getMandatesMissingAgentsEmails("agentId", "ated")
       await(response) must be(List(clientMandate.id))
     }
 
-    "a list of client display names" in {
+    "a list of client display names" in new Setup {
       when(mockMandateRepository.getClientCancelledMandates(any(), any(), any())) thenReturn Future.successful(List("AAA", "BBB"))
-      val response = TestFetchMandateService.fetchClientCancelledMandates("arn", "service")
+      val response = service.fetchClientCancelledMandates("arn", "service")
       await(response) must be(List("AAA", "BBB"))
     }
 
@@ -121,20 +142,4 @@ class MandateFetchServiceSpec extends PlaySpec with OneServerPerSuite with Mocki
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
     )
-
-  implicit val hc = HeaderCarrier()
-
-  val mockMandateRepository = mock[MandateRepository]
-  val mockAuthConnector = mock[AuthConnector]
-
-  object TestFetchMandateService extends MandateFetchService {
-    override val mandateRepository = mockMandateRepository
-    override val authConnector = mockAuthConnector
-  }
-
-  override def beforeEach(): Unit = {
-    reset(mockMandateRepository)
-    reset(mockAuthConnector)
-  }
-
 }

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.tasks
 
-case class Task(`type`: String, args: Map[String, String])
+case class Task(`type`: String, args: Map[String, String], message: ScheduledMessage)
 
 sealed trait Signal {
   def args: Map[String, String]
@@ -25,7 +25,7 @@ sealed trait Signal {
 case class Start(args: Map[String, String]) extends Signal
 case class Next(next:String, args: Map[String, String]) extends Signal
 case object Finish extends Signal {
-  // $COVERAGE-OFF$
+
   override def args = Map()
-  // $COVERAGE-ON$
+
 }

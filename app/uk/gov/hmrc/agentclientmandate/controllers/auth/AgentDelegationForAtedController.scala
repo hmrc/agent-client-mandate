@@ -16,29 +16,26 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers.auth
 
-import play.api.mvc.Action
+import javax.inject.Inject
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr}
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object AgentDelegationForAtedController extends AgentDelegationForAtedController {
-  // $COVERAGE-OFF$
-  val agentDetailsService: AgentDetailsService = AgentDetailsService
-  // $COVERAGE-ON$
-}
+class DefaultAgentDelegationForAtedController @Inject()(
+                                                         val agentDetailsService: AgentDetailsService,
+                                                         val cc: ControllerComponents
+                                                       ) extends BackendController(cc) with AgentDelegationForAtedController
 
-//scalastyle:off public.methods.have.type
-trait AgentDelegationForAtedController extends BaseController {
-
+trait AgentDelegationForAtedController extends BackendController {
   def agentDetailsService: AgentDetailsService
 
-  def isAuthorisedForAted(ac: AgentCode, ated: AtedUtr) = Action.async { implicit request =>
+  def isAuthorisedForAted(ac: AgentCode, ated: AtedUtr): Action[AnyContent] = Action.async { implicit request =>
     agentDetailsService.isAuthorisedForAted(ated) map { isAuthorised =>
       if (isAuthorised) Ok
       else Unauthorized
     }
   }
-
 }

@@ -17,15 +17,16 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 
-import play.api.Mode.Mode
-import play.api.{Configuration, Logger, Play}
+import javax.inject.Inject
+import play.api.Logger
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -34,50 +35,36 @@ sealed trait EmailStatus
 case object EmailSent extends EmailStatus
 case object EmailNotSent extends EmailStatus
 
-trait EmailConnector extends ServicesConfig with RawResponseReads with Auditable {
+class DefaultEmailConnector @Inject()(val auditConnector: AuditConnector,
+                                      val servicesConfig: ServicesConfig,
+                                      val http: HttpClient) extends EmailConnector {
+  val sendEmailUri: String = "hmrc/email"
+  val serviceUrl: String = servicesConfig.baseUrl("email")
+}
 
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
-
+trait EmailConnector extends RawResponseReads with Auditable {
   def sendEmailUri: String
-
   def serviceUrl: String
-
   def http: CorePost
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    val params = Map("emailAddress" -> emailString,
-                     "service" -> serviceString)
+    val params = Map(
+      "emailAddress" -> emailString,
+      "service" -> serviceString
+    )
 
     val sendEmailReq = SendEmailRequest(List(emailString), templateName, params, force = true)
-
     val postUrl = s"$serviceUrl/$sendEmailUri"
     val jsonData = Json.toJson(sendEmailReq)
 
     http.POST(postUrl, jsonData).map { response =>
       response.status match {
-        case ACCEPTED => {
-          EmailSent
-        }
-        case status => {
+        case ACCEPTED => EmailSent
+        case _        =>
           Logger.warn("email failed")
           doFailedAudit("emailFailed", jsonData.toString, response.body)
           EmailNotSent
-        }
       }
     }
   }
-
-
-}
-
-object EmailConnector extends EmailConnector {
-  // $COVERAGE-OFF$
-  val sendEmailUri: String = "hmrc/email"
-  val serviceUrl = baseUrl("email")
-  val http: CorePost = WSHttp
-  // $COVERAGE-OFF$
 }

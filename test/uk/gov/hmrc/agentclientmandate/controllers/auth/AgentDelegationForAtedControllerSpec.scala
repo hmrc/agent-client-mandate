@@ -18,19 +18,22 @@ package uk.gov.hmrc.agentclientmandate.controllers.auth
 
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
-import uk.gov.hmrc.domain.{AgentCode, AtedUtr, Generator}
-import org.mockito.Mockito._
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.mvc.ControllerComponents
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
+import uk.gov.hmrc.domain.{AgentCode, AtedUtr, Generator}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 
-class AgentDelegationForAtedControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   "AgentDelegationForAtedController" must {
 
@@ -58,7 +61,9 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with OneServerPerSui
 
   val mockRelationshipService = mock[AgentDetailsService]
 
-  object TestAgentDelegationForAtedController extends AgentDelegationForAtedController {
+  val cc: ControllerComponents = app.injector.instanceOf[ControllerComponents]
+
+  object TestAgentDelegationForAtedController extends BackendController(cc) with AgentDelegationForAtedController {
     override val agentDetailsService: AgentDetailsService = mockRelationshipService
   }
 
