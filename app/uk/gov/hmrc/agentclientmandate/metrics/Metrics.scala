@@ -16,26 +16,23 @@
 
 package uk.gov.hmrc.agentclientmandate.metrics
 
-import com.codahale.metrics.Timer
+import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer.Context
-import uk.gov.hmrc.agentclientmandate.metrics
+import com.kenshoo.play.metrics.Metrics
+import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum.MetricsEnum
-import uk.gov.hmrc.play.graphite.MicroserviceMetrics
 
-trait Metrics {
+class DefaultServiceMetrics @Inject()(val metrics: Metrics) extends ServiceMetrics
+trait ServiceMetrics {
+  val metrics: Metrics
 
-  def startTimer(api: MetricsEnum): Timer.Context
+  def startTimer(api: MetricsEnum): Context = timers(api).time()
+  def incrementSuccessCounter(api: MetricsEnum): Unit = successCounters(api).inc()
+  def incrementFailedCounter(api: MetricsEnum): Unit = failedCounters(api).inc()
+  def incrementFailedCounter(stage: String): Unit = registry.counter(s"stage-$stage-signal-failure-retry-counter").inc()
 
-  def incrementSuccessCounter(api: MetricsEnum): Unit
+  val registry: MetricRegistry = metrics.defaultRegistry
 
-  def incrementFailedCounter(api: MetricsEnum): Unit
-
-  def incrementFailedCounter(api: String): Unit
-
-}
-
-object Metrics extends Metrics with MicroserviceMetrics{
-  val registry = metrics.defaultRegistry
   val timers = Map(
     MetricsEnum.GGAdminAddKnownFacts -> registry.timer("gga-add-known-facts-agent-response-timer"),
     MetricsEnum.EtmpGetDetails -> registry.timer("etmp-get-details-response-timer"),
@@ -80,14 +77,4 @@ object Metrics extends Metrics with MicroserviceMetrics{
     MetricsEnum.TaxEnrolmentAllocate -> registry.counter("tax-enrolment-allocate-failed-counter"),
     MetricsEnum.TaxEnrolmentDeallocate -> registry.counter("tax-enrolment-deallocate-failed-counter")
   )
-
-  override def startTimer(api: MetricsEnum): Context = timers(api).time()
-
-  override def incrementSuccessCounter(api: MetricsEnum): Unit = successCounters(api).inc()
-
-  override def incrementFailedCounter(api: MetricsEnum): Unit = failedCounters(api).inc()
-
-  override def incrementFailedCounter(stage: String): Unit = registry.counter(s"stage-$stage-signal-failure-retry-counter").inc()
-
-
 }

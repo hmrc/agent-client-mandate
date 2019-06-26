@@ -14,21 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.config
+package uk.gov.hmrc.agentclientmandate.utils
 
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import scala.concurrent.duration._
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 
-class MicroserviceGlobalSpec extends PlaySpec with OneServerPerSuite {
-
-  "MicroserviceGlobal" must {
-    "have one scheduled job" in {
-      MicroserviceGlobal.scheduledJobs.size must be(1)
-    }
-
-    "expiration job must be present and set up for daily interval" in {
-      MicroserviceGlobal.scheduledJobs.head.name must be("ExpirationService")
-      MicroserviceGlobal.scheduledJobs.head.interval must be(1 day)
-    }
-  }
+object MockMetricsCache extends MockitoSugar {
+  lazy val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
 }

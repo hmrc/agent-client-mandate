@@ -16,79 +16,83 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers.CREATED
-import uk.gov.hmrc.agentclientmandate.metrics.Metrics
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.libs.json.JsValue
+import play.api.test.Helpers.{CREATED, _}
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
-import uk.gov.hmrc.http._
-import play.api.test.Helpers._
-import play.api.test._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.Future
 
-class TaxEnrolmentsConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class TaxEnrolmentsConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  trait MockedVerbs extends  CoreDelete with CorePost
-  val mockWSHttp: CoreDelete with CorePost = mock[MockedVerbs]
-
-  object TestTaxEnrolmentsConnector extends TaxEnrolmentConnector {
-
-    override val http: CoreDelete with CorePost = mockWSHttp
-
-    override val enrolmentUrl: String = ""
-
-    override def serviceUrl: String = ""
-
-    override val metrics = Metrics
-
-
-  }
-
-  override def beforeEach = {
-    reset(mockWSHttp)
-  }
-
+  val mockWSHttp: HttpClient = mock[HttpClient]
+  val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val agentCode = agentCodeGen.sample.get
   val clientID = clientIdGen.sample.get
   val newEnrolment = newEnrolmentGen.sample.get
 
+  override def beforeEach: Unit = {
+    reset(mockWSHttp, mockMetrics, mockAuditConnector)
+  }
+
+  trait MockedVerbs extends CoreDelete with CorePost
+
+  trait Setup {
+
+    val connector = new TestTaxEnrolmentsConnector
+
+    class TestTaxEnrolmentsConnector extends TaxEnrolmentConnector {
+      override val http: CoreDelete with CorePost = mockWSHttp
+      override val enrolmentUrl: String = ""
+      override val metrics: ServiceMetrics = app.injector.instanceOf[ServiceMetrics]
+      override val auditConnector: AuditConnector = mockAuditConnector
+
+      override def serviceUrl: String = ""
+    }
+
+  }
+
   "TaxEnrolmentsConnector" must {
     implicit val hc = HeaderCarrier()
 
-    "create allocation" in {
+    "create allocation" in new Setup {
       val enrolment = NewEnrolment(newEnrolment)
-     when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(CREATED, responseJson = None)))
-      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group",clientID,agentCode))
+      val result = await(connector.allocateAgent(enrolment, "group", clientID, agentCode))
       result.status mustBe CREATED
     }
 
-    "create allocation error code" in {
+    "create allocation error code" in new Setup {
       val enrolment = NewEnrolment(newEnrolment)
-     when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
+      when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
-      val result = await(TestTaxEnrolmentsConnector.allocateAgent(enrolment,"group",clientID,agentCode))
+      val result = await(connector.allocateAgent(enrolment, "group", clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
 
-    "delete allocation" in {
+    "delete allocation" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
-        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group",clientID,agentCode))
+      val result = await(connector.deAllocateAgent("group", clientID, agentCode))
       result.status mustBe NO_CONTENT
     }
 
-    "delete allocation error code" in {
+    "delete allocation error code" in new Setup {
       when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
-        val result = await(TestTaxEnrolmentsConnector.deAllocateAgent("group",clientID,agentCode))
+      val result = await(connector.deAllocateAgent("group", clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
   }

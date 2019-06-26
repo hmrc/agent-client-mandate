@@ -41,12 +41,12 @@ protected class TaskManager[A <: Actor] (config:ConfigProvider[A]) extends Actor
 
   override def receive: Receive = {
     case task: Task =>
-      val msg = TaskCommand(New(Start(task.args)))
+      val msg = TaskCommand(New(Start(task.args)), task.message)
       router ! msg
 
     case cmd: TaskCommand =>
       cmd.status match {
-        // $COVERAGE-OFF$
+
         case _: New => throw new RuntimeException("Unexpected command New")
         case _: StageComplete => router ! cmd
         case _: StageFailed => failureMgr ! cmd
@@ -54,7 +54,7 @@ protected class TaskManager[A <: Actor] (config:ConfigProvider[A]) extends Actor
         case _ : Failed => router ! cmd
         case _ : Complete => cleanUp(cmd)
         case _ : RollbackFailureHandled => cleanUp(cmd)
-        // $COVERAGE-ON$
+
       }
 
     case Tick =>
@@ -67,10 +67,10 @@ protected class TaskManager[A <: Actor] (config:ConfigProvider[A]) extends Actor
   //  1. Execution completed successfully
   //  2. Rollback completed successfully
   //  3. Rollback failure was handled
-  // $COVERAGE-OFF$
+
   def cleanUp(cmd: TaskCommand): String = {
     //TODO: perform clean up
     "Clean Up Completed..."
   }
-  // $COVERAGE-ON$
+
 }

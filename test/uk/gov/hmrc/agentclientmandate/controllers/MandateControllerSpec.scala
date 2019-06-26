@@ -22,24 +22,35 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
-import play.api.test.{FakeApplication, FakeHeaders, FakeRequest}
+import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.agentclientmandate.builders.AgentBuilder
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EmailSent}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EmailSent}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
-import uk.gov.hmrc.agentclientmandate.utils.TestAudit
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.model.Audit
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.Future
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
+class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-class MandateControllerSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+  override implicit lazy val fakeApplication: Application = new GuiceApplicationBuilder().configure(
+    Map(
+      "auditing.enabled" -> "false"
+    )
+  ).build()
+
+  implicit override lazy val app: Application = fakeApplication
 
   "MandateController" should {
 
@@ -475,9 +486,11 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
   val relationshipServiceMock = mock[RelationshipService]
   val agentDetailsServiceMock = mock[AgentDetailsService]
   val notificationServiceMock = mock[NotificationEmailService]
-  val authConnectorMock = mock[AuthConnector]
+  val authConnectorMock = mock[AuthorityConnector]
+  val auditConnectorMock = mock[AuditConnector]
+  lazy val cc: ControllerComponents = app.injector.instanceOf[ControllerComponents]
 
-  object TestAgentMandateController extends MandateController {
+  object TestAgentMandateController extends BackendController(cc) with MandateController {
     override val fetchService = fetchServiceMock
     override val createService = createServiceMock
     override val relationshipService = relationshipServiceMock
@@ -485,11 +498,11 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     override val agentDetailsService = agentDetailsServiceMock
     override val emailNotificationService = notificationServiceMock
     override val authConnector = authConnectorMock
-    override val audit: Audit = new TestAudit
+    override val auditConnector = auditConnectorMock
     override val userType = "agent"
   }
 
-  object TestMandateController extends MandateController {
+  object TestMandateController extends BackendController(cc) with MandateController {
     override val fetchService = fetchServiceMock
     override val createService = createServiceMock
     override val relationshipService = relationshipServiceMock
@@ -497,7 +510,7 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     override val agentDetailsService = agentDetailsServiceMock
     override val emailNotificationService = notificationServiceMock
     override val authConnector = authConnectorMock
-    override val audit: Audit = new TestAudit
+    override val auditConnector = auditConnectorMock
     override val userType = "client"
   }
 
@@ -510,10 +523,6 @@ class MandateControllerSpec extends PlaySpec with OneServerPerSuite with Mockito
     reset(agentDetailsServiceMock)
     reset(notificationServiceMock)
   }
-
-  implicit override lazy val app: FakeApplication = FakeApplication(
-    additionalConfiguration = Map("auditing.enabled" -> "false")
-  )
 
   val mandateId = "123"
   val agentCode = "ABC"

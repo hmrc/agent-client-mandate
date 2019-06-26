@@ -19,16 +19,23 @@ package uk.gov.hmrc.tasks
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
+import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.play.test.UnitSpec
+import utils.ScheduledService
 
 import scala.util.{Success, Try}
 
 class TaskControllerSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender {
+  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
+
+  val mockActivationTaskService: ActivationTaskService = mock[ActivationTaskService]
 
   "TaskController" must {
     "setup a controller with config" in {
@@ -58,7 +65,7 @@ class TaskControllerSpec extends TestKit(ActorSystem("test"))
       }
       TestTaskController.setupExecutor(config1)
 
-      val task = Task("test1", Map())
+      val task = Task("test1", Map(), ActivationTaskMessage(mockActivationTaskService, MockMetricsCache.mockMetrics))
       TestTaskController.execute(task)
       testTaskManager.expectMsg(task)
     }
@@ -66,24 +73,23 @@ class TaskControllerSpec extends TestKit(ActorSystem("test"))
 
 }
 
-case class TestRouterConfig_TaskController[A <: Actor](val taskType:String,
-                                                   val executorType:Class[A],
-                                                   val instances:Int,
-                                                   val retryPolicy:RetryPolicy,
-                                                   val taskManager: ActorRef
-                                                  ) extends ConfigProvider[A]{
+case class TestRouterConfig_TaskController[A <: Actor](taskType:String,
+                                                       executorType:Class[A],
+                                                       instances:Int,
+                                                       retryPolicy:RetryPolicy,
+                                                       taskManager: ActorRef) extends ConfigProvider[A] {
 
   override def newTaskManager(system: ActorSystem): ActorRef = taskManager
 }
 
-class TestExecutor_TaskController extends TaskExecutor {
+class TestExecutor_TaskController(val metrics: ServiceMetrics) extends TaskExecutor {
 
-  override def execute(signal: Signal): Try[Signal] = {
+  override def execute(signal: Signal, service: ScheduledService): Try[Signal] = {
     Success(signal)
   }
 
   //override def onFailed(lastSignal: Signal): Unit = { }
-  override def rollback(signal: Signal): Try[Signal] = ???
+  override def rollback(signal: Signal, service: ScheduledService): Try[Signal] = ???
 
-  override def onRollbackFailure(lastSignal: Signal): Unit = ???
+  override def onRollbackFailure(lastSignal: Signal, service: ScheduledService): Unit = ???
 }

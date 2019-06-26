@@ -19,14 +19,19 @@ package uk.gov.hmrc.tasks
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mock.MockitoSugar
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
+import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.play.test.UnitSpec
+import utils.ScheduledService
 
 import scala.collection.mutable.ArrayBuffer
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 
 class TaskManagerSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender {
+  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)
@@ -49,35 +54,37 @@ class TaskManagerSpec extends TestKit(ActorSystem("test"))
 
   "TaskManager" must {
 
+    val message = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)
+
     "send task command to router on receiving a task" in {
-      taskManagerActorRef ! Task("test", args1)
-      router.cmds(0) shouldBe (TaskCommand(New(Start(args1))))
+      taskManagerActorRef ! Task("test", args1, message)
+      router.cmds(0) shouldBe (TaskCommand(New(Start(args1)), message))
       router.cmds.clear()
     }
 
     "forward any StageComplete task command to router" in {
-      val msg = TaskCommand(StageComplete(Next("1", args1), phaseCommit))
+      val msg = TaskCommand(StageComplete(Next("1", args1), phaseCommit), message)
       taskManagerActorRef ! msg
       router.cmds(0) shouldBe msg
       router.cmds.clear()
     }
 
     "forward any StageFailed task command to failure manager" in {
-      val msg = TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1))
+      val msg = TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1), message)
       taskManagerActorRef ! msg
       fmgr.cmds(0) shouldBe msg
       fmgr.cmds.clear()
     }
 
     "forward any Retrying task command to router" in {
-      val msg = TaskCommand(Retrying(Next("1", args1), phaseCommit, retryState1))
+      val msg = TaskCommand(Retrying(Next("1", args1), phaseCommit, retryState1), message)
       taskManagerActorRef ! msg
       router.cmds(0) shouldBe msg
       router.cmds.clear()
     }
 
     "forward any TaskFailed task command to router" in {
-      val msg = TaskCommand(Failed(Next("1", args1), phaseCommit))
+      val msg = TaskCommand(Failed(Next("1", args1), phaseCommit), message)
       taskManagerActorRef ! msg
       router.cmds(0) shouldBe msg
       router.cmds.clear()
@@ -110,29 +117,20 @@ class TestFailureManager_TaskManager extends Actor {
   }
 }
 
-case class TestConfig_TaskManager[A <: Actor](val taskType: String,
-                                              val executorType: Class[A],
-                                              val instances: Int,
-                                              val retryPolicy: RetryPolicy,
-                                              val router: ActorRef,
-                                              val failureMgr: ActorRef
-                                             ) extends ConfigProvider[A] {
+case class TestConfig_TaskManager[A <: Actor](taskType: String,
+                                              executorType: Class[A],
+                                              instances: Int,
+                                              retryPolicy: RetryPolicy,
+                                              router: ActorRef,
+                                              failureMgr: ActorRef) extends ConfigProvider[A] {
 
   override def newRouter(context: ActorContext): ActorRef = router
 
   override def newFailureManager(context: ActorContext): ActorRef = failureMgr
 }
 
-class TestExecutor_TaskManager extends TaskExecutor {
-
-  override def execute(signal: Signal): Try[Signal] = {
-    Success(signal)
-  }
-
-  override def rollback(signal: Signal): Try[Signal] = {
-    Success(signal)
-  }
-
-  override def onRollbackFailure(lastSignal: Signal) = {}
-
+class TestExecutor_TaskManager() extends TaskExecutor {
+  override def execute(signal: Signal, service: ScheduledService): Try[Signal] = Success(signal)
+  override def rollback(signal: Signal, service: ScheduledService): Try[Signal] = Success(signal)
+  override def onRollbackFailure(lastSignal: Signal, service: ScheduledService): Unit = {}
 }

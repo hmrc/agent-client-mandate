@@ -17,78 +17,70 @@
 package uk.gov.hmrc.tasks
 
 import akka.actor.Actor
-import Phase._
-import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-
 import play.api.Logger
+import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
+import uk.gov.hmrc.tasks.Phase._
+import utils.ScheduledService
 
 import scala.util.{Failure, Success, Try}
 
 trait TaskExecutor extends Actor {
 
-  def execute(signal: Signal): Try[Signal]
-  def rollback(signal: Signal): Try[Signal]
-  def onRollbackFailure(lastSignal: Signal): Unit
-
-  def metrics: Metrics = Metrics
+  def execute(signal: Signal, service: ScheduledService): Try[Signal] = service.execute(signal)
+  def rollback(signal: Signal, service: ScheduledService): Try[Signal] = service.rollback(signal)
+  def onRollbackFailure(lastSignal: Signal, service: ScheduledService): Unit = service.onRollbackFailure(lastSignal)
 
   override def receive: Receive = {
-    case cmd: TaskCommand => {
-
+    case cmd: TaskCommand =>
       cmd.status match {
-
-        case New(startSig) => doTaskCommand(startSig, Commit)
-        case StageComplete(sig, phase) => doTaskCommand(sig, phase)
+        case New(startSig) => doTaskCommand(startSig, Commit, cmd.message)
+        case StageComplete(sig, phase) => doTaskCommand(sig, phase, cmd.message)
         case Retrying(sig, phase, retryState) =>
-          // $COVERAGE-OFF$
           sig match {
-            case Start(args) => metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
-            case Next(stage, args) => metrics.incrementFailedCounter(stage)
-            case _ => println(s"Signal Type:::${sig}")
+            case Start(args) => cmd.message.metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
+            case Next(stage, args) => cmd.message.metrics.incrementFailedCounter(stage)
+            case _ => println(s"Signal Type:::$sig")
           }
-          // $COVERAGE-ON$
-          doTaskCommand(sig, phase, Some(retryState))
-        case Failed(sig, Commit) => doTaskCommand(sig, Rollback)
-        case Failed(sig, Rollback) => handleRollbackFailure(sig)
-        // $COVERAGE-OFF$
+
+          doTaskCommand(sig, phase, cmd.message, Some(retryState))
+        case Failed(sig, Commit) => doTaskCommand(sig, Rollback, cmd.message)
+        case Failed(sig, Rollback) => handleRollbackFailure(sig, cmd.message)
         case other => throw new RuntimeException("Unexpected status " + other)
-        // $COVERAGE-ON$
       }
-    }
-    // $COVERAGE-OFF$
     case x  => throw new RuntimeException("Unexpected message " + x)
-    // $COVERAGE-ON$
   }
 
+  private def doTaskCommand(signal: Signal, phase: Phase, message: ScheduledMessage, retryStateOpt: Option[RetryState] = None): Unit = {
 
-  private def doTaskCommand(signal:Signal, phase:Phase, retryStateOpt: Option[RetryState] = None): Unit = {
-
-    val newSignalTry = if(phase == Commit) execute(signal) else rollback(signal)
+    val newSignalTry = if (phase == Commit) {
+      execute(signal, message.service)
+    } else {
+      rollback(signal, message.service)
+    }
 
     newSignalTry match {
-      case Success(newSignal) => {
-        if(newSignal == Finish) sender() ! TaskCommand(Complete(signal.args, phase))
-        else sender() ! TaskCommand(StageComplete(newSignal, phase))
-      }
-      case Failure(ex) => {
+      case Success(newSignal) =>
+        if (newSignal == Finish) {
+          sender() ! TaskCommand(Complete(signal.args, phase), message)
+        } else {
+          sender() ! TaskCommand(StageComplete(newSignal, phase), message)
+        }
+      case Failure(ex) =>
         Logger.warn(s"[TaskExecutor][doTaskCommand] Failure Exception:::${ex.getMessage}")
         val ct = currentTime
         val retryState =
           retryStateOpt match {
             case Some(rs) => RetryState(rs.firstTryAt, rs.retryCount + 1, ct)
-            case None => RetryState(ct, 1, ct)
+            case None     => RetryState(ct, 1, ct)
           }
-        sender() ! TaskCommand(StageFailed(signal, phase, retryState))
-      }
+        sender() ! TaskCommand(StageFailed(signal, phase, retryState), message)
     }
   }
 
-  private def handleRollbackFailure(lastSignal:Signal): Unit ={
-    onRollbackFailure(lastSignal)
-    sender() ! TaskCommand(RollbackFailureHandled(lastSignal.args))
+  private def handleRollbackFailure(lastSignal: Signal, message: ScheduledMessage): Unit ={
+    onRollbackFailure(lastSignal, message.service)
+    sender() ! TaskCommand(RollbackFailureHandled(lastSignal.args), message)
   }
 
-  // $COVERAGE-OFF$
-  protected def currentTime = System.currentTimeMillis
-  // $COVERAGE-ON$
+  protected def currentTime: Long = System.currentTimeMillis
 }

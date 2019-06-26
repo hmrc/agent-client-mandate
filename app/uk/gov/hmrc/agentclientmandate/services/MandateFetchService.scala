@@ -16,20 +16,29 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import javax.inject.Inject
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
-import uk.gov.hmrc.agentclientmandate.config.ApplicationConfig
-import uk.gov.hmrc.agentclientmandate.connectors.AuthConnector
+import uk.gov.hmrc.agentclientmandate.connectors.AuthorityConnector
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepo, MandateRepository}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
+
+class DefaultMandateFetchService @Inject()(val authConnector: AuthorityConnector,
+                                           val mandateRepo: MandateRepo,
+                                           val servicesConfig: ServicesConfig) extends MandateFetchService {
+  val mandateRepository: MandateRepository = mandateRepo.repository
+  lazy val clientCancelledMandateNotification: Int = servicesConfig.getInt("client-cancelled-mandate-notification-days")
+}
 
 trait MandateFetchService {
+  val clientCancelledMandateNotification: Int
 
-  def authConnector: AuthConnector
+  def authConnector: AuthorityConnector
   def mandateRepository: MandateRepository
 
   def fetchClientMandate(mandateId: String): Future[MandateFetchStatus] = {
@@ -40,10 +49,10 @@ trait MandateFetchService {
     mandateRepository.fetchMandateByClient(clientId, service)
   }
 
-  def getAllMandates(arn: String, serviceName: String, credId: Option[String], displayName: Option[String])(implicit hc: HeaderCarrier): Future[Seq[Mandate]] = {
-
+  def getAllMandates(arn: String, serviceName: String, credId: Option[String], displayName: Option[String])
+                    (implicit hc: HeaderCarrier): Future[Seq[Mandate]] = {
     if (credId.isDefined) {
-      authConnector.getAuthority().flatMap { authority =>
+      authConnector.getAuthority() flatMap { authority =>
         val otherCredId = getCredId(authority)
         mandateRepository.getAllMandatesByServiceName(arn, serviceName, credId, Some(otherCredId), displayName)
       }
@@ -53,21 +62,14 @@ trait MandateFetchService {
     }
   }
 
+  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
+
   def getMandatesMissingAgentsEmails(arn: String, service: String): Future[Seq[String]] = {
     mandateRepository.findMandatesMissingAgentEmail(arn, service)
   }
 
   def fetchClientCancelledMandates(arn: String, serviceName: String): Future[Seq[String]] = {
-    val dateFrom = DateTime.now().minusDays(ApplicationConfig.clientCancelledMandateNotification)
+    val dateFrom = DateTime.now().minusDays(clientCancelledMandateNotification)
     mandateRepository.getClientCancelledMandates(dateFrom, arn, serviceName)
   }
-
-  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
-}
-
-object MandateFetchService extends MandateFetchService {
-  // $COVERAGE-OFF$
-  val authConnector = AuthConnector
-  val mandateRepository: MandateRepository = MandateRepository()
-  // $COVERAGE-ON$
 }

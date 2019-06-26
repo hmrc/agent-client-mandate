@@ -16,25 +16,27 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import javax.inject.Inject
 import org.joda.time.LocalDate
-import play.api.libs.json.JsValue
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.AtedUtr
+import uk.gov.hmrc.http.HeaderCarrier
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
 
+class DefaultAgentDetailsService @Inject()(val etmpConnector: EtmpConnector,
+                                           val authConnector: AuthorityConnector,
+                                           val mandateFetchService: MandateFetchService) extends AgentDetailsService
 
 trait AgentDetailsService {
 
   def etmpConnector: EtmpConnector
-
-  def authConnector: AuthConnector
-
+  def authConnector: AuthorityConnector
   def mandateFetchService: MandateFetchService
-
 
   def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier): Future[AgentDetails] = {
     authConnector.getAuthority().flatMap { authority =>
@@ -65,7 +67,7 @@ trait AgentDetailsService {
           val dob = (etmpDetails \ "individual" \ "dateOfBirth").as[LocalDate]
 
           AgentDetails(safeId,
-            true,
+            isAnIndividual = true,
             individual = Some(Individual(fname, None, lname, dob)),
             None,
             addressDetails = RegisteredAddressDetails(addressLine1, addressLine2, addressLine3, addressLine4, postalCode, countryCode),
@@ -78,18 +80,16 @@ trait AgentDetailsService {
           val orgType = (etmpDetails \ "organisation" \ "organisationName").asOpt[String]
 
           AgentDetails(safeId,
-            false,
+            isAnIndividual = false,
             None,
             organisation = Some(Organisation(orgName, isAGroup, orgType)),
             addressDetails = RegisteredAddressDetails(addressLine1, addressLine2, addressLine3, addressLine4, postalCode, countryCode),
             contactDetails = EtmpContactDetails(phoneNumber, mobileNumber, faxNumber, emailAddress),
             identification = nonUKId)
         }
-
       }
     }
   }
-
 
   def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
     authConnector.getAuthority().flatMap { authority =>
@@ -101,12 +101,4 @@ trait AgentDetailsService {
       }
     }
   }
-}
-
-object AgentDetailsService extends AgentDetailsService {
-  // $COVERAGE-OFF$
-  val authConnector = AuthConnector
-  val etmpConnector = EtmpConnector
-  val mandateFetchService: MandateFetchService = MandateFetchService
-  // $COVERAGE-ON$
 }

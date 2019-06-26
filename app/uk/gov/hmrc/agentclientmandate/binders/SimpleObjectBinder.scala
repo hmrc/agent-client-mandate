@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.binders
 
 import play.api.mvc.PathBindable
-// $COVERAGE-OFF$
+
 class SimpleObjectBinder[T](bind: String => T, unbind: T => String)(implicit m: Manifest[T]) extends PathBindable[T] {
   override def bind(key: String, value: String): Either[String, T] = try {
     Right(bind(value))
@@ -27,4 +27,4 @@ class SimpleObjectBinder[T](bind: String => T, unbind: T => String)(implicit m: 
 
   def unbind(key: String, value: T): String = unbind(value)
 }
-// $COVERAGE-ON$
+

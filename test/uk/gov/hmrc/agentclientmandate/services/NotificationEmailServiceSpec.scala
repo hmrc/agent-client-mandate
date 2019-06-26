@@ -23,6 +23,7 @@ import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -34,86 +35,90 @@ import scala.concurrent.Future
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
-class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class NotificationEmailServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+
+  trait Setup {
+    class TestNotificationEmailService extends NotificationEmailService {
+      override val emailConnector = mockEmailConnector
+    }
+
+    val service = new TestNotificationEmailService
+  }
 
   "NotificationEmailService" should {
 
-    "use the correct connector" in {
-      NotificationEmailService.emailConnector must be(EmailConnector)
-    }
-
      "send email" when {
 
-      "client approves mandate" in {
+      "client approves mandate" in new Setup {
         val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Approved, None, "ATED")
+        val response = service.sendMail(email, Status.Approved, None, "ATED")
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_approves_mandate", "Annual Tax on Enveloped Dwellings")
       }
 
-      "agent activates mandate" in {
+      "agent activates mandate" in new Setup {
         val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Active, None, "ATED")
+        val response = service.sendMail(email, Status.Active, None, "ATED")
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_activates_mandate", "Annual Tax on Enveloped Dwellings")
       }
 
-       "agent self-auth non-uk mandate" in {
+       "agent self-auth non-uk mandate" in new Setup {
          val email = emailGen.sample.get
          when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-         val response = TestNotificationEmailService.sendMail(email, Status.Active, Some("agent"), "ATED")
+         val response = service.sendMail(email, Status.Active, Some("agent"), "ATED")
          await(response) must be(EmailSent)
          verify(mockEmailConnector).sendTemplatedEmail(email, "agent_self_auth_activates_mandate", "Annual Tax on Enveloped Dwellings")
        }
 
-       "agent rejects mandate" in {
+       "agent rejects mandate" in new Setup {
          val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Rejected, None, "ATED")
+        val response = service.sendMail(email, Status.Rejected, None, "ATED")
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_rejects_mandate", "Annual Tax on Enveloped Dwellings")
       }
 
-      "agent cancels active mandate" in {
+      "agent cancels active mandate" in new Setup {
         val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Cancelled, Some("client"), "ATED")
+        val response = service.sendMail(email, Status.Cancelled, Some("client"), "ATED")
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_removes_mandate", "Annual Tax on Enveloped Dwellings")
       }
 
-       "agent cancels self-auth non-uk mandate" in {
+       "agent cancels self-auth non-uk mandate" in new Setup {
          val email = emailGen.sample.get
          when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-         val response = TestNotificationEmailService.sendMail(email, Status.Cancelled, Some("agent"), "ATED")
+         val response = service.sendMail(email, Status.Cancelled, Some("agent"), "ATED")
          await(response) must be(EmailSent)
          verify(mockEmailConnector).sendTemplatedEmail(email, "agent_self_auth_deactivates_mandate", "Annual Tax on Enveloped Dwellings")
        }
 
-      "client cancels approved mandate" in {
+      "client cancels approved mandate" in new Setup {
         val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Cancelled, Some("client"), "ATED", Some(Status.Approved))
+        val response = service.sendMail(email, Status.Cancelled, Some("client"), "ATED", Some(Status.Approved))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_removes_mandate", "Annual Tax on Enveloped Dwellings")
       }
 
-      "client cancels active mandate" in {
+      "client cancels active mandate" in new Setup {
         val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Cancelled, Some("client"), "ATED", Some(Status.PendingCancellation))
+        val response = service.sendMail(email, Status.Cancelled, Some("client"), "ATED", Some(Status.PendingCancellation))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_cancels_active_mandate", "Annual Tax on Enveloped Dwellings")
       }
     }
 
     "send email to default" when {
-      "service name cant be found" in {
+      "service name cant be found" in new Setup {
         val email = emailGen.sample.get
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = TestNotificationEmailService.sendMail(email, Status.Active, service = "aaaa")
+        val response = service.sendMail(email, Status.Active, service = "aaaa")
         await(response) must be(EmailSent)
       }
     }
@@ -143,10 +148,6 @@ class NotificationEmailServiceSpec extends PlaySpec with OneServerPerSuite with 
   val invalidEmail = "aa bb cc"
 
   val mockEmailConnector = mock[EmailConnector]
-
-  object TestNotificationEmailService extends NotificationEmailService {
-    override val emailConnector = mockEmailConnector
-  }
 
   override def beforeEach(): Unit = {
     reset(mockEmailConnector)

@@ -16,39 +16,37 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import play.api.{Configuration, Play}
-import play.api.Mode.Mode
+import javax.inject.Inject
 import play.api.http.Status._
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.config.WSHttp
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.play.config.ServicesConfig
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait AuthConnector extends ServicesConfig with RawResponseReads with Auditable {
+class DefaultAuthorityConnector @Inject()(val auditConnector: AuditConnector,
+                                          val servicesConfig: ServicesConfig,
+                                          val http: HttpClient) extends AuthorityConnector {
+  def serviceUrl: String = servicesConfig.baseUrl("auth")
+}
 
-  override protected def mode: Mode = Play.current.mode
-
-  override protected def runModeConfiguration: Configuration = Play.current.configuration
-
-  override protected def appNameConfiguration: Configuration = Play.current.configuration
-
-  def serviceUrl:String = baseUrl("auth")
+trait AuthorityConnector extends RawResponseReads with Auditable {
   def http: CoreGet
+  def serviceUrl: String
   val authorityUri: String = "auth/authority"
 
   def getAuthority()(implicit hc: HeaderCarrier): Future[JsValue] = {
-
     val getUrl = s"""$serviceUrl/$authorityUri"""
     http.GET[HttpResponse](getUrl) map { response =>
       response.status match {
         case OK =>
           doResponseAudit("authSuccess", response)
           response.json
-        case status =>
+        case _ =>
           doFailedAudit("authFailed", getUrl, response.body)
           throw new RuntimeException("No authority found")
       }
@@ -56,8 +54,3 @@ trait AuthConnector extends ServicesConfig with RawResponseReads with Auditable 
   }
 }
 
-object AuthConnector extends AuthConnector {
-  // $COVERAGE-OFF$
-  val http: CoreGet = WSHttp
-  // $COVERAGE-ON$
-}

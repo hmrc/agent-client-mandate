@@ -18,14 +18,21 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.ActorSystem
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
+import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
+import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.play.test.UnitSpec
+import utils.ScheduledService
 
 import scala.util.{Failure, Success, Try}
 
 class TaskExecutorSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with OneAppPerSuite {
+  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with OneAppPerSuite with MockitoSugar {
 
   val executorRef = TestActorRef[TestExecutorA]
   val executorActor = executorRef.underlyingActor
@@ -38,50 +45,58 @@ class TaskExecutorSpec extends TestKit(ActorSystem("test"))
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
+  override def beforeAll(): Unit = {
+    when(MockMetricsCache.mockMetrics.startTimer(any()))
+      .thenReturn(null)
+    super.beforeAll()
+  }
 
   "Executor" must {
+    val message = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)
+
     "execute with a Start signal when sent a task command when status is New" in {
-      executorRef ! TaskCommand(New(Start(args1)))
+      executorRef ! TaskCommand(New(Start(args1)), message)
       executorActor.execSignal shouldBe Start(args1)
-      expectMsg(TaskCommand(StageComplete(Next("2", Map("c"->"3")), phaseCommit)))
+      expectMsg(TaskCommand(StageComplete(Next("2", Map("c"->"3")), phaseCommit), message))
     }
 
     "execute with the given signal when status is StageComplete" in {
-      executorRef ! TaskCommand(StageComplete(Next("1", args1), phaseCommit))
+      executorRef ! TaskCommand(StageComplete(Next("1", args1), phaseCommit), message)
       executorActor.execSignal shouldBe Next("1", args1)
-      expectMsg(TaskCommand(StageComplete(Next("1",args1), phaseCommit)))
+      expectMsg(TaskCommand(StageComplete(Next("1",args1), phaseCommit), message))
     }
 
     "send back StageFailed when there is an error" in {
-      executorRef ! TaskCommand(StageComplete(Next("error", args1), phaseCommit))
-      expectMsg(TaskCommand(StageFailed(Next("error",args1), phaseCommit, retryState1)))
+      executorRef ! TaskCommand(StageComplete(Next("error", args1), phaseCommit), message)
+      expectMsg(TaskCommand(StageFailed(Next("error",args1), phaseCommit, retryState1), message))
     }
 
     "update the retry state when a Retrying call results in a error" in {
-      executorRef ! TaskCommand(Retrying(Next("error", args1), phaseCommit, retryState1))
-      expectMsg(TaskCommand(StageFailed(Next("error", args1), phaseCommit, RetryState(1000,2,2000))))
+      executorRef ! TaskCommand(Retrying(Next("error", args1), phaseCommit, retryState1), message)
+      expectMsg(TaskCommand(StageFailed(Next("error", args1), phaseCommit, RetryState(1000,2,2000)), message))
     }
 
     "handle failure when sent a Failed" in {
-      executorRef ! TaskCommand(Failed(Next("1", args1), phaseCommit))
+      executorRef ! TaskCommand(Failed(Next("1", args1), phaseCommit), message)
      // executorActor.failedSignal shouldBe Next("1", args1)
-      expectMsg(TaskCommand(StageComplete(Next("1", args1), phaseRollback)))
+      expectMsg(TaskCommand(StageComplete(Next("1", args1), phaseRollback), message))
     }
 
     "send back Finish for task completion" in {
-      executorRef ! TaskCommand(StageComplete(Next("finish", args1), phaseCommit))
-      expectMsg(TaskCommand(Complete(args1, phaseCommit)))
+      executorRef ! TaskCommand(StageComplete(Next("finish", args1), phaseCommit), message)
+      expectMsg(TaskCommand(Complete(args1, phaseCommit), message))
     }
   }
 
 }
 
-class TestExecutorA extends TaskExecutor {
+class TestExecutorA() extends TaskExecutor {
 
   var execSignal: Signal = null
   var failedSignal: Signal = null
+  def metrics: ServiceMetrics = MockMetricsCache.mockMetrics
 
-  override def execute(signal: Signal): Try[Signal] = {
+  override def execute(signal: Signal, service: ScheduledService): Try[Signal] = {
     execSignal = signal
 
     signal match {
@@ -98,9 +113,9 @@ class TestExecutorA extends TaskExecutor {
     ct
   }
 
-  override def rollback(signal: Signal): Try[Signal] = {
+  override def rollback(signal: Signal, service: ScheduledService): Try[Signal] = {
     Success(signal)
   }
 
-  override def onRollbackFailure(lastSignal: Signal) = {}
+  override def onRollbackFailure(lastSignal: Signal, service: ScheduledService): Unit = {}
 }

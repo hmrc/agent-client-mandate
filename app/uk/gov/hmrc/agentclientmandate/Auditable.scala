@@ -16,19 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate
 
-import uk.gov.hmrc.agentclientmandate.config.MicroserviceGlobal
 import uk.gov.hmrc.agentclientmandate.models.Mandate
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.AuditExtensions._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{Audit, DataEvent}
-import uk.gov.hmrc.play.config.AppName
-import uk.gov.hmrc.play.http._
-import uk.gov.hmrc.http.{ HeaderCarrier, HttpResponse }
 
-trait Auditable extends AppName {
+trait Auditable {
 
-  // $COVERAGE-OFF$
-  def audit =  new Audit(appName, MicroserviceGlobal.auditConnector)
-  // $COVERAGE-ON$
+  val auditConnector: AuditConnector
+
+  private def audit: Audit = new Audit("agent-client-mandate", auditConnector)
 
   def doAudit(auditType: String, ac: String, m: Mandate)(implicit hc:HeaderCarrier): Unit = {
 
@@ -65,7 +63,7 @@ trait Auditable extends AppName {
 
   private def sendDataEvent(auditType: String, detail: Map[String, String])
                    (implicit hc: HeaderCarrier): Unit =
-    audit.sendDataEvent(DataEvent(appName, auditType,
+    audit.sendDataEvent(DataEvent("agent-client-mandate", auditType,
       tags = hc.toAuditTags("", "N/A"),
       detail = hc.toAuditDetails(detail.toSeq: _*)))
 }

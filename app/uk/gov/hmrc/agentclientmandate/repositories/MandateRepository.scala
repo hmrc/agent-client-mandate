@@ -16,18 +16,22 @@
 
 package uk.gov.hmrc.agentclientmandate.repositories
 
+import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.{Logger, Play}
 import play.api.libs.json.Json
-import play.modules.reactivemongo.MongoDbConnection
-import reactivemongo.api.{Cursor, DB}
+import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
 import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{Cursor, DB}
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONObjectID}
-import uk.gov.hmrc.agentclientmandate.metrics.{Metrics, MetricsEnum}
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-import uk.gov.hmrc.mongo.ReactiveRepository
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
+import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -51,60 +55,52 @@ sealed trait MandateRemove
 case object MandateRemoved extends MandateRemove
 case object MandateRemoveError extends MandateRemove
 
+class MandateRepositoryImpl @Inject()(val mongo: ReactiveMongoComponent,
+                                      val serviceMetrics: ServiceMetrics) extends MandateRepo
+
+trait MandateRepo {
+  val mongo: ReactiveMongoComponent
+  val serviceMetrics: ServiceMetrics
+
+  lazy val repository: MandateRepository = new MandateMongoRepository(mongo.mongoConnector.db, serviceMetrics)
+}
+
 trait MandateRepository extends ReactiveRepository[Mandate, BSONObjectID] {
-
   def insertMandate(mandate: Mandate): Future[MandateCreate]
-
   def updateMandate(mandate: Mandate): Future[MandateUpdate]
-
   def fetchMandate(mandateId: String): Future[MandateFetchStatus]
-
   def fetchMandateByClient(clientId: String, service: String): Future[MandateFetchStatus]
-
-  def getAllMandatesByServiceName(arn: String, serviceName: String, credId: Option[String], otherCredId: Option[String], displayName: Option[String]): Future[Seq[Mandate]]
-
+  def getAllMandatesByServiceName(arn: String,
+                                  serviceName: String,
+                                  credId: Option[String],
+                                  otherCredId: Option[String],
+                                  displayName: Option[String]): Future[Seq[Mandate]]
   def findMandatesMissingAgentEmail(arn: String, service: String): Future[Seq[String]]
-
   def updateAgentEmail(mandateIds: Seq[String], email: String): Future[MandateUpdate]
-
   def updateClientEmail(mandateId: String, email: String): Future[MandateUpdate]
-
   def updateAgentCredId(oldCredId: String, newCredId: String): Future[MandateUpdate]
-
   def findOldMandates(dateFrom: DateTime): Future[Seq[Mandate]]
-
   def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String): Future[Seq[String]]
-
-  // $COVERAGE-OFF$
   def removeMandate(mandateId: String): Future[MandateRemove]
-  // $COVERAGE-ON$
-
-  def metrics: Metrics
+  def metrics: ServiceMetrics
 }
 
-object MandateRepository extends MongoDbConnection {
-
-  // $COVERAGE-OFF$
-  private lazy val mandateRepository = new MandateMongoRepository
-  // $COVERAGE-ON$
-
-  def apply(): MandateRepository = mandateRepository
-
-}
-
-class MandateMongoRepository(implicit mongo: () => DB)
+class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
   extends ReactiveRepository[Mandate, BSONObjectID]("mandates", mongo, Mandate.formats, ReactiveMongoFormats.objectIdFormats)
     with MandateRepository {
 
   //Temporary code and should be removed after next deployment - start
-  // $COVERAGE-OFF$
-  collection.update(BSONDocument("currentStatus.status" -> "PendingActivation", "statusHistory.status" -> "Approved"), BSONDocument("$set" -> BSONDocument("currentStatus.status" -> "Approved")), upsert=false, multi=true)
+
+  collection.update(BSONDocument(
+    "currentStatus.status" -> "PendingActivation",
+    "statusHistory.status" -> "Approved"
+  ), BSONDocument(
+    "$set" -> BSONDocument("currentStatus.status" -> "Approved")
+  ), upsert=false, multi=true)
 
   collection.remove(BSONDocument("processed" -> BSONDocument("$exists" -> true)))
-  // $COVERAGE-ON$
-  //Temp code - end
 
-  val metrics: Metrics = Metrics
+  //Temp code - end
 
   override def indexes: Seq[Index] = {
     Seq(
@@ -123,14 +119,15 @@ class MandateMongoRepository(implicit mongo: () => DB)
     )
   }
 
-  // $COVERAGE-OFF$
+
   def insertMandate(mandate: Mandate): Future[MandateCreate] = {
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryInsertMandate)
     collection.insert[Mandate](mandate).map { writeResult =>
       timerContext.stop()
-      writeResult.ok match {
-        case true => MandateCreated(mandate)
-        case _ => MandateCreateError
+      if (writeResult.ok) {
+        MandateCreated(mandate)
+      } else {
+        MandateCreateError
       }
     }.recover {
       case e => Logger.warn("Failed to insert mandate", e)
@@ -146,9 +143,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateMandate)
     collection.update(query, mandate, upsert = false).map { writeResult =>
       timerContext.stop()
-      writeResult.ok match {
-        case true => MandateUpdated(mandate)
-        case _ => MandateUpdateError
+      if (writeResult.ok) {
+        MandateUpdated(mandate)
+      } else {
+        MandateUpdateError
       }
     }.recover {
       case e => Logger.warn("Failed to update mandate", e)
@@ -209,8 +207,11 @@ class MandateMongoRepository(implicit mongo: () => DB)
     }
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandatesByService)
     val result = collection.find(query).sort(Json.obj("clientDisplayName" -> 1)).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()).map {
-      x => if (displayName.isDefined){
-        x.filter(mandate => mandate.currentStatus.status != Status.Active || (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase)))
+      x => if (displayName.isDefined) {
+        x.filter(mandate =>
+          mandate.currentStatus.status != Status.Active ||
+            (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase))
+        )
       }
       else {
         x
@@ -260,9 +261,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
 
     collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
       timerContext.stop()
-      writeResult.ok match {
-        case true => MandateUpdatedEmail
-        case _ => MandateUpdateError
+      if (writeResult.ok) {
+        MandateUpdatedEmail
+      } else {
+        MandateUpdateError
       }
     }.recover {
       case e => Logger.warn("Failed to update agent email", e)
@@ -279,9 +281,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
 
     collection.update(query, modifier, upsert = false, multi = false).map { writeResult =>
       timerContext.stop()
-      writeResult.ok match {
-        case true => MandateUpdatedEmail
-        case _ => MandateUpdateError
+      if (writeResult.ok) {
+        MandateUpdatedEmail
+      } else {
+        MandateUpdateError
       }
     }.recover {
       case e => Logger.warn("Failed to update client email", e)
@@ -298,9 +301,10 @@ class MandateMongoRepository(implicit mongo: () => DB)
 
     collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
       timerContext.stop()
-      writeResult.ok match {
-        case true => MandateUpdatedCredId
-        case _ => MandateUpdateError
+      if (writeResult.ok) {
+        MandateUpdatedCredId
+      } else {
+        MandateUpdateError
       }
     }.recover {
       case e => Logger.warn("Failed to update agent cred id", e)
@@ -308,7 +312,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
         MandateUpdateError
     }
   }
-  // $COVERAGE-ON$
+
 
   def findOldMandates(dateFrom: DateTime): Future[Seq[Mandate]] = {
     val query = BSONDocument(
@@ -324,7 +328,7 @@ class MandateMongoRepository(implicit mongo: () => DB)
     result
   }
 
-  // $COVERAGE-OFF$
+
   def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String): Future[Seq[String]] = {
     val query = BSONDocument(
       "agentParty.id" -> arn,
@@ -352,14 +356,15 @@ class MandateMongoRepository(implicit mongo: () => DB)
     val query = BSONDocument("id" -> mandateId)
 
     collection.remove(query).map { writeResult =>
-      writeResult.ok match {
-        case true => MandateRemoved
-        case _ => MandateRemoveError
+      if (writeResult.ok) {
+        MandateRemoved
+      } else {
+        MandateRemoveError
       }
     }.recover {
       case e => Logger.warn("Failed to delete mandate", e)
         MandateRemoveError
     }
   }
-  // $COVERAGE-ON$
+
 }

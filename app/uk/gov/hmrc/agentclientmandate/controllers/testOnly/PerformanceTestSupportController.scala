@@ -16,48 +16,38 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers.testOnly
 
-import play.api.Logger
-import play.api.mvc.Action
+import javax.inject.Inject
+import play.api.libs.json.JsValue
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.{BackendController, BaseController}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-//scalastyle:off public.methods.have.type
-trait PerformanceTestSupportController extends BaseController {
-  // $COVERAGE-OFF$
-  def mandateRepository: MandateRepository
-
-  def createMandate() = Action.async(parse.json) { implicit request =>
-    withJsonBody[Mandate] { x =>
-      mandateRepository.insertMandate(x).map { mandateStatus =>
-        mandateStatus match {
-          case MandateCreated(mandate) =>
-            Created
-          case MandateCreateError =>
-            BadRequest
-        }
-      }
-    }
-  }
-
-  def deleteMandate(mandateId: String) = Action.async { implicit request =>
-    mandateRepository.removeMandate(mandateId).map { mandateStatus =>
-      mandateStatus match {
-        case MandateRemoved =>
-          Created
-        case MandateRemoveError =>
-          BadRequest
-      }
-    }
-  }
-  // $COVERAGE-ON$
+class DefaultPerformanceTestSupportController @Inject()(
+                                                         val mandateRepo: MandateRepo,
+                                                         val cc: ControllerComponents
+                                                       ) extends BackendController(cc) with PerformanceTestSupportController {
+  val mandateRepository: MandateRepository = mandateRepo.repository
 }
 
+trait PerformanceTestSupportController extends BackendController {
+  def mandateRepository: MandateRepository
 
-object PerformanceTestSupportController extends PerformanceTestSupportController {
-  // $COVERAGE-OFF$
-  val mandateRepository = MandateRepository()
-  // $COVERAGE-ON$
+  def createMandate(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withJsonBody[Mandate] { x =>
+      mandateRepository.insertMandate(x).map {
+        case MandateCreated(_) => Created
+        case MandateCreateError => BadRequest
+      }
+    }
+  }
+
+  def deleteMandate(mandateId: String): Action[AnyContent] = Action.async { implicit request =>
+    mandateRepository.removeMandate(mandateId).map {
+      case MandateRemoved => Created
+      case MandateRemoveError => BadRequest
+    }
+  }
 }

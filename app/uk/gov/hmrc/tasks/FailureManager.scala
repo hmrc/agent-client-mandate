@@ -18,7 +18,7 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.Actor
 
-import scala.collection.mutable.Queue
+import scala.collection.mutable
 import scala.language.postfixOps
 
 /**
@@ -32,52 +32,31 @@ import scala.language.postfixOps
   * Failed, so that the executor can perform any rollbacks/cleanups
   */
 protected class FailureManager(val retryPolicy: RetryPolicy) extends Actor {
-
-  val retryQueue: Queue[TaskCommand] = Queue()
+  val retryQueue: mutable.Queue[TaskCommand] = mutable.Queue()
 
   override def receive: Receive = {
-
-    //These are failed TaskCommands from TaskExecutors
-    // Enqueue them for retry later
-    case cmd: TaskCommand => {
-      retryQueue += cmd
-    }
-
-    //Tick from the clock. Wake up to evaluate if any TaskCommands
-    // can be retried now, or if any have exceeded the retry limit
-    case Tick => {
-
-      //helper to get the ExecutionStatus of a TaskCommand
-      def extractStatus(tc:TaskCommand):StageFailed = {
+    case cmd: TaskCommand => retryQueue += cmd
+    case Tick             =>
+      def extractStatus(tc: TaskCommand):StageFailed = {
         tc.status match {
-          case s:StageFailed => s
-          // $COVERAGE-OFF$
-          case _ => throw new RuntimeException("Unexpected command "+tc)
-          // $COVERAGE-ON$
+          case s: StageFailed  => s
+          case _               => throw new RuntimeException("Unexpected command " + tc)
         }
       }
 
-      //current time
       val now = System.currentTimeMillis()
 
-      //Dequeue all TaskCommands that can be retried now according to the RetryPolicy and hold them in a list
       val retryList = retryQueue.dequeueAll(cmd => retryPolicy.evalRetry(now, extractStatus(cmd).retryState) == RetryNow)
-
-      //Dequeue all TaskCommands that have exceeded retry limit according to the RetryPolicy and hold them in a list
       val failedList = retryQueue.dequeueAll(cmd => retryPolicy.evalRetry(now, extractStatus(cmd).retryState) == StopRetrying)
 
-      //For retries, send a new TaskCommand with status Retrying
       retryList.foreach { cmd =>
         val sfStatus = extractStatus(cmd)
-        context.parent ! TaskCommand(Retrying(sfStatus.signal, sfStatus.phase, sfStatus.retryState))
+        context.parent ! TaskCommand(Retrying(sfStatus.signal, sfStatus.phase, sfStatus.retryState), cmd.message)
       }
 
-      //For failures, send a new TaskCommand with status Failed
       failedList.foreach { cmd =>
         val sfStatus = extractStatus(cmd)
-        context.parent ! TaskCommand(Failed(sfStatus.signal, sfStatus.phase))
+        context.parent ! TaskCommand(Failed(sfStatus.signal, sfStatus.phase), cmd.message)
       }
-    }
   }
-
 }

@@ -18,7 +18,6 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 
-
 trait ConfigProvider[A <: Actor] {
   def taskType: String
   def executorType: Class[A]
@@ -26,32 +25,24 @@ trait ConfigProvider[A <: Actor] {
   def retryPolicy: RetryPolicy
 
   def newTaskManager(system: ActorSystem): ActorRef = {
-    // $COVERAGE-OFF$
     system.actorOf(Props(new TaskManager(this)), name = taskType + "-mgr")
-    // $COVERAGE-ON$
   }
 
-  def newRouter(context:ActorContext):ActorRef = {
-    // $COVERAGE-OFF$
+  def newRouter(context: ActorContext): ActorRef = {
     context.actorOf(Props(new TaskRouter(this)), name = taskType + "-router")
-    // $COVERAGE-ON$
   }
 
-  def newExecutor(context:ActorContext):ActorRef = {
-    // $COVERAGE-OFF$
+  def newExecutor(context: ActorContext): ActorRef = {
     context.actorOf(Props(executorType))
-    // $COVERAGE-ON$
   }
 
-  def newFailureManager(context:ActorContext):ActorRef = {
-    // $COVERAGE-OFF$
+  def newFailureManager(context: ActorContext): ActorRef = {
     context.actorOf(Props(new FailureManager(retryPolicy)), name = taskType + "-fmgr")
-    // $COVERAGE-ON$
   }
 }
 
-case class TaskConfig[A <: Actor](val taskType:String,
-                                  val executorType:Class[A],
-                                  val instances:Int,
-                                  val retryPolicy:RetryPolicy
+case class TaskConfig[A <: Actor](taskType:String,
+                                  executorType:Class[A],
+                                  instances:Int,
+                                  retryPolicy:RetryPolicy
                                  ) extends ConfigProvider[A]

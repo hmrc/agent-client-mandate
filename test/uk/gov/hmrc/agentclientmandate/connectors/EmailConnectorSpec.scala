@@ -16,43 +16,46 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.Future
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 
-class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class EmailConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  trait MockedVerbs extends CorePost
-  val mockWSHttp: CorePost = mock[MockedVerbs]
+  val mockWSHttp: HttpClient = mock[HttpClient]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-  object TestEmailConnector extends EmailConnector {
-    val sendEmailUri: String = "send-templated-email"
-    val http: CorePost = mockWSHttp
-    val serviceUrl: String = "email"
+  trait Setup {
+    class TestEmailConnector extends EmailConnector {
+      val sendEmailUri: String = "send-templated-email"
+      val http: CorePost = mockWSHttp
+      val serviceUrl: String = "email"
+      override val auditConnector: AuditConnector = mockAuditConnector
+    }
+
+    val connector = new TestEmailConnector
   }
 
   val serviceString = "AA bb cc dd"
 
   "EmailConnector" must {
 
-    "have a service url" in {
-      EmailConnector.serviceUrl == "email"
-    }
-
     "return a 202 accepted" when {
 
-      "correct emailId Id is passed" in {
+      "correct emailId Id is passed" in new Setup {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val emailString = emailGen.sample.get
         val templateId = "client_approves_mandate"
@@ -66,7 +69,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(202, responseJson = None)))
 
-        val response = TestEmailConnector.sendTemplatedEmail(emailString, templateId, "ATED")
+        val response = connector.sendTemplatedEmail(emailString, templateId, "ATED")
         await(response) must be(EmailSent)
 
       }
@@ -75,7 +78,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
 
     "return other status" when {
 
-      "incorrect email Id are passed" in {
+      "incorrect email Id are passed" in new Setup {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val invalidEmailString = emailGen.sample.get
         val templateId = "client_approves_mandate"
@@ -88,7 +91,7 @@ class EmailConnectorSpec extends PlaySpec with OneServerPerSuite with MockitoSug
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(404, responseJson = None)))
 
-        val response = TestEmailConnector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED")
+        val response = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED")
         await(response) must be(EmailNotSent)
 
       }

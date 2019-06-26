@@ -19,12 +19,15 @@ package uk.gov.hmrc.tasks
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.mockito.MockitoSugar
+import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
+import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.collection.mutable.ArrayBuffer
 
 class FailureManagerSpec extends TestKit(ActorSystem("test"))
-   with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender  {
+   with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   val args1 = Map("a" -> "1", "b" -> "2")
@@ -36,10 +39,12 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
     TestKit.shutdownActorSystem(system)
   }
 
+  val message = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)
+
   "Failure Manager" must {
     "enqueue any task command sent to it" in {
       val failureManagerActorRef = TestActorRef[FailureManager](Props(new FailureManager(retryPolicy)))
-      val taskCommand = TaskCommand(Failed(Next("1", args1), phaseCommit))
+      val taskCommand = TaskCommand(Failed(Next("1", args1), phaseCommit), message)
       failureManagerActorRef ! taskCommand
       failureManagerActorRef.underlyingActor.retryQueue.size should be (1)
       val tc = failureManagerActorRef.underlyingActor.retryQueue.dequeue()
@@ -51,9 +56,9 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
       val failureManagerActorRef = TestActorRef[FailureManager](Props(new FailureManager(retryPolicy)), svRef, "")
 
       retryPolicy.setExpectedResult(RetryNow)
-      failureManagerActorRef ! TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1))
-      failureManagerActorRef ! TaskCommand(StageFailed(Next("2", args1), phaseCommit, retryState1))
-      failureManagerActorRef ! TaskCommand(StageFailed(Next("3", args1), phaseCommit, retryState1))
+      failureManagerActorRef ! TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1), message)
+      failureManagerActorRef ! TaskCommand(StageFailed(Next("2", args1), phaseCommit, retryState1), message)
+      failureManagerActorRef ! TaskCommand(StageFailed(Next("3", args1), phaseCommit, retryState1), message)
 
       failureManagerActorRef.underlyingActor.retryQueue.size should be (3)
 
@@ -61,9 +66,9 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
 
       failureManagerActorRef.underlyingActor.retryQueue.size should be (0)
 
-      svRef.underlyingActor.cmds(0) shouldBe TaskCommand(Retrying(Next("1", args1), phaseCommit, retryState1))
-      svRef.underlyingActor.cmds(1) shouldBe TaskCommand(Retrying(Next("2", args1), phaseCommit, retryState1))
-      svRef.underlyingActor.cmds(2) shouldBe TaskCommand(Retrying(Next("3", args1), phaseCommit, retryState1))
+      svRef.underlyingActor.cmds(0) shouldBe TaskCommand(Retrying(Next("1", args1), phaseCommit, retryState1), message)
+      svRef.underlyingActor.cmds(1) shouldBe TaskCommand(Retrying(Next("2", args1), phaseCommit, retryState1), message)
+      svRef.underlyingActor.cmds(2) shouldBe TaskCommand(Retrying(Next("3", args1), phaseCommit, retryState1), message)
     }
 
     "on clock tick, if no more retries left, send a Failed command to its supervisor for each queued message" in {
@@ -71,9 +76,9 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
       val failureManagerActorRef = TestActorRef[FailureManager](Props(new FailureManager(retryPolicy)), svRef, "")
 
       retryPolicy.setExpectedResult(StopRetrying)
-      failureManagerActorRef ! TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1))
-      failureManagerActorRef ! TaskCommand(StageFailed(Next("2", args1), phaseCommit, retryState1))
-      failureManagerActorRef ! TaskCommand(StageFailed(Next("3", args1), phaseCommit, retryState1))
+      failureManagerActorRef ! TaskCommand(StageFailed(Next("1", args1), phaseCommit, retryState1), message)
+      failureManagerActorRef ! TaskCommand(StageFailed(Next("2", args1), phaseCommit, retryState1), message)
+      failureManagerActorRef ! TaskCommand(StageFailed(Next("3", args1), phaseCommit, retryState1), message)
 
       failureManagerActorRef.underlyingActor.retryQueue.size should be (3)
 
@@ -81,9 +86,9 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
 
       failureManagerActorRef.underlyingActor.retryQueue.size should be (0)
 
-      svRef.underlyingActor.cmds(0) shouldBe TaskCommand(Failed(Next("1", args1), phaseCommit))
-      svRef.underlyingActor.cmds(1) shouldBe TaskCommand(Failed(Next("2", args1), phaseCommit))
-      svRef.underlyingActor.cmds(2) shouldBe TaskCommand(Failed(Next("3", args1), phaseCommit))
+      svRef.underlyingActor.cmds(0) shouldBe TaskCommand(Failed(Next("1", args1), phaseCommit), message)
+      svRef.underlyingActor.cmds(1) shouldBe TaskCommand(Failed(Next("2", args1), phaseCommit), message)
+      svRef.underlyingActor.cmds(2) shouldBe TaskCommand(Failed(Next("3", args1), phaseCommit), message)
     }
 
 //    "on clock tick, throw exception for unknown status" in {
