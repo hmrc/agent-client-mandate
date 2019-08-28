@@ -39,6 +39,8 @@ class MandateCreateServiceISpec extends IntegrationSpec {
           )
         )
 
+
+
         stubFor(get(urlMatching(s"/registration/details\\?arn=$fakeUTR"))
           .willReturn(
             aResponse()
@@ -51,6 +53,72 @@ class MandateCreateServiceISpec extends IntegrationSpec {
                    |  "lastName" : "Last"
                    |}
                    |}""".stripMargin
+              )
+          )
+        )
+
+        stubFor(post(urlMatching(s"/auth/authorise"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(
+                s"""{
+                   |	"groupId": "42424200-0000-0000-0000-000000000000",
+                   |	"affinityGroup": "Agent",
+                   |	"users": [
+                   |		{
+                   |			"credId": "42424211-Agent-Admin",
+                   |			"name": "Assistant Agent",
+                   |			"email": "default@example.com",
+                   |			"credentialRole": "Assistant",
+                   |			"description": "User Description"
+                   |		}
+                   |	],
+                   |	"allEnrolments": [
+                   |		{
+                   |			"key": "HMRC-ATED-ORG",
+                   |			"identifiers": [
+                   |				{
+                   |					"key": "ATEDRefNumber",
+                   |					"value": "XN1200000100001"
+                   |				}
+                   |			],
+                   |			"enrolmentFriendlyName": "Ated Enrolment",
+                   |			"assignedUserCreds": [
+                   |				"42424211-Client-Admin"
+                   |			],
+                   |			"state": "Activated",
+                   |			"enrolmentType": "delegated",
+                   |			"assignedToAll": false
+                   |		},
+                   |		{
+                   |			"key": "HMRC-AGENT-AGENT",
+                   |			"identifiers": [
+                   |				{
+                   |					"key": "AgentRefNumber",
+                   |					"value": "FAKE-UTR"
+                   |				}
+                   |			],
+                   |			"enrolmentFriendlyName": "Agent Enrolment",
+                   |			"assignedUserCreds": [
+                   |				"42424211-Client-Admin"
+                   |			],
+                   |			"state": "Activated",
+                   |			"enrolmentType": "delegated",
+                   |			"assignedToAll": false
+                   |		}
+                   |	],
+                   |  "agentInformation": {
+                   |    "agentId": "007",
+                   |	  "agentCode": "123456789123",
+                   |    "agentFriendlyName": "FakeTim"
+                   |   },
+                   |  "optionalCredentials": {
+                   |    "providerType": "GovernmentGateway",
+                   |    "providerId": "cred-id-113244018119"
+                   |  }
+                   |}
+                   |""".stripMargin
               )
           )
         )

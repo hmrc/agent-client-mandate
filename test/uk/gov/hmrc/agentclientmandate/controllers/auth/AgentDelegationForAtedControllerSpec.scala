@@ -23,15 +23,20 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
+import uk.gov.hmrc.agentclientmandate.utils.Generators.agentBusinessUtrGen
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
+import uk.gov.hmrc.auth.core.retrieve.AgentInformation
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr, Generator}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -39,7 +44,7 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerP
 
     "return OK" when {
       "agent is authorised to act on behalf of ated customers" in {
-        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.successful(true))
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any(), any())).thenReturn(Future.successful(true))
         val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -47,7 +52,7 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerP
 
     "return UnAuthorised" when {
       "agent is not authorised to act on behalf of ated customers" in {
-        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.successful(false))
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any(), any())).thenReturn(Future.successful(false))
         val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
         status(result) must be(UNAUTHORIZED)
       }
@@ -57,14 +62,27 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerP
 
   val agentCode: AgentCode = AgentCode("XYZ")
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val mockRelationshipService = mock[AgentDetailsService]
+  val mockRelationshipService: AgentDetailsService = mock[AgentDetailsService]
+  val mockAuthConnector: DefaultAuthConnector = mock[DefaultAuthConnector]
 
   val cc: ControllerComponents = app.injector.instanceOf[ControllerComponents]
+  val ar: AuthRetrieval = AuthRetrieval(enrolments = Set(
+    Enrolment(
+      key = "HMRC-AGENT-AGENT",
+      identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
+      state = "active"
+    )
+  ),
+    agentInformation = AgentInformation(None, None, None),
+    None
+  )
 
   object TestAgentDelegationForAtedController extends BackendController(cc) with AgentDelegationForAtedController {
+    override val authConnector: DefaultAuthConnector = mockAuthConnector
     override val agentDetailsService: AgentDetailsService = mockRelationshipService
+    override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
   }
 
 }

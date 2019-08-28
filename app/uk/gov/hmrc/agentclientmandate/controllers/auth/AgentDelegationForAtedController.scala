@@ -17,25 +17,35 @@
 package uk.gov.hmrc.agentclientmandate.controllers.auth
 
 import javax.inject.Inject
+import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
 import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr}
+import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class DefaultAgentDelegationForAtedController @Inject()(
                                                          val agentDetailsService: AgentDetailsService,
-                                                         val cc: ControllerComponents
+                                                         val cc: ControllerComponents,
+                                                         val authConnector: DefaultAuthConnector
                                                        ) extends BackendController(cc) with AgentDelegationForAtedController
 
-trait AgentDelegationForAtedController extends BackendController {
+trait AgentDelegationForAtedController extends BackendController with AuthFunctionality {
   def agentDetailsService: AgentDetailsService
 
   def isAuthorisedForAted(ac: AgentCode, ated: AtedUtr): Action[AnyContent] = Action.async { implicit request =>
-    agentDetailsService.isAuthorisedForAted(ated) map { isAuthorised =>
-      if (isAuthorised) Ok
-      else Unauthorized
+    authRetrieval{ implicit ar =>
+      agentDetailsService.isAuthorisedForAted(ated) map { isAuthorised =>
+        if (isAuthorised) Ok
+        else Unauthorized
+      } recover {
+        case e: RuntimeException =>
+          Logger.error(s"[AgentDelegationForAtedController] Authorisation Error - $e - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+          NotFound
+      }
     }
   }
 }

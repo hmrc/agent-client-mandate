@@ -24,13 +24,16 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
+import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -38,17 +41,15 @@ import scala.concurrent.Future
 
 class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val mockMandateRepository = mock[MandateRepository]
-  val mockEtmpConnector = mock[EtmpConnector]
-  val mockAuthConnector = mock[AuthorityConnector]
-  val mockAuditConnector = mock[AuditConnector]
+  val mockMandateRepository: MandateRepository = mock[MandateRepository]
+  val mockEtmpConnector: EtmpConnector = mock[EtmpConnector]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   override def beforeEach: Unit = {
     reset(mockMandateRepository)
     reset(mockEtmpConnector)
-    reset(mockAuthConnector)
 
     when(MockMetricsCache.mockMetrics.startTimer(any()))
       .thenReturn(null)
@@ -57,9 +58,8 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
   trait Setup {
 
     class TestMandateUpdateService extends MandateUpdateService {
-      override val mandateRepository = mockMandateRepository
-      override val etmpConnector = mockEtmpConnector
-      override val authConnector = mockAuthConnector
+      override val mandateRepository: MandateRepository = mockMandateRepository
+      override val etmpConnector: EtmpConnector = mockEtmpConnector
       override val auditConnector: AuditConnector = mockAuditConnector
       override val expiryAfterDays: Int = 5
     }
@@ -67,15 +67,31 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
     val service = new TestMandateUpdateService
   }
 
+  implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
+    enrolments = Set(
+      Enrolment(
+        key = "HMRC-AGENT-AGENT",
+        identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
+        state = "active"
+      ),
+      Enrolment(
+        key = "HMRC-ATED-ORG",
+        identifiers = Seq(EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")),
+        state = "active"
+      )
+    ),
+    agentInformation = AgentInformation(None, None, None),
+    Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
+  )
+
   "MandateUpdateService" should {
 
     "update data in mongo with given data provided" when {
 
       "requested to do so - updateMandate" in new Setup {
-        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
         when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
 
-        await(service.updateMandate(mandate, Some(Status.Approved))(new HeaderCarrier())) must be(MandateUpdated(clientApprovedMandate))
+        await(service.updateMandate(mandate, Some(Status.Approved))(HeaderCarrier(), testAuthRetrieval)) must be(MandateUpdated(clientApprovedMandate))
       }
     }
 
@@ -83,32 +99,30 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
       "change status of mandate to approve, if all calls are successful and service name is ated" in new Setup {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
         when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
         when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        val result = await(service.approveMandate(clientApprovedMandate))
+        val result: MandateUpdate = await(service.approveMandate(clientApprovedMandate))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "throw exception, if post was made without client party in it" in new Setup {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
         when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
         when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        val thrown = the[RuntimeException] thrownBy await(service.approveMandate(mandate))
+        val thrown: RuntimeException = the[RuntimeException] thrownBy await(service.approveMandate(mandate))
         thrown.getMessage must be("Client party not found")
       }
 
       "throw exception, if used for any other service" in new Setup {
-        val mandateToUse = clientApprovedMandate.copy(subscription = clientApprovedMandate.subscription.copy(service = Service("other", "other")))
-        val thrown = the[RuntimeException] thrownBy await(service.approveMandate(mandateToUse))
+        val mandateToUse: Mandate = clientApprovedMandate.copy(subscription = clientApprovedMandate.subscription.copy(service = Service("other", "other")))
+        val thrown: RuntimeException = the[RuntimeException] thrownBy await(service.approveMandate(mandateToUse))
         thrown.getMessage must be("currently supported only for ATED")
       }
 
       "throw exception if no mandate is fetched" in new Setup {
         when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateNotFound))
-        val thrown = the[RuntimeException] thrownBy await(service.approveMandate(mandate))
+        val thrown: RuntimeException = the[RuntimeException] thrownBy await(service.approveMandate(mandate))
         thrown.getMessage must startWith("mandate not found for mandate id")
 
       }
@@ -116,18 +130,16 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
 
     "updateStatus" must {
       "change mandate status and send email for client" in new Setup {
-        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson))
         when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
-        val result = await(service.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
+        val result: MandateUpdate = await(service.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "change mandate status and send email for agent" in new Setup {
-        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson1))
         when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
-        val result = await(service.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
+        val result: MandateUpdate = await(service.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
       }
     }
@@ -136,7 +148,7 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
       "update all mandates with email for agent" in new Setup {
         when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(mandateIds)
         when(mockMandateRepository.updateAgentEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
-        val result = await(service.updateAgentEmail("agentId", emailGen.sample.get, "ated"))
+        val result: MandateUpdate = await(service.updateAgentEmail("agentId", emailGen.sample.get, "ated"))
         result must be(MandateUpdatedEmail)
       }
     }
@@ -144,16 +156,15 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
     "updateClientEmail" must {
       "update the mandate with email for client" in new Setup {
         when(mockMandateRepository.updateClientEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
-        val result = await(service.updateClientEmail("mandateId", emailGen.sample.get))
+        val result: MandateUpdate = await(service.updateClientEmail("mandateId", emailGen.sample.get))
         result must be(MandateUpdatedEmail)
       }
     }
 
     "updateAgentCredId" must {
       "update the mandate with the proper cred id" in new Setup {
-        when(mockAuthConnector.getAuthority()(any())).thenReturn(Future.successful(authJson1))
         when(mockMandateRepository.updateAgentCredId(any(), any())) thenReturn Future.successful(MandateUpdatedCredId)
-        val result = await(service.updateAgentCredId("credId"))
+        val result: MandateUpdate = await(service.updateAgentCredId("credId"))
         result must be(MandateUpdatedCredId)
       }
     }
@@ -175,8 +186,8 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
     }
   }
 
-  val timeToUse = DateTime.now()
-  val currentMillis = timeToUse.getMillis
+  val timeToUse: DateTime = DateTime.now()
+  val currentMillis: Long = timeToUse.getMillis
 
   val mandate = Mandate(mandateReferenceGen.sample.get,
     User("credid", nameGen.sample.get, None),
@@ -204,55 +215,7 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
     clientDisplayName = "client display name"
   )
 
-  val authJson = Json.parse(
-    """
-      |{
-      |  "credentials": {
-      |    "gatewayId": "cred-id-1234567890"
-      |  },
-      |  "accounts": {
-      |    "ated": {
-      |      "utr": "ated-ref-num",
-      |      "link": "/link"
-      |    }
-      |  }
-      |}
-    """.stripMargin
-  )
-
-  val authJson1 = Json.parse(
-    s"""
-       |{
-       |  "credentials": {
-       |    "gatewayId": "cred-id-1234567890"
-       |  },
-       |  "accounts": {
-       |    "agent": {
-       |      "agentBusinessUtr": "${agentBusinessUtrGen.sample.get}",
-       |      "link": "/link"
-       |    }
-       |  }
-       |}
-    """.stripMargin
-  )
-
-  val authJson2 = Json.parse(
-    """
-      |{
-      |  "credentials": {
-      |    "gatewayId": "cred-id-1234567890"
-      |  },
-      |  "accounts": {
-      |    "awrs": {
-      |      "utr": "ated-ref-num",
-      |      "link": "/link"
-      |    }
-      |  }
-      |}
-    """.stripMargin
-  )
-
-  val etmpSubscriptionJson = Json.parse(
+  val etmpSubscriptionJson: JsValue = Json.parse(
     """
       |{
       |  "safeId": "cred-id-1234567890",
@@ -261,7 +224,6 @@ class MandateUpdateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
     """.stripMargin
   )
 
-  val mandateIds = Seq(mandate.id, clientApprovedMandate.id, updatedMandate.id)
-
+  val mandateIds: Seq[String] = Seq(mandate.id, clientApprovedMandate.id, updatedMandate.id)
 
 }

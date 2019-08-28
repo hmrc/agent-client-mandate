@@ -25,11 +25,14 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
+import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
+import uk.gov.hmrc.auth.core.retrieve.AgentInformation
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -38,36 +41,31 @@ import scala.concurrent.Future
 
 class AgentDetailsServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val authConnectorMock = mock[AuthorityConnector]
-  val etmpConnectorMock = mock[EtmpConnector]
-  val mockMandateFetchService = mock[MandateFetchService]
+  implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
+    enrolments = Set(Enrolment(
+      key = "HMRC-AGENT-AGENT",
+      identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
+      state = "active"
+    )),
+    agentInformation = AgentInformation(None, None, None),
+    credentials = None
+  )
+
+  val etmpConnectorMock: EtmpConnector = mock[EtmpConnector]
+  val mockMandateFetchService: MandateFetchService = mock[MandateFetchService]
 
   override def beforeEach(): Unit = {
-    reset(authConnectorMock)
     reset(etmpConnectorMock)
     reset(mockMandateFetchService)
   }
 
   object TestAgentDetailsService extends AgentDetailsService {
-    override val authConnector = authConnectorMock
-    override val etmpConnector = etmpConnectorMock
+    override val etmpConnector: EtmpConnector = etmpConnectorMock
     override val mandateFetchService: MandateFetchService = mockMandateFetchService
   }
 
-  val successResponseJsonAuth: JsValue = Json.parse(
-    s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
   "AgentDetailsService" must {
 
@@ -99,10 +97,6 @@ class AgentDetailsServiceSpec extends PlaySpec with GuiceOneServerPerSuite with 
           |}
         """.stripMargin
       )
-
-      when(authConnectorMock.getAuthority()(any())) thenReturn {
-        Future.successful(successResponseJsonAuth)
-      }
 
       when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
         Future.successful(successResponseJsonETMP)
@@ -139,10 +133,6 @@ class AgentDetailsServiceSpec extends PlaySpec with GuiceOneServerPerSuite with 
         """.stripMargin
       )
 
-      when(authConnectorMock.getAuthority()(any())) thenReturn {
-        Future.successful(successResponseJsonAuth)
-      }
-
       when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
         Future.successful(successResponseJsonETMP)
       }
@@ -154,27 +144,34 @@ class AgentDetailsServiceSpec extends PlaySpec with GuiceOneServerPerSuite with 
 
     "returns true - for delegation authorization check for Ated" when {
       "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
-        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandate)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(), any())).thenReturn(Future.successful(Seq(mandate)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
       }
     }
 
     "returns false - for delegation authorization check for Ated" when {
       "authority doesn't return registered Agents" in {
-        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(notRegisteredAgentJsonAuth))
-        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
+        val testAuthRetrievalNoAgentRef: AuthRetrieval = AuthRetrieval(
+          enrolments = Set(Enrolment(
+            key = "HMRC-AGENT-AGENT",
+            identifiers = Seq(),
+            state = "active"
+          )),
+          agentInformation = AgentInformation(None, None, None),
+          credentials = None
+        )
+
+
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(hc, testAuthRetrievalNoAgentRef)) must be(false)
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(), any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(authConnectorMock.getAuthority()(any())).thenReturn(Future.successful(successResponseJsonAuth))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(), any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
     }

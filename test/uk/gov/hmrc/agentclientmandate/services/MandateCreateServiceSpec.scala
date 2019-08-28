@@ -27,10 +27,13 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
+import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -38,34 +41,42 @@ import scala.concurrent.Future
 
 class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
   val agentCode = "ac"
 
-  val mandateRepositoryMock = mock[MandateRepository]
-  val authConnectorMock = mock[AuthorityConnector]
-  val etmpConnectorMock = mock[EtmpConnector]
-  val relationshipServiceMock = mock[RelationshipService]
-  val mockMandateFetchService = mock[MandateFetchService]
-  val mockAuditConnector = mock[AuditConnector]
+  val mandateRepositoryMock: MandateRepository = mock[MandateRepository]
+  val etmpConnectorMock: EtmpConnector = mock[EtmpConnector]
+  val relationshipServiceMock: RelationshipService = mock[RelationshipService]
+  val mockMandateFetchService: MandateFetchService = mock[MandateFetchService]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   object TestClientMandateCreateService extends MandateCreateService {
-    override val mandateRepository = mandateRepositoryMock
-    override val authConnector = authConnectorMock
-    override val mandateFetchService = mockMandateFetchService
-    override val etmpConnector = etmpConnectorMock
-    override val relationshipService = relationshipServiceMock
-    override val auditConnector = mockAuditConnector
+    override val mandateRepository: MandateRepository = mandateRepositoryMock
+    override val mandateFetchService: MandateFetchService = mockMandateFetchService
+    override val etmpConnector: EtmpConnector = etmpConnectorMock
+    override val relationshipService: RelationshipService = relationshipServiceMock
+    override val auditConnector: AuditConnector = mockAuditConnector
     override val identifiers: Config = ConfigFactory.load("identifiers.properties")
   }
 
   override def beforeEach(): Unit = {
     reset(mandateRepositoryMock)
-    reset(authConnectorMock)
     reset(etmpConnectorMock)
     reset(relationshipServiceMock)
-    reset(authConnectorMock)
     reset(mockMandateFetchService)
   }
+
+  implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
+    enrolments = Set(
+      Enrolment(
+        key = "HMRC-AGENT-AGENT",
+        identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
+        state = "active"
+      )
+    ),
+    agentInformation = AgentInformation(None, None, None),
+    credentials = Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
+  )
 
   "MandateCreateService" should {
 
@@ -94,25 +105,9 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
             |}
           """.stripMargin
         )
-        val successResponseJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
         when(mandateRepositoryMock.insertMandate(any())) thenReturn {
           Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
-        }
-
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(successResponseJsonAuth)
         }
 
         when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
@@ -139,25 +134,9 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |}
           """.stripMargin
         )
-        val successResponseJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
         when(mandateRepositoryMock.insertMandate(any())) thenReturn {
           Future.successful(MandateCreateError)
-        }
-
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(successResponseJsonAuth)
         }
 
         when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
@@ -190,15 +169,15 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
             |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
             |  "isAnIndividual": true,
             |  "individual" : {
-            |    "firstName": "${firstName}",
-            |    "lastName": "${lastName}"
+            |    "firstName": "$firstName",
+            |    "lastName": "$lastName"
             |  }
             |}
           """.stripMargin
         )
 
         val agentPartyName = TestClientMandateCreateService.getPartyName(etmpAgentDetails, isAnIndividual = true)
-        agentPartyName mustBe s"${firstName} ${lastName}"
+        agentPartyName mustBe s"$firstName $lastName"
       }
 
       "get agent name for organisation" in {
@@ -211,7 +190,7 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |  "agentReferenceNumber": "${agentReferenceNumberGen.sample.get}",
              |  "isAnIndividual": false,
              |  "organisation": {
-             |    "organisationName": "${companyName}"
+             |    "organisationName": "$companyName"
              |  }
              |}
           """.stripMargin
@@ -250,23 +229,7 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |}
           """.stripMargin
         )
-        val successResponseJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
-
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(successResponseJsonAuth)
-        }
 
         when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
@@ -299,23 +262,7 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |}
           """.stripMargin
         )
-        val successResponseJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
-
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(successResponseJsonAuth)
-        }
 
         when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
@@ -352,22 +299,7 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |}
           """.stripMargin
         )
-        val newAgentJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(newAgentJsonAuth)
-        }
         when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(newAgentETMPRegJson)
         }
@@ -433,24 +365,8 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |}
           """.stripMargin
         )
-        val successResponseJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
         
         val agentReferenceNumber = agentReferenceNumberGen.sample.get
-
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(successResponseJsonAuth)
-        }
 
         when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq(agentReferenceNumber),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
@@ -482,23 +398,7 @@ class MandateCreateServiceSpec extends PlaySpec with GuiceOneServerPerSuite with
              |}
           """.stripMargin
         )
-        val successResponseJsonAuth = Json.parse(
-          s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
 
-
-        when(authConnectorMock.getAuthority()(any())) thenReturn {
-          Future.successful(successResponseJsonAuth)
-        }
 
         when(etmpConnectorMock.getRegistrationDetails(any(), any())) thenReturn {
           Future.successful(successResponseJsonETMP)

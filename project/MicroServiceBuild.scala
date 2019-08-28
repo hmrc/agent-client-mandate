@@ -12,15 +12,15 @@ private object AppDependencies {
   import play.sbt.PlayImport._
   import play.core.PlayVersion
 
-  val compile = Seq(
+  val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.20.0-play-26",
     ws,
     "uk.gov.hmrc" %% "bootstrap-play-26" % "0.39.0",
     "uk.gov.hmrc" %% "domain" % "5.6.0-play-26",
     "com.typesafe.akka" %% "akka-contrib" % "2.5.23",
-    "uk.gov.hmrc" %% "mongo-lock" % "6.14.0-play-26",
+    "uk.gov.hmrc" %% "mongo-lock" % "6.15.0-play-26",
     "uk.gov.hmrc" %% "play-scheduling" % "6.0.0",
-    "uk.gov.hmrc" %% "auth-client" % "2.22.0-play-26",
+    "uk.gov.hmrc" %% "auth-client" % "2.27.0-play-26",
     "com.typesafe.play" %% "play-json-joda" % "2.6.10"
   )
 

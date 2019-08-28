@@ -18,30 +18,28 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
 import org.joda.time.LocalDate
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.http.HeaderCarrier
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class DefaultAgentDetailsService @Inject()(val etmpConnector: EtmpConnector,
-                                           val authConnector: AuthorityConnector,
                                            val mandateFetchService: MandateFetchService) extends AgentDetailsService
 
 trait AgentDetailsService {
 
   def etmpConnector: EtmpConnector
-  def authConnector: AuthorityConnector
   def mandateFetchService: MandateFetchService
 
-  def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier): Future[AgentDetails] = {
-    authConnector.getAuthority().flatMap { authority =>
+  def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier, authRetrieval: AuthRetrieval): Future[AgentDetails] = {
 
-      val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
+    val agentPartyId = authRetrieval.agentBusinessUtr.value
 
       etmpConnector.getRegistrationDetails(agentPartyId, "arn").map { etmpDetails =>
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
@@ -88,17 +86,14 @@ trait AgentDetailsService {
             identification = nonUKId)
         }
       }
-    }
   }
 
-  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    authConnector.getAuthority().flatMap { authority =>
-      val agentRefNumberOpt = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").asOpt[String]
+  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Boolean] = {
+      val agentRefNumberOpt = ar.agentBusinessEnrolment.identifiers.find(_.key.toLowerCase == "agentrefnumber")
       agentRefNumberOpt match {
         case Some(arn) =>
-          mandateFetchService.getAllMandates(arn, "ated", None, None).map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
+          mandateFetchService.getAllMandates(arn.value, "ated", None, None).map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
         case None => Future.successful(false)
       }
-    }
   }
 }

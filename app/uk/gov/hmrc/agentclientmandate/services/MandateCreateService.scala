@@ -19,10 +19,10 @@ package uk.gov.hmrc.agentclientmandate.services
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.{Configuration, Play}
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EtmpConnector}
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
+import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 
@@ -35,7 +35,6 @@ class DefaultMandateCreateService @Inject()(val etmpConnector: EtmpConnector,
                                             val relationshipService: RelationshipService,
                                             val mandateFetchService: MandateFetchService,
                                             val auditConnector: AuditConnector,
-                                            val authConnector: AuthorityConnector,
                                             val mandateRepo: MandateRepo) extends MandateCreateService {
   val mandateRepository: MandateRepository = mandateRepo.repository
   val identifiers: Config = ConfigFactory.load("identifiers.properties")
@@ -46,7 +45,6 @@ trait MandateCreateService extends Auditable {
   val identifiers: Config
 
   def mandateRepository: MandateRepository
-  def authConnector: AuthorityConnector
   def etmpConnector: EtmpConnector
   def mandateFetchService: MandateFetchService
   def relationshipService: RelationshipService
@@ -57,12 +55,10 @@ trait MandateCreateService extends Auditable {
 
   def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
 
-  def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier): Future[String] = {
+  def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[String] = {
 
-    authConnector.getAuthority().flatMap { authority =>
-
-      val agentPartyId = (authority \ "accounts" \ "agent" \ "agentBusinessUtr").as[String]
-      val credId = getCredId(authority)
+    val agentPartyId = ar.agentBusinessUtr.value
+    val credId = ar.govGatewayId
 
       etmpConnector.getRegistrationDetails(agentPartyId, "arn").flatMap { etmpDetails =>
 
@@ -99,10 +95,7 @@ trait MandateCreateService extends Auditable {
           case _ => throw new RuntimeException("Mandate not created")
         }
       }
-    }
   }
-
-  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
 
   def isIndividual(etmpDetails: JsValue): Boolean = (etmpDetails \ "isAnIndividual").as[Boolean]
 
@@ -118,17 +111,16 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[Unit] = {
+  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
 
     val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
     val nonUKClientDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.safeId, "safeid")
-    val authorityJsonFuture = authConnector.getAuthority()
 
-    def createMandateToSave(agentDetails: JsValue, clientDetails: JsValue, authorityJson: JsValue): Mandate = {
+    def createMandateToSave(agentDetails: JsValue, clientDetails: JsValue): Mandate = {
       val isAgentAnIndividual = isIndividual(agentDetails)
       val agentPartyName: String = getPartyName(agentDetails, isAgentAnIndividual)
       val agentPartyType = getPartyType(isAgentAnIndividual)
-      val agentCredId = getCredId(authorityJson)
+      val agentCredId = ar.govGatewayId
 
       val isClientAnIndividual = isIndividual(clientDetails)
       val clientPartyName: String = getPartyName(clientDetails, isClientAnIndividual)
@@ -151,8 +143,7 @@ trait MandateCreateService extends Auditable {
     for {
       agentDetails <- agentDetailsJsonFuture
       nonUKClientDetails <- nonUKClientDetailsJsonFuture
-      authority <- authorityJsonFuture
-      m <- mandateRepository.insertMandate(createMandateToSave(agentDetails, nonUKClientDetails, authority))
+      m <- mandateRepository.insertMandate(createMandateToSave(agentDetails, nonUKClientDetails))
     } yield { m match {
       case MandateCreated(m) =>
         relationshipService.createAgentClientRelationship(m, ac)
@@ -162,16 +153,15 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def updateMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier): Future[Unit] = {
+  def updateMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
     val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
     val mandateFuture = mandateFetchService.fetchClientMandate(dto.mandateRef.getOrElse(throw new RuntimeException("No Old Non-UK Mandate ID recieved for updating mandate")))
-    val authorityJsonFuture = authConnector.getAuthority()
 
-    def updatedExistingNonUKMandateWithNewAgentDetails(mandate: Mandate, agentDetails: JsValue, authorityJson: JsValue): Mandate = {
+    def updatedExistingNonUKMandateWithNewAgentDetails(mandate: Mandate, agentDetails: JsValue): Mandate = {
       val isAgentAnIndividual = isIndividual(agentDetails)
       val agentPartyName: String = getPartyName(agentDetails, isAgentAnIndividual)
       val agentPartyType = getPartyType(isAgentAnIndividual)
-      val agentCredId = getCredId(authorityJson)
+      val agentCredId = ar.govGatewayId
 
       mandate.copy(approvedBy = Some(User(agentCredId, agentPartyName, groupId = Some(ac))),
         agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
@@ -183,8 +173,7 @@ trait MandateCreateService extends Auditable {
     for {
       mandateFetched <- mandateFuture
       agentDetails <- agentDetailsJsonFuture
-      authJson <- authorityJsonFuture
-      mu <- mandateRepository.updateMandate(updatedExistingNonUKMandateWithNewAgentDetails(getMandateStatus(mandateFetched), agentDetails, authJson))
+      mu <- mandateRepository.updateMandate(updatedExistingNonUKMandateWithNewAgentDetails(getMandateStatus(mandateFetched), agentDetails))
     } yield {
         mu match {
             case MandateUpdated(m)=>

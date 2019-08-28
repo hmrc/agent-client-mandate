@@ -23,24 +23,28 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.mvc.ControllerComponents
+import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest}
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.builders.AgentBuilder
-import uk.gov.hmrc.agentclientmandate.connectors.{AuthorityConnector, EmailSent}
+import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
+import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
 
@@ -59,7 +63,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
       "request is valid and client mandate found " in {
 
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(ArgumentMatchers.eq(approvedMandate), any())(any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
+        when(updateServiceMock.updateMandate(ArgumentMatchers.eq(approvedMandate), any())(any(), any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
         status(result) must be (OK)
       }
@@ -75,7 +79,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
       "cant find mandate while changing the status to PENDINGACTIVATION" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
         when(notificationServiceMock.sendMail(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
@@ -96,7 +100,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
       "request is valid and client mandate found and status is active" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -104,14 +108,14 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
       "request is valid and client mandate found and status is approved" in {
         when(notificationServiceMock.sendMail(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "request is valid and client mandate found and status is New" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -122,14 +126,13 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
       "mandate with no agent code is fetched" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate1))
 
-        val thrown = the[RuntimeException] thrownBy await(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest()))
-
-        thrown.getMessage must include("agent code not found!")
+        val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
+        status(result) mustBe NOT_FOUND
       }
 
       "mongo update error occurs while changing the status to PENDING_CANCELLATION" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -138,7 +141,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
       "mongo update error occurs while changing the status to CANCELLED" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -147,7 +150,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
       "mongo update error occurs while changing the New status to CANCELLED" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -157,9 +160,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
       "status of mandate returned is not ACTIVE" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(cancelledMandate))
 
-        val thrown = the[RuntimeException] thrownBy await(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest()))
-
-        thrown.getMessage must include("Mandate with status Cancelled cannot be removed")
+        status(TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())) mustBe NOT_FOUND
       }
 
       "no mandate is fetched" in {
@@ -174,7 +175,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
     "create a mandate and return mandate Id" when {
 
       "an agent request it and passes valid DTO" in {
-        when(createServiceMock.createMandate(ArgumentMatchers.eq(agentCode), ArgumentMatchers.eq(createMandateDto))(any())).thenReturn(Future.successful(mandateId))
+        when(createServiceMock.createMandate(ArgumentMatchers.eq(agentCode), ArgumentMatchers.eq(createMandateDto))(any(), any())).thenReturn(Future.successful(mandateId))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(createMandateDto))
         val result = TestMandateController.create(agentCode).apply(fakeRequest)
         status(result) must be(CREATED)
@@ -222,7 +223,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "fetch all mandates with respect to a service and ARN" when {
       "agent supplies valid service and ARN" in {
-        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Seq(newMandate)))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any(), any())).thenReturn(Future.successful(Seq(newMandate)))
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq(newMandate)))
@@ -231,7 +232,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "return not-found when trying to fetch all mandates with respect to a service and ARN" when {
       "agent supplies invalid/non-existing service and ARN" in {
-        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Nil))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any(), any())).thenReturn(Future.successful(Nil))
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
@@ -239,7 +240,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "update mandate for a client" when {
       "client provided valid payload and mandate has been successfully updated in mongo" in {
-        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any(), any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(OK)
@@ -248,7 +249,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "throw error while trying to update mandate for a client" when {
       "client provided valid payload but mandate wasn't successfully updated in mongo" in {
-        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any(), any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -265,14 +266,14 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "update mandate with pending cancellation status" when {
       "agent has rejected client and status returned ok" in {
-        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "agent has rejected client and status returned not ok" in {
-        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdateError))
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -283,11 +284,19 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
+
+      "there is an auth retrieval error" in {
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenThrow(new RuntimeException("[AuthRetrieval] No GGCredId found."))
+
+        val thrown = the[RuntimeException] thrownBy await(TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest()))
+        thrown.getMessage must include("[AuthRetrieval] No GGCredId found.")
+      }
     }
 
     "get agent details" when {
       "agent requests details" in {
-        when(agentDetailsServiceMock.getAgentDetails(any())(any())).thenReturn(Future.successful(agentDetails))
+        when(agentDetailsServiceMock.getAgentDetails(any())(any(), any())).thenReturn(Future.successful(agentDetails))
         val result = TestMandateController.getAgentDetails(agentCode).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -298,10 +307,10 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name")
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any())).thenReturn(Future.successful())
+        when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.successful())
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
-        verify(createServiceMock, times(1)).createMandateForNonUKClient(any(), any())(any())
+        verify(createServiceMock, times(1)).createMandateForNonUKClient(any(), any())(any(), any())
       }
 
     }
@@ -311,10 +320,10 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get,  emailGen.sample.get, "client display name", mandateReferenceGen.sample)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any())).thenReturn(Future.successful())
+        when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.successful())
         val result = TestMandateController.updateRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
-        verify(createServiceMock, times(1)).updateMandateForNonUKClient(any(), any())(any())
+        verify(createServiceMock, times(1)).updateMandateForNonUKClient(any(), any())(any(), any())
       }
 
     }
@@ -322,13 +331,13 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "edit mandate details" must {
       "return OK, when mandate is updated in MongoDB" in {
-        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
         status(result) must be(OK)
       }
       "return INTERNAL_SERVER_ERROR, when update fail in MongoDB" in {
-        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -395,14 +404,14 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
     "updateCredId" must {
       "return ok if credId updated" in {
-        when(updateServiceMock.updateAgentCredId(any())(any())) thenReturn Future.successful(MandateUpdatedCredId)
+        when(updateServiceMock.updateAgentCredId(any())(any(), any())) thenReturn Future.successful(MandateUpdatedCredId)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(OK)
       }
 
       "return error if credId not updated" in {
-        when(updateServiceMock.updateAgentCredId(any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateAgentCredId(any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -432,86 +441,49 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
 
   }
 
-  val incorrectJson =
-    s"""
-        {
-          "serviceName": "",
-          "agentPartyId": "",
-          "credId": "",
-          "clientSubscriptionId": "",
-          "agentCode": ""
-        }
-      """
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val correctJson =
-    s"""
-        [
-            {
-              "serviceName": "",
-              "agentPartyId": "",
-              "credId": "",
-              "clientSubscriptionId": "",
-              "agentCode": ""
-            },
-            {
-              "serviceName": "",
-              "agentPartyId": "",
-              "credId": "",
-              "clientSubscriptionId": "",
-              "agentCode": ""
-            }
-        ]
-      """
+  val mandates: Seq[String] = Seq("AAAAAAA", "BBBBBB", "CCCCCC")
 
-  val successResponseJsonAuth = Json.parse(
-    s"""{
-               "credentials": {
-                 "gatewayId": "cred-id-113244018119",
-                 "idaPids": []
-               },
-               "accounts": {
-                 "agent": {
-                   "agentCode":"${agentCodeGen.sample.get}", "agentBusinessUtr":"${agentBusinessUtrGen.sample.get}"
-                 }
-               }
-             }""")
+  val ar: AuthRetrieval = AuthRetrieval(
+    enrolments = Set(
+      Enrolment(
+        key = "HMRC-AGENT-AGENT",
+        identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
+        state = "active"
+      ),
+      Enrolment(
+        key = "HMRC-ATED-ORG",
+        identifiers = Seq(EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")),
+        state = "active"
+      )
+    ),
+    agentInformation = AgentInformation(None, None, None),
+    Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
+  )
 
-  implicit val hc = HeaderCarrier()
-
-  val mandates = Seq("AAAAAAA", "BBBBBB", "CCCCCC")
-
-  val fetchServiceMock = mock[MandateFetchService]
-  val createServiceMock = mock[MandateCreateService]
-  val updateServiceMock = mock[MandateUpdateService]
-  val relationshipServiceMock = mock[RelationshipService]
-  val agentDetailsServiceMock = mock[AgentDetailsService]
-  val notificationServiceMock = mock[NotificationEmailService]
-  val authConnectorMock = mock[AuthorityConnector]
-  val auditConnectorMock = mock[AuditConnector]
+  val fetchServiceMock: MandateFetchService = mock[MandateFetchService]
+  val createServiceMock: MandateCreateService = mock[MandateCreateService]
+  val updateServiceMock: MandateUpdateService = mock[MandateUpdateService]
+  val relationshipServiceMock: RelationshipService = mock[RelationshipService]
+  val agentDetailsServiceMock: AgentDetailsService = mock[AgentDetailsService]
+  val notificationServiceMock: NotificationEmailService = mock[NotificationEmailService]
+  val authConnectorMock: DefaultAuthConnector = mock[DefaultAuthConnector]
+  val auditConnectorMock: AuditConnector = mock[AuditConnector]
   lazy val cc: ControllerComponents = app.injector.instanceOf[ControllerComponents]
 
-  object TestAgentMandateController extends BackendController(cc) with MandateController {
-    override val fetchService = fetchServiceMock
-    override val createService = createServiceMock
-    override val relationshipService = relationshipServiceMock
-    override val updateService = updateServiceMock
-    override val agentDetailsService = agentDetailsServiceMock
-    override val emailNotificationService = notificationServiceMock
-    override val authConnector = authConnectorMock
-    override val auditConnector = auditConnectorMock
-    override val userType = "agent"
-  }
-
   object TestMandateController extends BackendController(cc) with MandateController {
-    override val fetchService = fetchServiceMock
-    override val createService = createServiceMock
-    override val relationshipService = relationshipServiceMock
-    override val updateService = updateServiceMock
-    override val agentDetailsService = agentDetailsServiceMock
-    override val emailNotificationService = notificationServiceMock
-    override val authConnector = authConnectorMock
-    override val auditConnector = auditConnectorMock
+    override val fetchService: MandateFetchService = fetchServiceMock
+    override val createService: MandateCreateService = createServiceMock
+    override val relationshipService: RelationshipService = relationshipServiceMock
+    override val updateService: MandateUpdateService = updateServiceMock
+    override val agentDetailsService: AgentDetailsService = agentDetailsServiceMock
+    override val emailNotificationService: NotificationEmailService = notificationServiceMock
+    override val authConnector: DefaultAuthConnector = authConnectorMock
+    override val auditConnector: AuditConnector = auditConnectorMock
     override val userType = "client"
+
+    override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
   }
 
   override def beforeEach(): Unit = {
@@ -606,6 +578,6 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
   val createMandateDto = CreateMandateDto(emailGen.sample.get, "ated", "client display name")
 
   val registeredAddressDetails = RegisteredAddressDetails("123 Fake Street", "Somewhere", None, None, None, "GB")
-  val agentDetails = AgentBuilder.buildAgentDetails
+  val agentDetails: AgentDetails = AgentBuilder.buildAgentDetails
 
 }
