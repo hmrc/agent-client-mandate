@@ -18,18 +18,15 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.libs.json.JsValue
-import uk.gov.hmrc.agentclientmandate.connectors.AuthorityConnector
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepo, MandateRepository}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DefaultMandateFetchService @Inject()(val authConnector: AuthorityConnector,
-                                           val mandateRepo: MandateRepo,
+class DefaultMandateFetchService @Inject()(val mandateRepo: MandateRepo,
                                            val servicesConfig: ServicesConfig) extends MandateFetchService {
   val mandateRepository: MandateRepository = mandateRepo.repository
   lazy val clientCancelledMandateNotification: Int = servicesConfig.getInt("client-cancelled-mandate-notification-days")
@@ -38,7 +35,6 @@ class DefaultMandateFetchService @Inject()(val authConnector: AuthorityConnector
 trait MandateFetchService {
   val clientCancelledMandateNotification: Int
 
-  def authConnector: AuthorityConnector
   def mandateRepository: MandateRepository
 
   def fetchClientMandate(mandateId: String): Future[MandateFetchStatus] = {
@@ -50,19 +46,15 @@ trait MandateFetchService {
   }
 
   def getAllMandates(arn: String, serviceName: String, credId: Option[String], displayName: Option[String])
-                    (implicit hc: HeaderCarrier): Future[Seq[Mandate]] = {
+                    (implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Seq[Mandate]] = {
     if (credId.isDefined) {
-      authConnector.getAuthority() flatMap { authority =>
-        val otherCredId = getCredId(authority)
+        val otherCredId = ar.govGatewayId
         mandateRepository.getAllMandatesByServiceName(arn, serviceName, credId, Some(otherCredId), displayName)
-      }
     }
     else {
       mandateRepository.getAllMandatesByServiceName(arn, serviceName, credId, None, displayName)
     }
   }
-
-  def getCredId(authorityJson: JsValue): String = (authorityJson \ "credentials" \ "gatewayId").as[String]
 
   def getMandatesMissingAgentsEmails(arn: String, service: String): Future[Seq[String]] = {
     mandateRepository.findMandatesMissingAgentEmail(arn, service)

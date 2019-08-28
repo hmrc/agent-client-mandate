@@ -63,12 +63,62 @@ class RelationshipServiceISpec extends IntegrationSpec {
               .withStatus(200)
               .withBody(
                 s"""{
-                   |"credentials": {
-                   |  "providerId": "12345-credId",
-                   |  "providerType": "GovernmmentGateway"
-                   |},
-                   |"groupIdentifier" : "testGroupId-1234 "
-                   |}""".stripMargin
+                   |	"groupId": "42424200-0000-0000-0000-000000000000",
+                   |	"affinityGroup": "Agent",
+                   |	"users": [
+                   |		{
+                   |			"credId": "42424211-Agent-Admin",
+                   |			"name": "Assistant Agent",
+                   |			"email": "default@example.com",
+                   |			"credentialRole": "Assistant",
+                   |			"description": "User Description"
+                   |		}
+                   |	],
+                   |	"allEnrolments": [
+                   |		{
+                   |			"key": "HMRC-ATED-ORG",
+                   |			"identifiers": [
+                   |				{
+                   |					"key": "ATEDRefNumber",
+                   |					"value": "XN1200000100001"
+                   |				}
+                   |			],
+                   |			"enrolmentFriendlyName": "Ated Enrolment",
+                   |			"assignedUserCreds": [
+                   |				"42424211-Client-Admin"
+                   |			],
+                   |			"state": "Activated",
+                   |			"enrolmentType": "delegated",
+                   |			"assignedToAll": false
+                   |		},
+                   |		{
+                   |			"key": "HMRC-AGENT-AGENT",
+                   |			"identifiers": [
+                   |				{
+                   |					"key": "AgentRefNumber",
+                   |					"value": "XY1200000100002"
+                   |				}
+                   |			],
+                   |			"enrolmentFriendlyName": "Agent Enrolment",
+                   |			"assignedUserCreds": [
+                   |				"42424211-Client-Admin"
+                   |			],
+                   |			"state": "Activated",
+                   |			"enrolmentType": "delegated",
+                   |			"assignedToAll": false
+                   |		}
+                   |	],
+                   |  "agentInformation": {
+                   |    "agentId": "007",
+                   |	  "agentCode": "123456789123",
+                   |    "agentFriendlyName": "FakeTim"
+                   |   },
+                   |  "optionalCredentials": {
+                   |    "providerType": "GovernmentGateway",
+                   |    "providerId": "cred-id-113244018119"
+                   |  }
+                   |}
+                   |""".stripMargin
               )
           )
         )
