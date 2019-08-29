@@ -199,7 +199,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             Future.successful(NotFound)
           }
         }
-      case MandateFetched(mandate) if (mandate.currentStatus.status == models.Status.New) =>
+      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.New =>
         updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
           case MandateUpdated(x) =>
             doAudit("removed", "", x)

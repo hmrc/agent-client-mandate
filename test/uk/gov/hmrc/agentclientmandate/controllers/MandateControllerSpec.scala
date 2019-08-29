@@ -57,6 +57,85 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
   implicit override lazy val app: Application = fakeApplication
 
   "MandateController" should {
+    "return a NOT_FOUND " when {
+      "an exception is thrown by updateMandate in 'activate'" in {
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found."))
+
+        val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by createMandate in 'create'" in {
+        when(createServiceMock.createMandate(any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(createMandateDto))
+        val result = TestMandateController.create(agentCode).apply(fakeRequest)
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by getAllMandates in 'fetchAll'" in {
+        when(fetchServiceMock.getAllMandates(any(), any(), any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+
+        val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by approveMandate in 'approve'" in {
+        when(updateServiceMock.approveMandate(any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for ATEDRefNumber.")))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
+        val result = TestMandateController.approve(orgId).apply(fakeRequest)
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by getAgentDetails in 'getAgentDetails'" in {
+        when(agentDetailsServiceMock.getAgentDetails(any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for AgentRefNumber.")))
+        val result = TestMandateController.getAgentDetails(agentCode).apply(FakeRequest())
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by createMandateForNonUKClient in 'createRelationship'" in {
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name")
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
+        when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by updateMandate in 'agentRejectsClient'" in {
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+
+        val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by updateMandate in 'editMandate'" in {
+        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
+        val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by updateAgentCredId in 'updateAgentCredId'" in {
+        when(updateServiceMock.updateAgentCredId(any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
+        val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
+        status(result) mustBe NOT_FOUND
+      }
+
+      "an exception is thrown by updateMandateForNonUKClient in 'updateRelationship'" in {
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get,  emailGen.sample.get, "client display name", mandateReferenceGen.sample)
+        when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
+        val result = TestMandateController.updateRelationship("agentCode").apply(fakeRequest)
+        status(result) mustBe NOT_FOUND
+      }
+    }
+
 
     "activate the client" when {
 
@@ -283,14 +362,6 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
-      }
-
-      "there is an auth retrieval error" in {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenThrow(new RuntimeException("[AuthRetrieval] No GGCredId found."))
-
-        val thrown = the[RuntimeException] thrownBy await(TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest()))
-        thrown.getMessage must include("[AuthRetrieval] No GGCredId found.")
       }
     }
 
