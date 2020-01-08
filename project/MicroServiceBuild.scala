@@ -13,14 +13,13 @@ private object AppDependencies {
   import play.core.PlayVersion
 
   val compile: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.20.0-play-26",
+    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.22.0-play-26",
     ws,
-    "uk.gov.hmrc" %% "bootstrap-play-26" % "0.39.0",
+    "uk.gov.hmrc" %% "bootstrap-play-26" % "1.3.0",
     "uk.gov.hmrc" %% "domain" % "5.6.0-play-26",
-    "com.typesafe.akka" %% "akka-contrib" % "2.5.23",
     "uk.gov.hmrc" %% "mongo-lock" % "6.15.0-play-26",
-    "uk.gov.hmrc" %% "play-scheduling" % "6.0.0",
-    "uk.gov.hmrc" %% "auth-client" % "2.27.0-play-26",
+    "uk.gov.hmrc" %% "play-scheduling" % "7.1.0-play-26",
+    "uk.gov.hmrc" %% "auth-client" % "2.32.1-play-26",
     "com.typesafe.play" %% "play-json-joda" % "2.6.10"
   )
 
@@ -37,7 +36,7 @@ private object AppDependencies {
         "org.scalatestplus.play"  %% "scalatestplus-play" % "3.1.2"             % scope,
         "org.pegdown"              % "pegdown"            % "1.6.0"             % scope,
         "com.typesafe.play"       %% "play-test"          % PlayVersion.current % scope,
-        "uk.gov.hmrc"             %% "reactivemongo-test" % "4.15.0-play-26"    % scope,
+        "uk.gov.hmrc"             %% "reactivemongo-test" % "4.16.0-play-26"    % scope,
         "com.typesafe.akka"        % "akka-testkit_2.11"  % "2.5.23"            % scope,
         "org.mockito"              % "mockito-core"       % "2.24.5"            % scope,
         "org.scalacheck"          %% "scalacheck"         % "1.14.0"            % scope,
