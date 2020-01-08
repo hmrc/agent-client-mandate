@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 HM Revenue & Customs
+ * Copyright 2020 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,14 +83,14 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with GuiceOneServerPerSuite wi
     }
 
     "delete allocation" in new Setup {
-      when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
+      when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, responseJson = None)))
       val result = await(connector.deAllocateAgent("group", clientID, agentCode))
       result.status mustBe NO_CONTENT
     }
 
     "delete allocation error code" in new Setup {
-      when(mockWSHttp.DELETE[HttpResponse](any())(any(), any(), any())).
+      when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = None)))
       val result = await(connector.deAllocateAgent("group", clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
