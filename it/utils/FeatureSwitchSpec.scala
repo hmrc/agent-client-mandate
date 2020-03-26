@@ -14,14 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.utils
+package utils
 
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.{Application, Configuration}
+import uk.gov.hmrc.agentclientmandate.utils.FeatureSwitch
 
-class FeatureSwitchSpec  extends PlaySpec with GuiceOneAppPerSuite {
+class FeatureSwitchSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(
     Map(

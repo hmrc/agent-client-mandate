@@ -22,7 +22,6 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.models._
@@ -33,7 +32,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class MandateFetchServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mandateId = "123"
   val mockMandateRepository: MandateRepository = mock[MandateRepository]

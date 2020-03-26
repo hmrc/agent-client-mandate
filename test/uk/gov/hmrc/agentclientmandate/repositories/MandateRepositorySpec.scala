@@ -16,33 +16,12 @@
 
 package uk.gov.hmrc.agentclientmandate.repositories
 
-import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
-import play.api.test.Helpers._
-import reactivemongo.api.Cursor.ErrorHandler
-import reactivemongo.api.collections.GenericCollection
-import reactivemongo.api.commands.UpdateWriteResult
-import reactivemongo.api.indexes.CollectionIndexesManager
-import reactivemongo.api.{Cursor, DB}
-import reactivemongo.bson.BSONDocument
-import reactivemongo.play.json.JSONSerializationPack
-import reactivemongo.play.json.collection.{JSONCollection, JSONQueryBuilder}
-import uk.gov.hmrc.agentclientmandate.models._
+import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
-import scala.collection.generic.CanBuildFrom
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
-
-class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with GuiceOneServerPerSuite with BeforeAndAfterEach with MockitoSugar {
+class MandateRepositorySpec extends PlaySpec with MongoSpecSupport with BeforeAndAfterEach with MockitoSugar {
 
   //TODO: Convert unit test with mocked JSONCollection to integration test - Code does very little but find and insert data. Unit tests would not provide confidence.
  /* "MandateRepository" should {

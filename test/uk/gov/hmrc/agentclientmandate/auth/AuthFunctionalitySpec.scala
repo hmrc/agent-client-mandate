@@ -17,19 +17,19 @@
 package uk.gov.hmrc.agentclientmandate.auth
 
 import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
+import play.api.mvc.Results._
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
-import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier, Enrolments, PlayAuthConnector}
-import uk.gov.hmrc.play.test.UnitSpec
-import org.mockito.Mockito._
-import play.api.mvc.Results._
 import uk.gov.hmrc.agentclientmandate.utils.Generators.agentBusinessUtrGen
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier, Enrolments, PlayAuthConnector}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {

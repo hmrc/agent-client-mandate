@@ -19,23 +19,20 @@ package uk.gov.hmrc.agentclientmandate.services
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Matchers
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import org.scalatestplus.play.{OneServerPerSuite, PlaySpec}
+import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailNotSent, EmailSent}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailSent}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetched, MandateNotFound}
+import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
-class NotificationEmailServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   trait Setup {
     class TestNotificationEmailService extends NotificationEmailService {
