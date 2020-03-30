@@ -18,10 +18,10 @@ package uk.gov.hmrc.agentclientmandate.utils
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import uk.gov.hmrc.play.audit.model.Audit._
-import uk.gov.hmrc.play.audit.model.{Audit, AuditAsMagnet, DataEvent}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.model.Audit._
+import uk.gov.hmrc.play.audit.model.{Audit, AuditAsMagnet, DataEvent}
 
 class TestAudit(val auditConnector: AuditConnector) extends Audit("test", auditConnector) {
   var capturedTxName: String = ""

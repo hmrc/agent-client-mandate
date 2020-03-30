@@ -20,8 +20,8 @@ import org.joda.time.DateTime
 import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.http.HttpResponse
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.http.HttpResponse
 
 
 class MandateUtilsSpec extends PlaySpec {

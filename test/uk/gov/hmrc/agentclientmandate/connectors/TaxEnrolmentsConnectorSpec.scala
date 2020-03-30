@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
+import com.codahale.metrics.Timer
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.JsValue
 import play.api.test.Helpers.{CREATED, _}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.Future
 
-class TaxEnrolmentsConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockWSHttp: HttpClient = mock[HttpClient]
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
@@ -44,6 +44,9 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with GuiceOneServerPerSuite wi
 
   override def beforeEach: Unit = {
     reset(mockWSHttp, mockMetrics, mockAuditConnector)
+
+    when(mockMetrics.startTimer(any()))
+      .thenReturn(new Timer().time)
   }
 
   trait MockedVerbs extends CoreDelete with CorePost
@@ -55,7 +58,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with GuiceOneServerPerSuite wi
     class TestTaxEnrolmentsConnector extends TaxEnrolmentConnector {
       override val http: CoreDelete with CorePost = mockWSHttp
       override val enrolmentUrl: String = ""
-      override val metrics: ServiceMetrics = app.injector.instanceOf[ServiceMetrics]
+      override val metrics: ServiceMetrics = mockMetrics
       override val auditConnector: AuditConnector = mockAuditConnector
 
       override def serviceUrl: String = ""

@@ -18,12 +18,12 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import java.util.UUID
 
+import com.codahale.metrics.Timer
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.Future
 
 
-class EtmpConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockWSHttp: HttpClient = mock[HttpClient]
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
@@ -45,6 +45,9 @@ class EtmpConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with Mockit
 
   override def beforeEach: Unit = {
     reset(mockWSHttp, mockMetrics, mockAuditConnector)
+
+    when(mockMetrics.startTimer(any()))
+      .thenReturn(new Timer().time)
   }
 
   val mockUrl = "test"
@@ -55,7 +58,7 @@ class EtmpConnectorSpec extends PlaySpec with GuiceOneServerPerSuite with Mockit
       override val urlHeaderEnvironment: String = ""
       override val urlHeaderAuthorization: String = ""
       override val http: CoreGet with CorePost = mockWSHttp
-      override val metrics = app.injector.instanceOf[ServiceMetrics]
+      override val metrics = mockMetrics
       override val etmpUrl: String = mockUrl
       override val auditConnector: AuditConnector = mockAuditConnector
     }

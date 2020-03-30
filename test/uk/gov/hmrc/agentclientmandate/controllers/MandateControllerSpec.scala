@@ -22,14 +22,11 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import org.scalatestplus.play.PlaySpec
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
-import play.api.test.{FakeHeaders, FakeRequest}
+import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.builders.AgentBuilder
 import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
@@ -37,8 +34,8 @@ import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
-import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
@@ -46,15 +43,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
-
-  override implicit lazy val fakeApplication: Application = new GuiceApplicationBuilder().configure(
-    Map(
-      "auditing.enabled" -> "false"
-    )
-  ).build()
-
-  implicit override lazy val app: Application = fakeApplication
+class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   "MandateController" should {
     "return a NOT_FOUND " when {
@@ -541,7 +530,7 @@ class MandateControllerSpec extends PlaySpec with GuiceOneServerPerSuite with Mo
   val notificationServiceMock: NotificationEmailService = mock[NotificationEmailService]
   val authConnectorMock: DefaultAuthConnector = mock[DefaultAuthConnector]
   val auditConnectorMock: AuditConnector = mock[AuditConnector]
-  lazy val cc: ControllerComponents = app.injector.instanceOf[ControllerComponents]
+  lazy val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   object TestMandateController extends BackendController(cc) with MandateController {
     override val fetchService: MandateFetchService = fetchServiceMock

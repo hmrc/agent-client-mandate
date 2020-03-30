@@ -24,8 +24,6 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import org.scalatestplus.play.OneServerPerSuite
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
@@ -42,7 +40,7 @@ import uk.gov.hmrc.tasks._
 import scala.concurrent.Future
 
 class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task")) with UnitSpec
-  with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar with BeforeAndAfterEach with GuiceOneServerPerSuite {
+  with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar with BeforeAndAfterEach {
 
   lazy val phaseCommit = Phase.Commit
   lazy val phaseRollback = Phase.Rollback
@@ -116,8 +114,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     mockEmailNotificationService,
     mockAuditConnector,
     mockMandateFetchService,
-    mockMandateRepo,
-    app.configuration
+    mockMandateRepo
   )
 
 

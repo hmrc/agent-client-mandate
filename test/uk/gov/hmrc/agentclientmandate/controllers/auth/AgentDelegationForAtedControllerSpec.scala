@@ -22,15 +22,14 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.mvc.{ControllerComponents, Result}
-import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
 import uk.gov.hmrc.agentclientmandate.utils.Generators.agentBusinessUtrGen
-import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.auth.core.retrieve.AgentInformation
+import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr, Generator}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
@@ -38,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class AgentDelegationForAtedControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   "AgentDelegationForAtedController" must {
 
@@ -67,7 +66,7 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with GuiceOneServerP
   val mockRelationshipService: AgentDetailsService = mock[AgentDetailsService]
   val mockAuthConnector: DefaultAuthConnector = mock[DefaultAuthConnector]
 
-  val cc: ControllerComponents = app.injector.instanceOf[ControllerComponents]
+  val cc: ControllerComponents = Helpers.stubControllerComponents()
   val ar: AuthRetrieval = AuthRetrieval(enrolments = Set(
     Enrolment(
       key = "HMRC-AGENT-AGENT",

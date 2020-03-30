@@ -23,7 +23,6 @@ import org.scalatest.Matchers._
 import org.scalatest._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models._
@@ -36,7 +35,7 @@ import uk.gov.hmrc.tasks._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RelationshipServiceSpec extends PlaySpec with GuiceOneServerPerSuite with MockitoSugar with BeforeAndAfterEach {
+class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockMetrics = mock[ServiceMetrics]
   val agentCode = "ABC"

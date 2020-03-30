@@ -45,8 +45,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                       val emailNotificationService: NotificationEmailService,
                                       val auditConnector: AuditConnector,
                                       val fetchService: MandateFetchService,
-                                      val mandateRepo: MandateRepo,
-                                      val appNameConfiguration: Configuration) extends Auditable with ScheduledService {
+                                      val mandateRepo: MandateRepo) extends Auditable with ScheduledService {
 
   val mandateRepository: MandateRepository = mandateRepo.repository
 
