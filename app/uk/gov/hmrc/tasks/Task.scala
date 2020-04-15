@@ -26,6 +26,6 @@ case class Start(args: Map[String, String]) extends Signal
 case class Next(next:String, args: Map[String, String]) extends Signal
 case object Finish extends Signal {
 
-  override def args = Map()
+  override def args: Map[String, Nothing] = Map()
 
 }

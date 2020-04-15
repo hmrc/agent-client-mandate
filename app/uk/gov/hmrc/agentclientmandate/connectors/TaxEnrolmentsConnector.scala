@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
@@ -38,20 +38,21 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val servicesConfig: ServicesConfig,
                                              val http: HttpClient) extends TaxEnrolmentConnector {
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
-  val enrolmentUrl = s"$serviceUrl/tax-enrolments"
+  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}/enrolment-store-proxy"
+  val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
 trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
 
   def serviceUrl: String
-  def enrolmentUrl: String
-  def http: CoreDelete with CorePost
+  def enrolmentStoreProxyURL: String
+  def taxEnrolmentsUrl: String
+  def http: CoreDelete with CorePost with CoreGet
   def metrics: ServiceMetrics
 
   def allocateAgent(input: NewEnrolment, groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val postUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
+    val postUrl = s"""$taxEnrolmentsUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
     val jsonData = Json.toJson(input)
 
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentAllocate)
@@ -69,11 +70,10 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
     }
   }
 
-  def deAllocateAgent(groupId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-
+  def deAllocateAgent(agentPartyId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val deleteUrl = s"""$enrolmentUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
-
+    val agentGroupId = getGroupsWithEnrolment(agentPartyId)
+    val deleteUrl = s"""$taxEnrolmentsUrl/groups/$agentGroupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
 
     http.DELETE[HttpResponse](deleteUrl).map({ response =>
@@ -81,12 +81,27 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
       response.status match {
         case NO_CONTENT =>
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
-        case status =>
+        case _ =>
           Logger.warn("deAllocateAgent failed")
           metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
-          doFailedAudit("deAllocateAgentFailed", s"$groupId-$clientId", response.body)
+          doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
       }
       response
     })
+  }
+
+  def getGroupsWithEnrolment(agentRefNumber: String)(implicit hc: HeaderCarrier): Future[List[String]] = {
+    val enrolmentKey = s"${MandateConstants.AgentServiceContractName}~${MandateConstants.AgentIdentifier}~$agentRefNumber"
+    val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
+
+    http.GET[HttpResponse](s"$getUrl") map { response =>
+      response.status match {
+        case OK =>
+            (response.json \ "principalGroupIds").as[List[String]]
+        case _ =>
+          Logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
+          throw new RuntimeException("Error retrieving agent group ID")
+      }
+    }
   }
 }
