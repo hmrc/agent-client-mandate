@@ -30,7 +30,10 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.Try
+import scala.concurrent.duration._
+
 
 
 class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
@@ -72,7 +75,7 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
 
   def deAllocateAgent(agentPartyId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val agentGroupId = getGroupsWithEnrolment(agentPartyId)
+    val agentGroupId = Try(Await.result(getGroupsWithEnrolment(agentPartyId), 120 seconds))
     val deleteUrl = s"""$taxEnrolmentsUrl/groups/$agentGroupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
 
