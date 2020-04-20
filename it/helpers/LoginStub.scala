@@ -47,7 +47,6 @@ trait LoginStub {
     val cookie = signerSession.encodeAsCookie(signerSession.deserialize(cookieData(additionalData, timeStampRollback)))
     val encodedCookie = cookieHeader.encodeSetCookieHeader(Seq(cookie))
 
-    println(encodedCookie)
     encodedCookie
 
   }

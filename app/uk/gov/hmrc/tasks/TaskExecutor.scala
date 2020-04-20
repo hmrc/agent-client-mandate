@@ -37,9 +37,8 @@ trait TaskExecutor extends Actor {
         case StageComplete(sig, phase) => doTaskCommand(sig, phase, cmd.message)
         case Retrying(sig, phase, retryState) =>
           sig match {
-            case Start(args) => cmd.message.metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
-            case Next(stage, args) => cmd.message.metrics.incrementFailedCounter(stage)
-            case _ => println(s"Signal Type:::$sig")
+            case Start(_) => cmd.message.metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
+            case Next(stage, _) => cmd.message.metrics.incrementFailedCounter(stage)
           }
 
           doTaskCommand(sig, phase, cmd.message, Some(retryState))

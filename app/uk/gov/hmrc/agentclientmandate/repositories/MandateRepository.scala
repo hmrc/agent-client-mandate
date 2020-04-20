@@ -354,7 +354,6 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
 
   def removeMandate(mandateId: String): Future[MandateRemove] = {
     val query = BSONDocument("id" -> mandateId)
-
     collection.remove(query).map { writeResult =>
       if (writeResult.ok) {
         MandateRemoved

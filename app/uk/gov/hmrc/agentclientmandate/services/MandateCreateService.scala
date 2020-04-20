@@ -53,10 +53,11 @@ trait MandateCreateService extends Auditable {
     java.util.UUID.randomUUID.toString.take(8).toUpperCase()
   }
 
-  def createNewStatus(credId: String): MandateStatus = MandateStatus(Status.New, DateTime.now(), credId)
+  def createNewStatus(credId: String): MandateStatus = {
+    MandateStatus(Status.New, DateTime.now(), credId)
+  }
 
   def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[String] = {
-
     val agentPartyId = ar.agentBusinessUtr.value
     val credId = ar.govGatewayId
 
@@ -97,7 +98,9 @@ trait MandateCreateService extends Auditable {
       }
   }
 
-  def isIndividual(etmpDetails: JsValue): Boolean = (etmpDetails \ "isAnIndividual").as[Boolean]
+  def isIndividual(etmpDetails: JsValue): Boolean = {
+    (etmpDetails \ "isAnIndividual").as[Boolean]
+  }
 
   def getPartyType(isAnIndividual: Boolean): PartyType.Value = {
     if (isAnIndividual) PartyType.Individual else PartyType.Organisation
@@ -112,7 +115,6 @@ trait MandateCreateService extends Auditable {
   }
 
   def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
-
     val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
     val nonUKClientDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.safeId, "safeid")
 
@@ -186,7 +188,8 @@ trait MandateCreateService extends Auditable {
       }
     }
 
-    def getMandateStatus(mfs: MandateFetchStatus): Mandate = {mfs match {
+    def getMandateStatus(mfs: MandateFetchStatus): Mandate = {
+      mfs match {
         case MandateFetched(mandate) => mandate
         case _ => throw new RuntimeException("No existing non-uk mandate details found for mandate id")
       }

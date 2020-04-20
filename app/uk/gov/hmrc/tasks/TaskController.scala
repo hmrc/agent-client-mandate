@@ -39,8 +39,6 @@ trait TaskControllerT {
   def execute(task: Task): Unit = {
     if (!taskManagers.contains(task.`type`)) throw new Exception(s"Executor not set up for task of type '${task.`type`}'")
 
-    println("===========================", task)
-
     val taskMgr = taskManagers(task.`type`)
     taskMgr ! task
   }
