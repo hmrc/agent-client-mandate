@@ -16,24 +16,18 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import java.util.UUID
-
 import com.codahale.metrics.Timer
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.{FakeHeaders, FakeRequest, Injecting}
-import play.api.test.Helpers.{CREATED, _}
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
-import uk.gov.hmrc.agentclientmandate.services.MandateCreateService
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -94,20 +88,58 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
     }
 
     "delete allocation" in new Setup {
+      val successResponse = Json.parse(
+        s"""
+           |{
+           |
+           |    "principalGroupIds":[
+           |
+           |        "FF5E2869-C291-446C-826F-8A8CF6B8D631"
+           |
+           |    ]
+           |    ,
+           |
+           |    "delegatedGroupIds":[
+           |
+           |    ]
+           |
+           |}
+             """.stripMargin
+      )
+
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, None)))
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, None)))
+        .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
 
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode))
       result.status mustBe NO_CONTENT
     }
 
     "delete allocation error code" in new Setup {
+      val successResponse = Json.parse(
+        s"""
+           |{
+           |
+           |    "principalGroupIds":[
+           |
+           |        "FF5E2869-C291-446C-826F-8A8CF6B8D631"
+           |
+           |    ]
+           |    ,
+           |
+           |    "delegatedGroupIds":[
+           |
+           |    ]
+           |
+           |}
+             """.stripMargin
+      )
+
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None)))
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, None)))
+        .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
 
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
@@ -115,7 +147,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
     "getGroupsWithEnrolment" must {
       "returns the agent groupID when given an agent reference number" in new Setup {
-        val agentGroupID = List("FF5E2869-C291-446C-826F-8A8CF6B8D631")
+        val agentGroupID = Some("FF5E2869-C291-446C-826F-8A8CF6B8D631")
         val successResponse = Json.parse(
          s"""
             |{
@@ -135,7 +167,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
         )
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
+          .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse)) ))
         val response = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (agentGroupID)
       }

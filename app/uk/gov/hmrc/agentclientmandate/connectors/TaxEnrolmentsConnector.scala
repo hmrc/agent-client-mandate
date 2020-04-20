@@ -22,7 +22,7 @@ import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
-import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
+import uk.gov.hmrc.agentclientmandate.models.{NewEnrolment, UserGroupIDs}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -30,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 
 class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
@@ -60,6 +60,7 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
       timerContext.stop()
       response.status match {
         case CREATED =>
+          Logger.info("allocateAgent succeeded")
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
         case _ =>
           Logger.warn("allocateAgent failed")
@@ -72,32 +73,43 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
 
   def deAllocateAgent(agentPartyId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val agentGroupId = getGroupsWithEnrolment(agentPartyId)
-    val deleteUrl = s"""$taxEnrolmentsUrl/groups/$agentGroupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
-    val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
 
-    http.DELETE[HttpResponse](deleteUrl).map({ response =>
-      timerContext.stop()
-      response.status match {
-        case NO_CONTENT =>
-          metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
-        case _ =>
-          Logger.warn("deAllocateAgent failed")
-          metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
-          doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
+    getGroupsWithEnrolment(agentPartyId).flatMap { agentGroupId =>
+      agentGroupId match {
+        case Some(groupId) =>
+          val deleteUrl = s"""$taxEnrolmentsUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
+          val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
+          http.DELETE[HttpResponse](deleteUrl).map { response =>
+            timerContext.stop()
+            response.status match {
+              case NO_CONTENT =>
+                Logger.info("deAllocateAgent succeeded")
+                metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
+              case _ =>
+                Logger.warn("deAllocateAgent failed")
+                metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
+                doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
+            }
+            response
+          }
+        case None => throw new RuntimeException("No GroupID returned")
       }
-      response
-    })
+    }
   }
 
-  def getGroupsWithEnrolment(agentRefNumber: String)(implicit hc: HeaderCarrier): Future[List[String]] = {
+  def getGroupsWithEnrolment(agentRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
     val enrolmentKey = s"${MandateConstants.AgentServiceContractName}~${MandateConstants.AgentIdentifier}~$agentRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
 
     http.GET[HttpResponse](s"$getUrl") map { response =>
       response.status match {
+
         case OK =>
-            (response.json \ "principalGroupIds").as[List[String]]
+          Logger.info(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
+          response.json.as[UserGroupIDs].principalGroupIds.headOption
+        case NOT_FOUND =>
+          Logger.info("[getGroupsWithEnrolments]: group ID not found")
+          UserGroupIDs(List(),List()).principalGroupIds.headOption
         case _ =>
           Logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")

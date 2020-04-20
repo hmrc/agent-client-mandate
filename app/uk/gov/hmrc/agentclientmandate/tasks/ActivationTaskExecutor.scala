@@ -18,8 +18,8 @@ package uk.gov.hmrc.agentclientmandate.tasks
 
 import javax.inject.Inject
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.http.Status._
-import play.api.{Configuration, Logger}
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models._
