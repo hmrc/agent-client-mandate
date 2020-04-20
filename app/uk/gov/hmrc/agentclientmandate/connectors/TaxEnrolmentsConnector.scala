@@ -83,6 +83,7 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
         case _ =>
           Logger.warn("deAllocateAgent failed")
+          Logger.warn(s"AgentParty = $agentPartyId, Enrol Key = $enrolmentKey, AgentGroupId = $agentGroupId, DeleteUrl = $deleteUrl, Status = ${response.status}")
           metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
           doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
       }
@@ -97,9 +98,11 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
     http.GET[HttpResponse](s"$getUrl") map { response =>
       response.status match {
         case OK =>
-            (response.json \ "principalGroupIds").as[List[String]]
+          Logger.error(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
+          (response.json \ "principalGroupIds").as[List[String]]
         case _ =>
           Logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
+          Logger.warn(s"AgentREf = $agentRefNumber, Enrl Key = $enrolmentKey, GetuRL = $getUrl, Status = ${response.status}")
           throw new RuntimeException("Error retrieving agent group ID")
       }
     }
