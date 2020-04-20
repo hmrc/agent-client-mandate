@@ -14,6 +14,7 @@ private object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.22.0-play-26",
+    "com.typesafe.akka" %% "akka-actor" % "2.5.23" force(),
     ws,
     "uk.gov.hmrc" %% "bootstrap-play-26" % "1.3.0",
     "uk.gov.hmrc" %% "domain" % "5.6.0-play-26",
