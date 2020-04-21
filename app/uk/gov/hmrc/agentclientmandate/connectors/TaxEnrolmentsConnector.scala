@@ -22,7 +22,7 @@ import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
-import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
+import uk.gov.hmrc.agentclientmandate.models.{NewEnrolment, UserGroupIDs}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -31,8 +31,6 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.Try
-import scala.concurrent.duration._
 
 
 
@@ -75,35 +73,49 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
 
   def deAllocateAgent(agentPartyId: String, clientId: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientId"
-    val agentGroupId = Try(Await.result(getGroupsWithEnrolment(agentPartyId), 120 seconds))
-    val deleteUrl = s"""$taxEnrolmentsUrl/groups/$agentGroupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
-    val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
 
-    http.DELETE[HttpResponse](deleteUrl).map({ response =>
-      timerContext.stop()
-      response.status match {
-        case NO_CONTENT =>
-          metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
-        case _ =>
-          Logger.warn("deAllocateAgent failed")
-          Logger.warn(s"AgentParty = $agentPartyId, Enrol Key = $enrolmentKey, AgentGroupId = $agentGroupId, DeleteUrl = $deleteUrl, Status = ${response.status}")
-          metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
-          doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
+    getGroupsWithEnrolment(agentPartyId).flatMap { agentGroupId =>
+      agentGroupId match {
+        case Some(groupId) =>
+          val deleteUrl = s"""$taxEnrolmentsUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
+          val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
+//          println(s"\n   $deleteUrl ----------")
+          http.DELETE[HttpResponse](deleteUrl).map { response =>
+            timerContext.stop()
+            response.status match {
+              case NO_CONTENT =>
+                metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
+              case _ =>
+                Logger.warn("deAllocateAgent failed")
+                Logger.warn(s"AgentParty = $agentPartyId, Enrol Key = $enrolmentKey, AgentGroupId = $agentGroupId, DeleteUrl = $deleteUrl, Status = ${response.status}")
+                metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
+                doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
+            }
+            response
+          }
+        case None => throw new RuntimeException("No GroupID")
       }
-      response
-    })
+    }
   }
 
-  def getGroupsWithEnrolment(agentRefNumber: String)(implicit hc: HeaderCarrier): Future[List[String]] = {
+  def getGroupsWithEnrolment(agentRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
     val enrolmentKey = s"${MandateConstants.AgentServiceContractName}~${MandateConstants.AgentIdentifier}~$agentRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
 
     http.GET[HttpResponse](s"$getUrl") map { response =>
       response.status match {
+
         case OK =>
-          Logger.error(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
-          (response.json \ "principalGroupIds").as[List[String]]
+//          println("----------in OK all branch")
+          Logger.info(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
+//          (response.json \ "principalGroupIds").as[UserGroupIDs]
+          response.json.as[UserGroupIDs].principalGroupIds.headOption
+        case NOT_FOUND =>
+//          println("------- returned 204")
+          Logger.info("[getGroupsWithEnrolments]: group ID not gound")
+          UserGroupIDs(List(),List()).principalGroupIds.headOption
         case _ =>
+//          println("----------in catch all branch")
           Logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
           Logger.warn(s"AgentREf = $agentRefNumber, Enrl Key = $enrolmentKey, GetuRL = $getUrl, Status = ${response.status}")
           throw new RuntimeException("Error retrieving agent group ID")

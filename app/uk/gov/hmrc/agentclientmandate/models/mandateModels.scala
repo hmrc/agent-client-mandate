@@ -143,3 +143,9 @@ case class OldMandateReference(mandateId: String, atedRefNumber: String)
 object OldMandateReference {
   implicit val formats = Json.format[OldMandateReference]
 }
+
+case class UserGroupIDs(principalGroupIds: List[String] = List(), delegatedGroupIds: List[String] = List())
+
+object UserGroupIDs {
+  implicit val formats = Json.format[UserGroupIDs]
+}
