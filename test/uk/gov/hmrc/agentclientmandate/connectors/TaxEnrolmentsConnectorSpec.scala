@@ -16,24 +16,18 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import java.util.UUID
-
 import com.codahale.metrics.Timer
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.{FakeHeaders, FakeRequest, Injecting}
-import play.api.test.Helpers.{CREATED, _}
+import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
-import uk.gov.hmrc.agentclientmandate.services.MandateCreateService
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.SessionId
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -48,6 +42,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
   val clientID = clientIdGen.sample.get
   val groupID = "group-ID"
   val newEnrolment = newEnrolmentGen.sample.get
+  val userType = "client"
 
   override def beforeEach: Unit = {
     reset(mockWSHttp, mockMetrics, mockAuditConnector)
@@ -94,6 +89,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
     }
 
     "delete allocation" in new Setup {
+
       val successResponse = Json.parse(
         s"""
            |{
@@ -118,7 +114,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
 
-      val result = await(connector.deAllocateAgent(groupID, clientID, agentCode))
+      val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe NO_CONTENT
     }
 
@@ -147,7 +143,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
 
-      val result = await(connector.deAllocateAgent(groupID, clientID, agentCode))
+      val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
 

@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentclientmandate.repositories
 
 import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.{Logger, Play}
+import play.api.Logger
 import play.api.libs.json.Json
-import play.modules.reactivemongo.{MongoDbConnection, ReactiveMongoComponent}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.{Cursor, DB}
 import reactivemongo.bson.{BSONArray, BSONDocument, BSONObjectID}
@@ -29,9 +29,6 @@ import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

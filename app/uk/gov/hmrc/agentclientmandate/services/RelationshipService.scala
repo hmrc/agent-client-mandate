@@ -75,6 +75,7 @@ trait RelationshipService extends AuthorisedFunctions {
   }
 
   def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    Logger.warn(s"$userType is breaking AgentClientRelationship")
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")

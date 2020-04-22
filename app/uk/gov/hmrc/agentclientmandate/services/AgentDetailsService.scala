@@ -18,13 +18,12 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
 import org.joda.time.LocalDate
+import play.api.libs.json.JodaReads._
+import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.AtedUtr
 import uk.gov.hmrc.http.HeaderCarrier
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
-import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

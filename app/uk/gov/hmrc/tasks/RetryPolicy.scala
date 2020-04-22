@@ -56,7 +56,7 @@ trait RetryPolicy {
   protected def evalExpBackoffRetry(now:Long, state:RetryState): RetryEvalResult = {
 
     val boLengthMillis = Math.pow(2.0, state.retryCount.toDouble + 2.0).toInt * 500
-    val delayInMillis = Math.min(boLengthMillis, 36000) //max retry delay = 1 hr
+    val delayInMillis = Math.min(boLengthMillis, 36000) //Max retry 36 seconds
 
     // Current time is past when next retry should have happened
     if (now >= state.lastTryAt + delayInMillis) RetryNow
