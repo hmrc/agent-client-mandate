@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.config
 
 import play.api.inject.{Binding, Module}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.agentclientmandate.connectors.{DefaultEmailConnector, DefaultEtmpConnector, DefaultTaxEnrolmentConnector, EmailConnector, EtmpConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors._
 import uk.gov.hmrc.agentclientmandate.controllers.auth.{AgentDelegationForAtedController, DefaultAgentDelegationForAtedController}
 import uk.gov.hmrc.agentclientmandate.controllers.testOnly.{DefaultPerformanceTestSupportController, PerformanceTestSupportController}
 import uk.gov.hmrc.agentclientmandate.metrics.{DefaultServiceMetrics, ServiceMetrics}

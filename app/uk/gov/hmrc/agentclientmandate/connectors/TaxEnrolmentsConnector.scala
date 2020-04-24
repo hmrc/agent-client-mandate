@@ -30,9 +30,8 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, ExecutionContext, Future}
 
-
+import scala.concurrent.Future
 
 class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val auditConnector: AuditConnector,
@@ -61,6 +60,7 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
       timerContext.stop()
       response.status match {
         case CREATED =>
+          Logger.info("allocateAgent succeeded")
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
         case _ =>
           Logger.warn("allocateAgent failed")
@@ -79,21 +79,21 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
         case Some(groupId) =>
           val deleteUrl = s"""$taxEnrolmentsUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
           val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
-//          println(s"\n   $deleteUrl ----------")
+
           http.DELETE[HttpResponse](deleteUrl).map { response =>
             timerContext.stop()
             response.status match {
               case NO_CONTENT =>
+                Logger.info("deAllocateAgent succeeded")
                 metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
               case _ =>
                 Logger.warn("deAllocateAgent failed")
-                Logger.warn(s"AgentParty = $agentPartyId, Enrol Key = $enrolmentKey, AgentGroupId = $agentGroupId, DeleteUrl = $deleteUrl, Status = ${response.status}")
                 metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
                 doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientId", response.body)
             }
             response
           }
-        case None => throw new RuntimeException("No GroupID")
+        case None => throw new RuntimeException("No GroupID returned")
       }
     }
   }
@@ -106,16 +106,12 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
       response.status match {
 
         case OK =>
-//          println("----------in OK all branch")
           Logger.info(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
-//          (response.json \ "principalGroupIds").as[UserGroupIDs]
           response.json.as[UserGroupIDs].principalGroupIds.headOption
         case NOT_FOUND =>
-//          println("------- returned 204")
-          Logger.info("[getGroupsWithEnrolments]: group ID not gound")
+          Logger.info("[getGroupsWithEnrolments]: group ID not found")
           UserGroupIDs(List(),List()).principalGroupIds.headOption
         case _ =>
-//          println("----------in catch all branch")
           Logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
           Logger.warn(s"AgentREf = $agentRefNumber, Enrl Key = $enrolmentKey, GetuRL = $getUrl, Status = ${response.status}")
           throw new RuntimeException("Error retrieving agent group ID")
