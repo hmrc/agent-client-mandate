@@ -47,7 +47,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
   lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
   lazy val startSignal1 = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "credId" -> "credId"))
   lazy val nextSignal = Next("gg-proxy-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "agentCode" -> "agentCode", "clientId" -> "clientId", "mandateId" -> "mandateId", "agentPartyId" -> "agentPartyId"))
-  lazy val nextSignalTaxEnrolment = Next("gg-proxy-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "agentCode" -> "agentCode", "credId" -> "credId", "groupId" -> "groupId", "clientId" -> "clientId", "mandateId" -> "mandateId", "agentPartyId" -> "agentPartyId"))
+  lazy val nextSignalTaxEnrolment = Next("gg-proxy-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "agentCode" -> "agentCode", "credId" -> "credId", "groupId" -> "groupId", "clientId" -> "clientId", "mandateId" -> "mandateId", "agentPartyId" -> "agentPartyId", "userType" -> "agent"))
   lazy val finalizeSignal = Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId", "userType" -> "client"))
   lazy val finalizeSignal1 = Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId", "userType" -> "agent"))
   val taxEnrolmentMock = mock[TaxEnrolmentConnector]
@@ -264,17 +264,17 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
 
     "execute and move to 'finalize-deactivation' step tax enrolments" when {
       "signal is Next('gg-proxy-deactivation', args)" in {
-        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NO_CONTENT))
+        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NO_CONTENT))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))
 
         actorRef ! TaskCommand(StageComplete(nextSignalTaxEnrolment, phaseCommit), message)
-        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "groupId" -> "groupId", "credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit), message))
+        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "groupId" -> "groupId", "credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "userType" -> "agent")), phaseCommit), message))
       }
 
       "signal is Next('gg-proxy-deactivation', args) failure code returned" in {
-        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
+        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))

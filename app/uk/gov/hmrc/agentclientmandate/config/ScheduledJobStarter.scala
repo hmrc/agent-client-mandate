@@ -20,16 +20,15 @@ import akka.actor.{Cancellable, Scheduler}
 import javax.inject.Inject
 import org.apache.commons.lang3.time.StopWatch
 import play.api.inject.ApplicationLifecycle
-import play.api.libs.concurrent.Akka
 import play.api.{Application, Logger}
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class DefaultScheduledJobStarter @Inject()(val app: Application,
                                            val applicationLifecycle: ApplicationLifecycle,

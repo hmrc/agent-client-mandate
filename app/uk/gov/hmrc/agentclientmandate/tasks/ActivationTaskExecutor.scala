@@ -18,8 +18,8 @@ package uk.gov.hmrc.agentclientmandate.tasks
 
 import javax.inject.Inject
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.http.Status._
-import play.api.{Configuration, Logger}
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models._
@@ -38,6 +38,7 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class ActivationTaskExecutor extends TaskExecutor
+
 class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                       val mandateUpdateService: MandateUpdateService,
                                       val taxEnrolmentConnector: TaxEnrolmentConnector,
@@ -53,9 +54,9 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     implicit val hc: HeaderCarrier = createHeaderCarrier(signal)
 
     signal match {
-      case Start(args)                        => start(args)
-      case Next("gg-proxy-activation", args)  => enrolTaxEnrolments(args)
-      case Next("finalize-activation", args)  => finalize(args)
+      case Start(args) => start(args)
+      case Next("gg-proxy-activation", args) => enrolTaxEnrolments(args)
+      case Next("finalize-activation", args) => finalize(args)
     }
   }
 
@@ -63,6 +64,18 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))),
       token = Some(Token(signal.args.getOrElse("token", "dummy token"))),
       userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
+  }
+
+  private def start(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+    val request = createRelationship(args("clientId"), args("agentPartyId"))
+    val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
+    result.status match {
+      case OK =>
+        Success(Next("gg-proxy-activation", args))
+      case _ =>
+        Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
+        Failure(new Exception("ETMP call failed, status: " + result.status))
+    }
   }
 
   private def enrolTaxEnrolments(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
@@ -114,22 +127,10 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     }
   }
 
-  private def start(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
-    val request = createRelationship(args("clientId"), args("agentPartyId"))
-    val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
-    result.status match {
-      case OK =>
-        Success(Next("gg-proxy-activation", args))
-      case _ =>
-        Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
-        Failure(new Exception("ETMP call failed, status: " + result.status))
-    }
-  }
-
   def rollback(signal: Signal): Try[Signal] = {
     signal match {
       case Start(args) =>
-        Logger.warn("[ActivationTaskExecutor] start failed")
+        Logger.warn("[ActivationTaskExecutor] start failed. Rolling back")
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) =>
@@ -138,13 +139,13 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             Success(Finish)
         }
       case Next("gg-proxy-activation", args) =>
-        Logger.warn("[ActivationTaskExecutor] gg-proxy allocate failed")
+        Logger.warn("[ActivationTaskExecutor] gg-proxy allocate failed. Rolling back")
         // rolling back ETMP as we have failed GG proxy call
         val request = breakRelationship(args("clientId"), args("agentPartyId"))
         val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
         Success(Start(args))
       case Next("finalize-activation", args) =>
-        Logger.error("[ActivationTaskExecutor] Mongo update failed")
+        Logger.error("[ActivationTaskExecutor] Mongo update failed. Rolling back")
         Success(Next("gg-proxy-activation", args))
     }
   }
