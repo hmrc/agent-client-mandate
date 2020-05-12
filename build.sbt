@@ -1,27 +1,22 @@
+import play.routes.compiler.InjectedRoutesGenerator
+import play.sbt.routes.RoutesKeys
+import play.sbt.routes.RoutesKeys.routesGenerator
 import sbt.Keys._
 import sbt._
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
-import play.routes.compiler.{InjectedRoutesGenerator, StaticRoutesGenerator}
+import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings}
+import uk.gov.hmrc.SbtAutoBuildPlugin
+import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
+import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
+import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
-trait MicroService {
+val appName = "agent-client-mandate"
 
-  import uk.gov.hmrc._
-  import DefaultBuildSettings.{scalaSettings, defaultSettings, addTestReportOption}
-  import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-  import uk.gov.hmrc.versioning.SbtGitVersioning
-  import play.sbt.routes.RoutesKeys.routesGenerator
-  import uk.gov.hmrc.SbtAutoBuildPlugin
-  import play.sbt.routes.RoutesKeys
-  import TestPhases.oneForkedJvmPerTest
+lazy val appDependencies: Seq[ModuleID] = AppDependencies()
+lazy val plugins: Seq[Plugins] = Seq.empty
+lazy val playSettings: Seq[Setting[_]] = Seq.empty
 
-  val appName: String
-
-  lazy val appDependencies: Seq[ModuleID] = ???
-  lazy val plugins: Seq[Plugins] = Seq.empty
-  lazy val playSettings: Seq[Setting[_]] = Seq.empty
-
-  lazy val scoverageSettings = {
+lazy val scoverageSettings = {
     import scoverage.ScoverageKeys
     Seq(
       ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;testOnlyDoNotUseInAppConf.*;uk.gov.hmrc.BuildInfo*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;.*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
@@ -31,7 +26,7 @@ trait MicroService {
     )
   }
 
-  lazy val microservice = Project(appName, file("."))
+lazy val microservice = Project(appName, file("."))
     .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins: _*)
     .settings(playSettings: _*)
     .settings(majorVersion := 1)
@@ -44,7 +39,7 @@ trait MicroService {
     .settings(
       addTestReportOption(IntegrationTest, "int-test-reports"),
       inConfig(IntegrationTest)(Defaults.itSettings),
-      scalaVersion := "2.11.11",
+      scalaVersion := "2.12.11",
       libraryDependencies ++= appDependencies,
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
@@ -53,11 +48,12 @@ trait MicroService {
       fork                       in Test := true,
       Keys.fork                  in IntegrationTest :=  false,
       unmanagedSourceDirectories in IntegrationTest :=  (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
-      testGrouping               in IntegrationTest :=  oneForkedJvmPerTest((definedTests in IntegrationTest).value),
       parallelExecution in IntegrationTest := false
     )
+    .configs(IntegrationTest)
+    .disablePlugins(JUnitXmlReportPlugin)
     .settings(
       resolvers += Resolver.bintrayRepo("hmrc", "releases"),
       resolvers += Resolver.jcenterRepo
     )
-}
+
