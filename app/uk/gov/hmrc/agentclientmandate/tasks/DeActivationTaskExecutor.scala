@@ -81,13 +81,15 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
           case NO_CONTENT =>
             metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
             Success(Next("finalize-deactivation", args))
+          case NOT_FOUND =>
+            metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentDeallocate)
+            Success(Next("finalize-deactivation", args))
           case _ =>
             Logger.warn(s"[DeActivationTaskExecutor] - call to tax-enrolments failed with status ${resp.status} for mandate reference::${args("mandateId")}")
             metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
             Failure(new Exception("Tax Enrolment call failed, status: " + resp.status))
         }
       case Failure(ex) =>
-
         Logger.warn(s"[DeActivationTaskExecutor] execption while calling deAllocateAgent :: ${ex.getMessage}")
         Failure(new Exception("Tax Enrolment call failed, status: " + ex.getMessage))
 

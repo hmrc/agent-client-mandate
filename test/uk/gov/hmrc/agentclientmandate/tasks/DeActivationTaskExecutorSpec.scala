@@ -273,6 +273,15 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
         expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "groupId" -> "groupId", "credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "userType" -> "agent")), phaseCommit), message))
       }
 
+      "signal is Next('gg-proxy-deactivation', args) not found returned" in {
+        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NOT_FOUND))
+
+        val actorRef = system.actorOf(DeActivationTaskExecutorMock.props())
+
+        actorRef ! TaskCommand(StageComplete(nextSignalTaxEnrolment, phaseCommit), message)
+        expectMsg(TaskCommand(StageComplete(Next("finalize-deactivation", Map("serviceIdentifier" -> "serviceIdentifier", "groupId" -> "groupId", "credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "userType" -> "agent")), phaseCommit), message))
+      }
+
       "signal is Next('gg-proxy-deactivation', args) failure code returned" in {
         when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
 
