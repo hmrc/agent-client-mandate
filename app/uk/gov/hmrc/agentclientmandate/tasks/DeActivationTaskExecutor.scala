@@ -109,7 +109,7 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
               case "agent" =>
                 val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
                 else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
-                Try(emailNotificationService.sendMail(receiverParty._1, models.Status.Cancelled, receiverParty._2, service)) match {
+                Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Cancelled, userType = Some("agent"), recipient = receiverParty._2,service)) match {
                   case Success(v) =>
                     doAudit("emailSent", args("agentCode"), m)
                   case Failure(reason) =>
@@ -117,7 +117,7 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                 }
               case _ =>
                 val agentEmail = m.agentParty.contactDetails.email
-                Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), service, Some(mandate.currentStatus.status))) match {
+                Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), Some("agent"), service, Some(mandate.currentStatus.status))) match {
                   case Success(v) => doAudit("emailSent", args("agentCode"), m)
                   case Failure(reason) =>
                     doFailedAudit("emailSentFailed", s"agent email::$agentEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)

@@ -85,7 +85,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "an exception is thrown by createMandateForNonUKClient in 'createRelationship'" in {
-        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name")
+        val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", "clientEmail@email.com", agentReferenceNumberGen.sample.get, "agentEmail@email.com", "client display name")
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
         when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
@@ -148,7 +148,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "cant find mandate while changing the status to PENDINGACTIVATION" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
-        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -174,7 +174,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "request is valid and client mandate found and status is approved" in {
-        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
