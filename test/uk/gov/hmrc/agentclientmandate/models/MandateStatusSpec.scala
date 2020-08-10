@@ -17,11 +17,12 @@
 package uk.gov.hmrc.agentclientmandate.models
 
 import org.joda.time.DateTime
+import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.WordSpecLike
 import play.api.libs.json.Json
-import uk.gov.hmrc.play.test.UnitSpec
 
-class MandateStatusSpec extends UnitSpec {
-  "MandateStatus reads" should {
+class MandateStatusSpec extends WordSpecLike {
+  "MandateStatus reads" must {
     "read a json of MandateStatus" when {
       "there is a valid millisecond timestamp" in {
         val status = Status.New
@@ -57,7 +58,7 @@ class MandateStatusSpec extends UnitSpec {
     }
   }
 
-  "MandateStatus writes" should {
+  "MandateStatus writes" must {
     "write a json of MandateStatus" when {
       "there is a valid millisecond timestamp" in {
         val status = Status.New

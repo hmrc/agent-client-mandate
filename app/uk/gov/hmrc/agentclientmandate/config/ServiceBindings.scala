@@ -27,25 +27,26 @@ import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
+import play.api.inject.{bind => playBind}
 
 class ServiceBindings extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
     Seq(
-      bind(classOf[ScheduledJobStarter]).to(classOf[DefaultScheduledJobStarter]).eagerly(),
-      bind(classOf[MandateUpdateService]).to(classOf[DefaultMandateUpdateService]),
-      bind(classOf[MandateCreateService]).to(classOf[DefaultMandateCreateService]),
-      bind(classOf[MandateFetchService]).to(classOf[DefaultMandateFetchService]),
-      bind(classOf[RelationshipService]).to(classOf[DefaultRelationshipService]).eagerly(),
-      bind(classOf[AgentDetailsService]).to(classOf[DefaultAgentDetailsService]),
-      bind(classOf[NotificationEmailService]).to(classOf[DefaultNotificationEmailService]),
-      bind(classOf[EtmpConnector]).to(classOf[DefaultEtmpConnector]),
-      bind(classOf[EmailConnector]).to(classOf[DefaultEmailConnector]),
-      bind(classOf[TaxEnrolmentConnector]).to(classOf[DefaultTaxEnrolmentConnector]),
-      bind(classOf[ServiceMetrics]).to(classOf[DefaultServiceMetrics]),
-      bind(classOf[AgentDelegationForAtedController]).to(classOf[DefaultAgentDelegationForAtedController]),
-      bind(classOf[PerformanceTestSupportController]).to(classOf[DefaultPerformanceTestSupportController]),
-      bind(classOf[MandateRepo]).to(classOf[MandateRepositoryImpl]),
-      bind(classOf[PlayAuthConnector]).to(classOf[DefaultAuthConnector]),
-      bind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
+      playBind(classOf[ScheduledJobStarter]).to(classOf[DefaultScheduledJobStarter]).eagerly(),
+      playBind(classOf[MandateUpdateService]).to(classOf[DefaultMandateUpdateService]),
+      playBind(classOf[MandateCreateService]).to(classOf[DefaultMandateCreateService]),
+      playBind(classOf[MandateFetchService]).to(classOf[DefaultMandateFetchService]),
+      playBind(classOf[RelationshipService]).to(classOf[DefaultRelationshipService]).eagerly(),
+      playBind(classOf[AgentDetailsService]).to(classOf[DefaultAgentDetailsService]),
+      playBind(classOf[NotificationEmailService]).to(classOf[DefaultNotificationEmailService]),
+      playBind(classOf[EtmpConnector]).to(classOf[DefaultEtmpConnector]),
+      playBind(classOf[EmailConnector]).to(classOf[DefaultEmailConnector]),
+      playBind(classOf[TaxEnrolmentConnector]).to(classOf[DefaultTaxEnrolmentConnector]),
+      playBind(classOf[ServiceMetrics]).to(classOf[DefaultServiceMetrics]),
+      playBind(classOf[AgentDelegationForAtedController]).to(classOf[DefaultAgentDelegationForAtedController]),
+      playBind(classOf[PerformanceTestSupportController]).to(classOf[DefaultPerformanceTestSupportController]),
+      playBind(classOf[MandateRepo]).to(classOf[MandateRepositoryImpl]),
+      playBind(classOf[PlayAuthConnector]).to(classOf[DefaultAuthConnector]),
+      playBind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
     )
 }

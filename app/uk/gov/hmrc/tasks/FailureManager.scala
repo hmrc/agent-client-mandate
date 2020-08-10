@@ -19,7 +19,6 @@ package uk.gov.hmrc.tasks
 import akka.actor.Actor
 
 import scala.collection.mutable
-import scala.language.postfixOps
 
 /**
   * Actor that deals with TaskCommands that got returned by a TaskExecutor

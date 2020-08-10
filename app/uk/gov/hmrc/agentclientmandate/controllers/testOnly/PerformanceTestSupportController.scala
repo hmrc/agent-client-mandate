@@ -21,7 +21,7 @@ import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -44,7 +44,7 @@ trait PerformanceTestSupportController extends BackendController {
     }
   }
 
-  def deleteMandate(mandateId: String): Action[AnyContent] = Action.async { implicit request =>
+  def deleteMandate(mandateId: String): Action[AnyContent] = Action.async { _ =>
     mandateRepository.removeMandate(mandateId).map {
       case MandateRemoved => Created
       case MandateRemoveError => BadRequest

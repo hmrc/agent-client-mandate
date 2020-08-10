@@ -29,7 +29,7 @@ import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.Future
 

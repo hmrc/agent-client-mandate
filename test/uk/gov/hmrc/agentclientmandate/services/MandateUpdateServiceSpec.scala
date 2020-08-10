@@ -90,7 +90,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
       "requested to do so - updateMandate" in new Setup {
         when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
 
-        await(service.updateMandate(mandate, Some(Status.Approved))(HeaderCarrier(), testAuthRetrieval)) must be(MandateUpdated(clientApprovedMandate))
+        await(service.updateMandate(mandate, Some(Status.Approved))(testAuthRetrieval)) must be(MandateUpdated(clientApprovedMandate))
       }
     }
 

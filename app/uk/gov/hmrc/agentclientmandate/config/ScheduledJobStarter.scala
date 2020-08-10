@@ -19,8 +19,8 @@ package uk.gov.hmrc.agentclientmandate.config
 import akka.actor.{Cancellable, Scheduler}
 import javax.inject.Inject
 import org.apache.commons.lang3.time.StopWatch
+import play.api.{Application, Logging}
 import play.api.inject.ApplicationLifecycle
-import play.api.{Application, Logger}
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
@@ -47,21 +47,21 @@ class DefaultScheduledJobStarter @Inject()(val app: Application,
     scheduler(app).schedule(job.initialDelay, job.interval) {
       val stopWatch = new StopWatch
       stopWatch.start()
-      Logger.info(s"Executing job ${job.name}")
+      logger.info(s"Executing job ${job.name}")
 
       job.execute.onComplete {
         case Success(job.Result(message)) =>
           stopWatch.stop()
-          Logger.info(s"Completed job ${job.name} in $stopWatch: $message")
+          logger.info(s"Completed job ${job.name} in $stopWatch: $message")
         case Failure(throwable) =>
           stopWatch.stop()
-          Logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
+          logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
       }
     }
   }
 }
 
-trait ScheduledJobStarter {
+trait ScheduledJobStarter extends Logging {
   val scheduledJobs: Seq[ScheduledJob]
   val app: Application
   val applicationLifecycle: ApplicationLifecycle
@@ -70,17 +70,17 @@ trait ScheduledJobStarter {
   private[config] def scheduler(app: Application): Scheduler = app.actorSystem.scheduler
 
   applicationLifecycle.addStopHook { () =>
-    Logger.info(s"Cancelling all scheduled jobs.")
+    logger.info(s"Cancelling all scheduled jobs.")
 
     Future {
       cancellables.foreach(_.cancel())
       scheduledJobs.foreach { job =>
-        Logger.info(s"Checking if job ${job.configKey} is running")
+        logger.info(s"Checking if job ${job.configKey} is running")
         while (Await.result(job.isRunning, 5.seconds)) {
-          Logger.warn(s"Waiting for job ${job.configKey} to finish")
+          logger.warn(s"Waiting for job ${job.configKey} to finish")
           Thread.sleep(1000)
         }
-        Logger.warn(s"Job ${job.configKey} is finished")
+        logger.warn(s"Job ${job.configKey} is finished")
       }
     }
   }

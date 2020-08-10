@@ -20,19 +20,20 @@ import akka.actor.ActorSystem
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatestplus.play.PlaySpec
 import utils.ScheduledService
 
 import scala.util.{Failure, Success, Try}
 
 class TaskExecutorSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with OneAppPerSuite with MockitoSugar {
+  with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with OneAppPerSuite with MockitoSugar {
 
   val executorRef = TestActorRef[TestExecutorA]
   val executorActor = executorRef.underlyingActor

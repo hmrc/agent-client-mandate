@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentclientmandate.repositories
 
 import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.Logger
 import play.api.libs.json.Json
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -88,14 +87,14 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
 
   //Temporary code and should be removed after next deployment - start
 
-  collection.update(BSONDocument(
+  collection.update(ordered = false).one(BSONDocument(
     "currentStatus.status" -> "PendingActivation",
     "statusHistory.status" -> "Approved"
   ), BSONDocument(
     "$set" -> BSONDocument("currentStatus.status" -> "Approved")
   ), upsert=false, multi=true)
 
-  collection.remove(BSONDocument("processed" -> BSONDocument("$exists" -> true)))
+  collection.delete().one(BSONDocument("processed" -> BSONDocument("$exists" -> true)))
 
   //Temp code - end
 
@@ -119,7 +118,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
 
   def insertMandate(mandate: Mandate): Future[MandateCreate] = {
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryInsertMandate)
-    collection.insert[Mandate](mandate).map { writeResult =>
+    collection.insert(ordered = false).one[Mandate](mandate).map { writeResult =>
       timerContext.stop()
       if (writeResult.ok) {
         MandateCreated(mandate)
@@ -127,7 +126,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateCreateError
       }
     }.recover {
-      case e => Logger.warn("Failed to insert mandate", e)
+      case e => logger.warn("Failed to insert mandate", e)
         timerContext.stop()
         MandateCreateError
     }
@@ -138,7 +137,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
       "id" -> mandate.id
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateMandate)
-    collection.update(query, mandate, upsert = false).map { writeResult =>
+    collection.update(ordered = false).one(query, mandate, upsert = false).map { writeResult =>
       timerContext.stop()
       if (writeResult.ok) {
         MandateUpdated(mandate)
@@ -146,7 +145,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => Logger.warn("Failed to update mandate", e)
+      case e => logger.warn("Failed to update mandate", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -157,7 +156,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
       "id" -> mandateId
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandate)
-    collection.find(query).one[Mandate] map {
+    collection.find(query, Option.empty)(BSONDocumentWrites, BSONDocumentWrites).one[Mandate] map {
       case Some(mandate) =>
         timerContext.stop()
         MandateFetched(mandate)
@@ -175,7 +174,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
-    collection.find(query).sort(Json.obj("_id" -> -1)).one[Mandate] map {
+    collection.find(query, Option.empty)(implicitly, BSONDocumentWrites).sort(Json.obj("_id" -> -1)).one[Mandate] map {
       case Some(mandate) =>
         timerContext.stop()
         MandateFetched(mandate)
@@ -203,7 +202,8 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
       )
     }
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandatesByService)
-    val result = collection.find(query).sort(Json.obj("clientDisplayName" -> 1)).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()).map {
+    val result = collection.find(query, Option.empty)(implicitly, BSONDocumentWrites)
+      .sort(Json.obj("clientDisplayName" -> 1)).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()).map {
       x => if (displayName.isDefined) {
         x.filter(mandate =>
           mandate.currentStatus.status != Status.Active ||
@@ -229,7 +229,8 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
       "subscription.service.id" -> service.toUpperCase)
 
     val result = Try {
-      val queryResult = collection.find(query).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError())
+      val queryResult = collection.find(query, Option.empty)(implicitly, BSONDocumentWrites)
+        .cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError())
 
       queryResult onComplete {
         _ => timerContext.stop()
@@ -244,7 +245,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
           x.map { _.id }
         }
       case Failure(f) =>
-        Logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
+        logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
   }
@@ -256,7 +257,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentEmail)
 
-    collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
+    collection.update(ordered = false).one(query, modifier, upsert = false, multi = true).map { writeResult =>
       timerContext.stop()
       if (writeResult.ok) {
         MandateUpdatedEmail
@@ -264,7 +265,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => Logger.warn("Failed to update agent email", e)
+      case e => logger.warn("Failed to update agent email", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -276,7 +277,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateClientEmail)
 
-    collection.update(query, modifier, upsert = false, multi = false).map { writeResult =>
+    collection.update(ordered = false).one(query, modifier, upsert = false, multi = false).map { writeResult =>
       timerContext.stop()
       if (writeResult.ok) {
         MandateUpdatedEmail
@@ -284,7 +285,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => Logger.warn("Failed to update client email", e)
+      case e => logger.warn("Failed to update client email", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -296,7 +297,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentCredId)
 
-    collection.update(query, modifier, upsert = false, multi = true).map { writeResult =>
+    collection.update(ordered = false).one(query, modifier, upsert = false, multi = true).map { writeResult =>
       timerContext.stop()
       if (writeResult.ok) {
         MandateUpdatedCredId
@@ -304,7 +305,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => Logger.warn("Failed to update agent cred id", e)
+      case e => logger.warn("Failed to update agent cred id", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -317,7 +318,8 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
       "$or" -> Json.arr(Json.obj("currentStatus.status" -> Status.New.toString), Json.obj("currentStatus.status" -> Status.Approved.toString), Json.obj("currentStatus.status" -> Status.PendingCancellation.toString), Json.obj("currentStatus.status" -> Status.PendingActivation.toString))
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindOldMandates)
-    val result = collection.find(query).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError())
+    val result = collection.find(query, Option.empty)(implicitly, BSONDocumentWrites)
+      .cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError())
 
     result onComplete {
       _ => timerContext.stop()
@@ -335,8 +337,9 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
       "$where"-> "this.createdBy.credId != this.currentStatus.updatedBy"
     )
 
-    val timerContext = metrics.startTimer(MetricsEnum.RepositoryClientCancelledMandates)
-    val result = Try(collection.find(query).cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()))
+    metrics.startTimer(MetricsEnum.RepositoryClientCancelledMandates)
+    val result = Try(collection.find(query, Option.empty)(implicitly, BSONDocumentWrites)
+      .cursor[Mandate]().collect[Seq](maxDocs = -1, Cursor.FailOnError()))
 
     result match {
       case Success(s) =>
@@ -344,21 +347,21 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
           x.map { _.clientDisplayName }
         }
       case Failure(f) =>
-        Logger.warn(s"[MandateRepository][getClientCancelledMandates] failed: ${f.getMessage}")
+        logger.warn(s"[MandateRepository][getClientCancelledMandates] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
   }
 
   def removeMandate(mandateId: String): Future[MandateRemove] = {
     val query = BSONDocument("id" -> mandateId)
-    collection.remove(query).map { writeResult =>
+    collection.delete().one(query).map { writeResult =>
       if (writeResult.ok) {
         MandateRemoved
       } else {
         MandateRemoveError
       }
     }.recover {
-      case e => Logger.warn("Failed to delete mandate", e)
+      case e => logger.warn("Failed to delete mandate", e)
         MandateRemoveError
     }
   }

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import javax.inject.Inject
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
@@ -27,7 +27,7 @@ import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -42,7 +42,7 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
-trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
+trait TaxEnrolmentConnector extends RawResponseReads with Auditable with Logging {
 
   def serviceUrl: String
   def enrolmentStoreProxyURL: String
@@ -60,10 +60,10 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
       timerContext.stop()
       response.status match {
         case CREATED =>
-          Logger.info("allocateAgent succeeded")
+          logger.info("allocateAgent succeeded")
           metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
         case _ =>
-          Logger.warn(s"allocateAgent failed for clientAgentRef: $clientAgentRef with agentGroupID: $agentGroupId")
+          logger.warn(s"allocateAgent failed for clientAgentRef: $clientAgentRef with agentGroupID: $agentGroupId")
           metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
           doFailedAudit("allocateAgentFailed", jsonData.toString, response.body)
       }
@@ -83,11 +83,11 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
             timerContext.stop()
             response.status match {
               case NO_CONTENT =>
-                Logger.info("deAllocateAgent succeeded")
+                logger.info("deAllocateAgent succeeded")
               case NOT_FOUND =>
-                Logger.warn(s"$userType deAllocateAgent succeeded - did not find agent to deallocate in EACD for $agentGroupId")
+                logger.warn(s"$userType deAllocateAgent succeeded - did not find agent to deallocate in EACD for $agentGroupId")
               case _ =>
-                Logger.warn(s"$userType deAllocateAgent clientAgentRef: $clientAgentRef with agentGroupID: $agentGroupId")
+                logger.warn(s"$userType deAllocateAgent clientAgentRef: $clientAgentRef with agentGroupID: $agentGroupId")
                 metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentDeallocate)
                 doFailedAudit("deAllocateAgentFailed", s"$agentGroupId-$clientAgentRef", response.body)
             }
@@ -106,13 +106,13 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
       response.status match {
 
         case OK =>
-          Logger.info(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
+          logger.info(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].principalGroupIds.headOption
         case NOT_FOUND =>
-          Logger.warn("[getGroupsWithEnrolments]: group ID not found")
+          logger.warn("[getGroupsWithEnrolments]: group ID not found")
           UserGroupIDs(List(),List()).principalGroupIds.headOption
         case _ =>
-          Logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
+          logger.error(s"[getGroupsWithEnrolments]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")
       }
     }

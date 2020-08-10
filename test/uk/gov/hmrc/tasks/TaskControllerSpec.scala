@@ -18,18 +18,19 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Matchers.{contain, convertToAnyShouldWrapper}
+import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatestplus.play.PlaySpec
 import utils.ScheduledService
 
 import scala.util.{Success, Try}
 
 class TaskControllerSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
+  with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)

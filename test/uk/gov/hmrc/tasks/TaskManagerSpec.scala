@@ -18,12 +18,13 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.scalatest.mock.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatestplus.play.PlaySpec
 import utils.ScheduledService
 
 import scala.collection.mutable.ArrayBuffer
@@ -31,7 +32,7 @@ import scala.util.{Success, Try}
 
 
 class TaskManagerSpec extends TestKit(ActorSystem("test"))
-  with UnitSpec with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
+  with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)
