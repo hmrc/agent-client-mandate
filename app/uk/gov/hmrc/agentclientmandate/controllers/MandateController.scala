@@ -21,14 +21,10 @@ import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate._
-import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
-import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.controller.BackendController
@@ -129,7 +125,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             case MandateUpdated(m) =>
               val agentEmail = m.agentParty.contactDetails.email
               val service = m.subscription.service.id
-              emailNotificationService.sendMail(agentEmail, models.Status.Approved, service = service)
+              emailNotificationService.sendMail(agentEmail, models.Status.Approved, service = service, userType = Some("client"), recipient = Some("agent"))
               doAudit("approved", "", m)
               Ok(Json.toJson(m))
             case MandateUpdateError =>
@@ -182,6 +178,11 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
         val agentCode = mandate.createdBy.groupId.getOrElse(throw new RuntimeException("agent code not found!"))
         updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
           case MandateUpdated(x) =>
+            val service = x.subscription.service.id
+            val agentEmail = x.agentParty.contactDetails.email
+            val clientEmail = x.clientParty.map(_.contactDetails.email).getOrElse("")
+            emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, service = service, userType = Some("agent"), recipient = Some("agent"), prevStatus = Some(models.Status.Approved))
+            emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, service = service,userType = Some("agent"), recipient = Some("client"), prevStatus = Some(models.Status.Approved))
             relationshipService.breakAgentClientRelationship(x, agentCode, userType)
             Future.successful(Ok)
           case MandateUpdateError => {
@@ -193,7 +194,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
         updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
           case MandateUpdated(x) =>
             val service = x.subscription.service.id
-            emailNotificationService.sendMail(x.agentParty.contactDetails.email, models.Status.Cancelled, service = service, userType = Some("client"), prevStatus = Some(models.Status.Approved))
+            emailNotificationService.sendMail(x.agentParty.contactDetails.email, models.Status.Cancelled, service = service, userType = Some("agent"), recipient = Some("agent"), prevStatus = Some(models.Status.Approved))
             doAudit("removed", "", x)
             Future.successful(Ok)
           case MandateUpdateError => {
@@ -233,7 +234,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             case MandateUpdated(m) =>
               val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
               val service = m.subscription.service.id
-              emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service)
+              emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service, userType = Some("client"), recipient = Some("client"))
               doAudit("rejected", ac, m)
               Ok
 
