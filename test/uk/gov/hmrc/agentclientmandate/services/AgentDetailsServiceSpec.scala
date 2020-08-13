@@ -102,7 +102,7 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       }
 
       implicit val hc = new HeaderCarrier()
-      val result = await(TestAgentDetailsService.getAgentDetails("ac"))
+      val result = await(TestAgentDetailsService.getAgentDetails)
       result.organisation.map(_.organisationName) must be(None)
     }
 
@@ -137,13 +137,13 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       }
 
       implicit val hc: HeaderCarrier = HeaderCarrier()
-      val result: AgentDetails = await(TestAgentDetailsService.getAgentDetails("ac"))
+      val result: AgentDetails = await(TestAgentDetailsService.getAgentDetails)
       result.organisation.map(_.organisationName) must be(Some(companyName))
     }
 
     "returns true - for delegation authorization check for Ated" when {
       "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(), any())).thenReturn(Future.successful(Seq(mandate)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandate)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
       }
     }
@@ -161,16 +161,16 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
         )
 
 
-        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(hc, testAuthRetrievalNoAgentRef)) must be(false)
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(testAuthRetrievalNoAgentRef)) must be(false)
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(), any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(), any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
     }

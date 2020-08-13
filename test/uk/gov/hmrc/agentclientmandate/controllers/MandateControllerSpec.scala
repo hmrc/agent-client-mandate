@@ -39,7 +39,7 @@ import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -49,7 +49,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
     "return a NOT_FOUND " when {
       "an exception is thrown by updateMandate in 'activate'" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found."))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found."))
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
@@ -64,14 +64,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "an exception is thrown by getAllMandates in 'fetchAll'" in {
-        when(fetchServiceMock.getAllMandates(any(), any(), any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        when(fetchServiceMock.getAllMandates(any(), any(), any(), any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
 
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
       }
 
       "an exception is thrown by approveMandate in 'approve'" in {
-        when(updateServiceMock.approveMandate(any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for ATEDRefNumber.")))
+        when(updateServiceMock.approveMandate(any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for ATEDRefNumber.")))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
@@ -79,7 +79,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "an exception is thrown by getAgentDetails in 'getAgentDetails'" in {
-        when(agentDetailsServiceMock.getAgentDetails(any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for AgentRefNumber.")))
+        when(agentDetailsServiceMock.getAgentDetails(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for AgentRefNumber.")))
         val result = TestMandateController.getAgentDetails(agentCode).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
       }
@@ -94,14 +94,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
       "an exception is thrown by updateMandate in 'agentRejectsClient'" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
 
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
       }
 
       "an exception is thrown by updateMandate in 'editMandate'" in {
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
@@ -109,7 +109,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "an exception is thrown by updateAgentCredId in 'updateAgentCredId'" in {
-        when(updateServiceMock.updateAgentCredId(any())(any(), any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        when(updateServiceMock.updateAgentCredId(any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
@@ -131,7 +131,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "request is valid and client mandate found " in {
 
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(ArgumentMatchers.eq(approvedMandate), any())(any(), any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
+        when(updateServiceMock.updateMandate(ArgumentMatchers.eq(approvedMandate), any())(any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
         status(result) must be (OK)
       }
@@ -147,7 +147,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
       "cant find mandate while changing the status to PENDINGACTIVATION" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
         when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
@@ -168,7 +168,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
       "request is valid and client mandate found and status is active" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -176,14 +176,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "request is valid and client mandate found and status is approved" in {
         when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "request is valid and client mandate found and status is New" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdated(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -200,7 +200,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
       "mongo update error occurs while changing the status to PENDING_CANCELLATION" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -209,7 +209,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
       "mongo update error occurs while changing the status to CANCELLED" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -218,7 +218,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
       "mongo update error occurs while changing the New status to CANCELLED" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
         val result = TestMandateController.remove(agentCode, mandateId).apply(FakeRequest())
 
@@ -291,7 +291,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "fetch all mandates with respect to a service and ARN" when {
       "agent supplies valid service and ARN" in {
-        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any(), any())).thenReturn(Future.successful(Seq(newMandate)))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Seq(newMandate)))
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq(newMandate)))
@@ -300,7 +300,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "return not-found when trying to fetch all mandates with respect to a service and ARN" when {
       "agent supplies invalid/non-existing service and ARN" in {
-        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any(), any())).thenReturn(Future.successful(Nil))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Nil))
         val result = TestMandateController.fetchAll(agentCode, arn, service, None, None).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
@@ -308,7 +308,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "update mandate for a client" when {
       "client provided valid payload and mandate has been successfully updated in mongo" in {
-        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any(), any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(OK)
@@ -317,7 +317,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "throw error while trying to update mandate for a client" when {
       "client provided valid payload but mandate wasn't successfully updated in mongo" in {
-        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any(), any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.approve(orgId).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -334,14 +334,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "update mandate with pending cancellation status" when {
       "agent has rejected client and status returned ok" in {
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "agent has rejected client and status returned not ok" in {
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -356,7 +356,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "get agent details" when {
       "agent requests details" in {
-        when(agentDetailsServiceMock.getAgentDetails(any())(any(), any())).thenReturn(Future.successful(agentDetails))
+        when(agentDetailsServiceMock.getAgentDetails(any())).thenReturn(Future.successful(agentDetails))
         val result = TestMandateController.getAgentDetails(agentCode).apply(FakeRequest())
         status(result) must be(OK)
       }
@@ -391,13 +391,13 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "edit mandate details" must {
       "return OK, when mandate is updated in MongoDB" in {
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate("agentCode").apply(fakeRequest)
         status(result) must be(OK)
       }
       "return INTERNAL_SERVER_ERROR, when update fail in MongoDB" in {
-        when(updateServiceMock.updateMandate(any(), any())(any(), any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result = TestMandateController.editMandate(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)
@@ -464,14 +464,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "updateCredId" must {
       "return ok if credId updated" in {
-        when(updateServiceMock.updateAgentCredId(any())(any(), any())) thenReturn Future.successful(MandateUpdatedCredId)
+        when(updateServiceMock.updateAgentCredId(any())(any())) thenReturn Future.successful(MandateUpdatedCredId)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(OK)
       }
 
       "return error if credId not updated" in {
-        when(updateServiceMock.updateAgentCredId(any())(any(), any())) thenReturn Future.successful(MandateUpdateError)
+        when(updateServiceMock.updateAgentCredId(any())(any())) thenReturn Future.successful(MandateUpdateError)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson("oldCredId"))
         val result = TestMandateController.updateAgentCredId(agentCode).apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)

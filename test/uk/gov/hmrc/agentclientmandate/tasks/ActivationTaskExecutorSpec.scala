@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, WordSpecLike}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
@@ -34,12 +34,11 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.tasks._
 
 import scala.concurrent.Future
 
-class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task")) with UnitSpec
+class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task")) with WordSpecLike
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar with BeforeAndAfterEach {
 
   lazy val phaseCommit = Phase.Commit

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.auth
 
-import play.api.Logger
+import play.api.Logging
 import play.api.mvc.Result
 import play.api.mvc.Results.Unauthorized
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
@@ -49,7 +49,7 @@ case class AuthRetrieval(enrolments: Set[Enrolment],
 }
 
 
-trait AuthFunctionality extends AuthorisedFunctions {
+trait AuthFunctionality extends AuthorisedFunctions with Logging {
 
   def authRetrieval(body: AuthRetrieval => Future[Result])
                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
@@ -58,7 +58,7 @@ trait AuthFunctionality extends AuthorisedFunctions {
         body(AuthRetrieval(enrolments, agentInfo, creds))
     } recover {
       case er: Exception =>
-        Logger.error(s"[authRetrieval] Unexpected auth error - ${er.getMessage} - ${er.getStackTrace.mkString("\n")}")
+        logger.error(s"[authRetrieval] Unexpected auth error - ${er.getMessage} - ${er.getStackTrace.mkString("\n")}")
         Unauthorized
     }
   }

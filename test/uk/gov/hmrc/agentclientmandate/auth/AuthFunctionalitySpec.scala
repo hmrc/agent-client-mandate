@@ -18,6 +18,8 @@ package uk.gov.hmrc.agentclientmandate.auth
 
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import org.scalatest.Matchers.{convertToAnyShouldWrapper, the}
+import org.scalatest.WordSpecLike
 import org.scalatest.mockito.MockitoSugar
 import play.api.mvc.Results._
 import play.api.mvc.{AnyContent, Result}
@@ -26,13 +28,14 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators.agentBusinessUtrGen
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier, Enrolments, PlayAuthConnector}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatestplus.play.PlaySpec
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
+class AuthFunctionalitySpec extends WordSpecLike with MockitoSugar {
 
   lazy implicit val fakeRequest: FakeRequest[AnyContent] = FakeRequest()
   val mockAuthConnector: PlayAuthConnector = mock[PlayAuthConnector]
@@ -92,7 +95,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
     Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
   )
 
-  "govGatewayId" should {
+  "govGatewayId" must {
     "return an Government Gateway Id" when {
       "there is one present" in {
         testAuthRetrieval.govGatewayId shouldBe "cred-id-113244018119"
@@ -107,7 +110,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "atedUtr" should {
+  "atedUtr" must {
     "return an ated reference number" when {
       "there is one present" in {
         testAuthRetrieval.atedUtr shouldBe atedEnrolmentIdentifier
@@ -122,7 +125,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "agentBusinessUtr" should {
+  "agentBusinessUtr" must {
     "return an agent reference number" when {
       "there is one present" in {
         testAuthRetrieval.agentBusinessUtr shouldBe agentEnrolmentIdentifier
@@ -137,7 +140,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "agentBusinessEnrolment" should {
+  "agentBusinessEnrolment" must {
     "return an agent enrolment" when {
       "there is one present" in {
         testAuthRetrieval.agentBusinessEnrolment shouldBe optionalAgentEnrolment.get
@@ -152,7 +155,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "getEnrolmentId" should {
+  "getEnrolmentId" must {
     "return an enrolment identifier" when {
       "given an Ated enrolment and id" in {
         testAuthRetrieval.getEnrolmentId(optionalAtedEnrolment, "ATEDRefNumber") shouldBe atedEnrolmentIdentifier
@@ -176,7 +179,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
     }
   }
 
-  "authRetrieval" should {
+  "authRetrieval" must {
     "return an Ok(200)" when {
       "no exceptions are thrown" in new Setup {
         when(mockAuthConnector.authorise[Enrolments ~ AgentInformation ~ Some[Credentials]](any(), any())(any(), any()))
@@ -184,7 +187,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
 
         val response: AuthRetrieval => Future[Result] = _ => Future.successful(Ok)
         val result: Result = await(authRetrieval(response))
-        status(result) shouldBe 200
+        result.header.status shouldBe 200
       }
     }
   }
@@ -195,7 +198,7 @@ class AuthFunctionalitySpec extends UnitSpec with MockitoSugar {
 
       val response: AuthRetrieval => Future[Result] = _ => Future.successful(Ok)
       val result: Result = await(authRetrieval(response))
-      status(result) shouldBe 401
+      result.header.status shouldBe 401
     }
   }
 }

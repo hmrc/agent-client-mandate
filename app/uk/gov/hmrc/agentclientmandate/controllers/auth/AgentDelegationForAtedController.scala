@@ -17,13 +17,12 @@
 package uk.gov.hmrc.agentclientmandate.controllers.auth
 
 import javax.inject.Inject
-import play.api.Logger
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
 import uk.gov.hmrc.agentclientmandate.services.AgentDetailsService
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr}
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -43,7 +42,7 @@ trait AgentDelegationForAtedController extends BackendController with AuthFuncti
         else Unauthorized
       } recover {
         case e: RuntimeException =>
-          Logger.error(s"[AgentDelegationForAtedController] Authorisation Error - $e - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+          logger.error(s"[AgentDelegationForAtedController] Authorisation Error - $e - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
           NotFound
       }
     }

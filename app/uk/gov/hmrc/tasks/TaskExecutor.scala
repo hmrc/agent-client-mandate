@@ -17,14 +17,14 @@
 package uk.gov.hmrc.tasks
 
 import akka.actor.Actor
-import play.api.Logger
-import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
+import play.api.Logging
+import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum
 import uk.gov.hmrc.tasks.Phase._
 import utils.ScheduledService
 
 import scala.util.{Failure, Success, Try}
 
-trait TaskExecutor extends Actor {
+trait TaskExecutor extends Actor with Logging {
 
   def execute(signal: Signal, service: ScheduledService): Try[Signal] = service.execute(signal)
   def rollback(signal: Signal, service: ScheduledService): Try[Signal] = service.rollback(signal)
@@ -39,6 +39,7 @@ trait TaskExecutor extends Actor {
           sig match {
             case Start(_) => cmd.message.metrics.incrementFailedCounter(MetricsEnum.StageStartSignalFailed)
             case Next(stage, _) => cmd.message.metrics.incrementFailedCounter(stage)
+            case _ => throw new Exception("Unknown signal")
           }
 
           doTaskCommand(sig, phase, cmd.message, Some(retryState))
@@ -65,7 +66,7 @@ trait TaskExecutor extends Actor {
           sender() ! TaskCommand(StageComplete(newSignal, phase), message)
         }
       case Failure(ex) =>
-        Logger.warn(s"[TaskExecutor][doTaskCommand] Failure Exception:::${ex.getMessage}")
+        logger.warn(s"[TaskExecutor][doTaskCommand] Failure Exception:::${ex.getMessage}")
         val ct = currentTime
         val retryState =
           retryStateOpt match {

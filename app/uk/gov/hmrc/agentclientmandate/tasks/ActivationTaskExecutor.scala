@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.tasks
 
 import javax.inject.Inject
 import org.joda.time.DateTime
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
@@ -46,7 +46,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                       val emailNotificationService: NotificationEmailService,
                                       val auditConnector: AuditConnector,
                                       val fetchService: MandateFetchService,
-                                      val mandateRepo: MandateRepo) extends Auditable with ScheduledService {
+                                      val mandateRepo: MandateRepo) extends Auditable with ScheduledService with Logging {
 
   val mandateRepository: MandateRepository = mandateRepo.repository
 
@@ -57,6 +57,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
       case Start(args) => start(args)
       case Next("gg-proxy-activation", args) => enrolTaxEnrolments(args)
       case Next("finalize-activation", args) => finalize(args)
+      case _ => throw new Exception("Unknown signal type")
     }
   }
 
@@ -66,14 +67,14 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
       userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
   }
 
-  private def start(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+  private def start(args: Map[String, String]): Try[Signal] = {
     val request = createRelationship(args("clientId"), args("agentPartyId"))
     val result = Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
     result.status match {
       case OK =>
         Success(Next("gg-proxy-activation", args))
       case _ =>
-        Logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
+        logger.warn(s"[ActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
         Failure(new Exception("ETMP call failed, status: " + result.status))
     }
   }
@@ -88,12 +89,12 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             metrics.incrementSuccessCounter(MetricsEnum.TaxEnrolmentAllocate)
             Success(Next("finalize-activation", args))
           case _ =>
-            Logger.warn(s"[ActivationTaskExecutor] - call to tax-enrolments failed with status ${resp.status} for mandate reference::${args("mandateId")}")
+            logger.warn(s"[ActivationTaskExecutor] - call to tax-enrolments failed with status ${resp.status} for mandate reference::${args("mandateId")}")
             metrics.incrementFailedCounter(MetricsEnum.TaxEnrolmentAllocate)
             Failure(new Exception("GG Proxy call failed, status: " + resp.status))
         }
       case Failure(ex) =>
-        Logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
+        logger.warn(s"[ActivationTaskExecutor] execption while calling allocateAgent :: ${ex.getMessage}")
         Failure(new Exception("GG Proxy call failed, status: " + ex.getMessage))
     }
   }
@@ -118,39 +119,43 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             doAudit("activated", args("agentCode"), m)
             Success(Finish)
           case MandateUpdateError =>
-            Logger.warn(s"[ActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
+            logger.warn(s"[ActivationTaskExecutor] - could not update mandate with id ${args("mandateId")}")
             Failure(new Exception("Could not update mandate to activate"))
+          case _ => throw new Exception("Unknown update result type")
         }
       case MandateNotFound =>
-        Logger.warn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
+        logger.warn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
         Failure(new Exception("Could not find mandate to activate"))
+      case _ => throw new Exception("Unknown fetch result")
     }
   }
 
   def rollback(signal: Signal): Try[Signal] = {
     signal match {
       case Start(args) =>
-        Logger.warn("[ActivationTaskExecutor] start failed. Rolling back")
+        logger.warn("[ActivationTaskExecutor] start failed. Rolling back")
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) =>
             val updatedMandate = mandate.updateStatus(MandateStatus(Status.Approved, DateTime.now, args("credId")))
             Await.result(mandateRepository.updateMandate(updatedMandate), 1 second)
             Success(Finish)
+          case _ => throw new Exception("Unknown fetch result")
         }
       case Next("gg-proxy-activation", args) =>
-        Logger.warn("[ActivationTaskExecutor] gg-proxy allocate failed. Rolling back")
+        logger.warn("[ActivationTaskExecutor] gg-proxy allocate failed. Rolling back")
         // rolling back ETMP as we have failed GG proxy call
         val request = breakRelationship(args("clientId"), args("agentPartyId"))
-        val result = Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
+        Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
         Success(Start(args))
       case Next("finalize-activation", args) =>
-        Logger.error("[ActivationTaskExecutor] Mongo update failed. Rolling back")
+        logger.error("[ActivationTaskExecutor] Mongo update failed. Rolling back")
         Success(Next("gg-proxy-activation", args))
+      case _ => throw new Exception("Unknown signal type")
     }
   }
 
   def onRollbackFailure(lastSignal: Signal): Unit = {
-    Logger.error("[ActivationTaskExecutor] Rollback action failed")
+    logger.error("[ActivationTaskExecutor] Rollback action failed")
   }
 }

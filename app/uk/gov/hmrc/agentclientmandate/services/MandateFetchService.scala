@@ -21,7 +21,6 @@ import org.joda.time.DateTime
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepo, MandateRepository}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import scala.concurrent.Future
@@ -46,7 +45,7 @@ trait MandateFetchService {
   }
 
   def getAllMandates(arn: String, serviceName: String, credId: Option[String], displayName: Option[String])
-                    (implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Seq[Mandate]] = {
+                    (implicit ar: AuthRetrieval): Future[Seq[Mandate]] = {
     if (credId.isDefined) {
         val otherCredId = ar.govGatewayId
         mandateRepository.getAllMandatesByServiceName(arn, serviceName, credId, Some(otherCredId), displayName)

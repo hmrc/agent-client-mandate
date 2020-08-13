@@ -18,12 +18,12 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
 import org.joda.time.LocalDate
+import play.api.Logging
 import play.api.libs.json.JodaReads._
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.AtedUtr
-import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -31,12 +31,12 @@ import scala.concurrent.Future
 class DefaultAgentDetailsService @Inject()(val etmpConnector: EtmpConnector,
                                            val mandateFetchService: MandateFetchService) extends AgentDetailsService
 
-trait AgentDetailsService {
+trait AgentDetailsService extends Logging {
 
   def etmpConnector: EtmpConnector
   def mandateFetchService: MandateFetchService
 
-  def getAgentDetails(agentCode: String)(implicit hc: HeaderCarrier, authRetrieval: AuthRetrieval): Future[AgentDetails] = {
+  def getAgentDetails(implicit authRetrieval: AuthRetrieval): Future[AgentDetails] = {
 
     val agentPartyId = authRetrieval.agentBusinessUtr.value
 
@@ -87,11 +87,13 @@ trait AgentDetailsService {
       }
   }
 
-  def isAuthorisedForAted(ated: AtedUtr)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Boolean] = {
+  def isAuthorisedForAted(ated: AtedUtr)(implicit ar: AuthRetrieval): Future[Boolean] = {
       val agentRefNumberOpt = ar.agentBusinessEnrolment.identifiers.find(_.key.toLowerCase == "agentrefnumber")
       agentRefNumberOpt match {
         case Some(arn) =>
-          mandateFetchService.getAllMandates(arn.value, "ated", None, None).map(_.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(a => true))
+          mandateFetchService.getAllMandates(arn.value, "ated", None, None).map {
+            _.find(_.subscription.referenceNumber.fold(false)(a => a == ated.utr)).fold(false)(_ => true)
+          }
         case None => Future.successful(false)
       }
   }

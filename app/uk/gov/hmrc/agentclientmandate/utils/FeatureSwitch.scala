@@ -19,6 +19,8 @@ package uk.gov.hmrc.agentclientmandate.utils
 import play.api.Configuration
 import play.api.libs.json.Json
 
+import scala.util.Try
+
 case class FeatureSwitch(name: String, enabled: Boolean)
 
 object FeatureSwitch {
@@ -29,8 +31,8 @@ object FeatureSwitch {
   def isEnabled(name: String)(implicit config: Configuration): Boolean = {
     val sysPropValue = sys.props.get(systemPropertyName(name))
     sysPropValue match {
-      case Some(x) => x.toBoolean
-      case None => config.getBoolean(confPropertyName(name)).getOrElse(false)
+      case Some(x)  => x.toBoolean
+      case None     => Try(config.get[Boolean](confPropertyName(name))).getOrElse(false)
     }
   }
 
