@@ -20,16 +20,15 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.Matchers.{convertToAnyShouldWrapper, the}
 import org.scalatest.WordSpecLike
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.Results._
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.agentclientmandate.utils.Generators.agentBusinessUtrGen
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier, Enrolments, PlayAuthConnector}
 import uk.gov.hmrc.http.HeaderCarrier
-import org.scalatestplus.play.PlaySpec
-import play.api.test.Helpers.{await, defaultAwaitTimeout}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

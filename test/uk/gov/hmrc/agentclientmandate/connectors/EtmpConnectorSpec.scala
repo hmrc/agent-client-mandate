@@ -16,23 +16,19 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import java.util.UUID
-
 import com.codahale.metrics.Timer
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
-import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.logging.SessionId
+import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.Future
 
@@ -70,7 +66,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
     "getDetails" must {
       "return valid response, for ARN as identifier type" in new Setup {
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
+          .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result = await(connector.getRegistrationDetails("ABC", "arn"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
@@ -78,7 +74,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
 
       "return valid response, for SafeId as identifier type" in new Setup {
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
+          .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result = await(connector.getRegistrationDetails("ABC", "safeid"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
@@ -86,7 +82,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
 
       "return valid response, for UTR as identifier type" in new Setup {
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, Some(Json.parse("""{"isAnIndividual":false}""")))))
+          .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result = await(connector.getRegistrationDetails("ABC", "utr"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
@@ -99,7 +95,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
 
       "throw exception when response is not OK" in new Setup {
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(BAD_REQUEST)))
+          .thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "")))
 
         val thrown = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "arn"))
         thrown.getMessage must include("No ETMP details found")
@@ -109,9 +105,8 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
     "maintainAtedRelationship" must {
       "return valid response, if create/update relationship is successful in ETMP" in new Setup {
         val successResponse = Json.parse( """{"processingDate" :  "2014-12-17T09:30:47Z"}""")
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
         when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
+          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
@@ -122,9 +117,8 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
 
       "Check for a failure response when we try to create/update ATED relation in ETMP" in new Setup {
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
         when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, responseJson = Some(failureResponse))))
+          .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))
 
         val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
@@ -136,9 +130,8 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
     "getAtedSubscriptionDetails" must {
       "return valid response, if success response received from ETMP" in new Setup {
         val successResponse = Json.parse( """{"safeId" :  "safe-id"}""")
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, responseJson = Some(successResponse))))
+          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
         val response = await(connector.getAtedSubscriptionDetails("ated-ref-num"))
         response must be(successResponse)
@@ -146,9 +139,8 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
 
       "throws error, if response status is not OK from ETMP" in new Setup {
         val failureResponse = Json.parse( """{"Reason" : "Service Unavailable"}""")
-        implicit val hc = new HeaderCarrier(sessionId = Some(SessionId(s"session-${UUID.randomUUID}")))
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, responseJson = Some(failureResponse))))
+          .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
 
         val result = connector.getAtedSubscriptionDetails("ated-ref-num")
         val response = the[RuntimeException] thrownBy await(result)

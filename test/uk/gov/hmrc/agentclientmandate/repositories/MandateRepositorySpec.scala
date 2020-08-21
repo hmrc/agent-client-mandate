@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.repositories
 
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.mongo.MongoSpecSupport
 

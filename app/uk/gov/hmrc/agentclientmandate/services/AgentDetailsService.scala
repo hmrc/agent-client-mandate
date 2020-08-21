@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import java.time.LocalDate
+
 import javax.inject.Inject
-import org.joda.time.LocalDate
 import play.api.Logging
-import play.api.libs.json.JodaReads._
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._

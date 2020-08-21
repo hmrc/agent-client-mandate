@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, WordSpecLike}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
@@ -162,7 +162,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     "fail to execute" when {
 
       "signal is START but the ETMP fails" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))
@@ -212,7 +212,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       }
 
       "the signal is Next('gg-proxy-deactivation', args) and move to START signal" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK, ""))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))
@@ -224,7 +224,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       }
 
       "the signal is Next('finalize-deactivation', args) and move to Next('gg-proxy-deactivation', args) signal" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK, ""))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))
@@ -263,7 +263,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
 
     "execute and move to 'finalize-deactivation' step tax enrolments" when {
       "signal is Next('gg-proxy-deactivation', args)" in {
-        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NO_CONTENT))
+        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NO_CONTENT, ""))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))
@@ -273,7 +273,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       }
 
       "signal is Next('gg-proxy-deactivation', args) not found returned" in {
-        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NOT_FOUND))
+        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(NOT_FOUND, ""))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props())
 
@@ -282,7 +282,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       }
 
       "signal is Next('gg-proxy-deactivation', args) failure code returned" in {
-        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
+        when(taxEnrolmentMock.deAllocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
 
         val actorRef = system.actorOf(DeActivationTaskExecutorMock.props(
         ))

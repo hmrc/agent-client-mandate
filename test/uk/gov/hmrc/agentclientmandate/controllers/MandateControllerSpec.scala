@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
@@ -367,7 +367,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get, emailGen.sample.get, "client display name")
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.successful())
+        when(createServiceMock.createMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.unit)
         val result = TestMandateController.createRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
         verify(createServiceMock, times(1)).createMandateForNonUKClient(any(), any())(any(), any())
@@ -380,7 +380,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "return CREATED as status code, for successful creation" in {
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, agentReferenceNumberGen.sample.get,  emailGen.sample.get, "client display name", mandateReferenceGen.sample)
         val fakeRequest = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(dto))
-        when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.successful())
+        when(createServiceMock.updateMandateForNonUKClient(any(), ArgumentMatchers.eq(dto))(any(), any())).thenReturn(Future.unit)
         val result = TestMandateController.updateRelationship("agentCode").apply(fakeRequest)
         status(result) must be(CREATED)
         verify(createServiceMock, times(1)).updateMandateForNonUKClient(any(), any())(any(), any())

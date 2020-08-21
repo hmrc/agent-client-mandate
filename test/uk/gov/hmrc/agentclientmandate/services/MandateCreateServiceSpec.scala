@@ -22,7 +22,7 @@ import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -119,7 +119,6 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       }
 
       "results in error" in {
-        val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
           s"""
              |{
@@ -242,12 +241,11 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         }
 
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, "arn", emailGen.sample.get, "client display name")
-        val result = await(TestClientMandateCreateService.createMandateForNonUKClient(agentCodeGen.sample.get, dto))
+        await(TestClientMandateCreateService.createMandateForNonUKClient(agentCodeGen.sample.get, dto))
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any(), any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
-        val mandateId = TestClientMandateCreateService.createMandateId
         val successResponseJsonETMP = Json.parse(
           s"""
              |{
@@ -317,9 +315,8 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           agentEmail = emailGen.sample.get,
           clientDisplayName = "client display name",
           mandateRef = mandateReferenceGen.sample)
-        
 
-        val result = await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
+        await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
 
         verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any(), any())
       }

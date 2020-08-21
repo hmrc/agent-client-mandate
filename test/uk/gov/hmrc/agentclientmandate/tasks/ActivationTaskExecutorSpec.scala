@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, WordSpecLike}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
@@ -125,7 +125,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "execute and move to GG-PROXY allocation step" when {
 
       "signal is START" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -138,7 +138,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('gg-proxy-activation', args)" in {
 
 
-        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(CREATED))
+        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(CREATED, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -175,7 +175,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
     "fail to execute" when {
       "signal is START but the ETMP fails" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -234,7 +234,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "the signal is Next('gg-proxy-activation', args) and move to START signal" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -244,7 +244,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "the signal is Next('finalize', args) and move to Next('gg-proxy-activation', args) signal" in {
-        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK))
+        when(etmpMock.maintainAtedRelationship(any())) thenReturn Future.successful(HttpResponse(OK, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -282,7 +282,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "Error condition taxenrolments " when {
       "Return StageFailure when tax enrolments returns status other than CREATED" in {
 
-        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR))
+        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
