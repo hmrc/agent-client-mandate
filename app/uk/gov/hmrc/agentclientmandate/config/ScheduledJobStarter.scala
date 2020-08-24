@@ -19,8 +19,8 @@ package uk.gov.hmrc.agentclientmandate.config
 import akka.actor.{Cancellable, Scheduler}
 import javax.inject.Inject
 import org.apache.commons.lang3.time.StopWatch
-import play.api.{Application, Logging}
 import play.api.inject.ApplicationLifecycle
+import play.api.{Application, Logging}
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 

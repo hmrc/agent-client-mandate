@@ -2,6 +2,7 @@ package controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import helpers.IntegrationSpec
+import org.scalatest
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.agentclientmandate.models.{CreateMandateDto, Status}
@@ -132,6 +133,7 @@ class MandateCreateServiceISpec extends IntegrationSpec {
         val fetchedMandate: MandateFetchStatus = await(mandateRepo.repository.fetchMandate(mandateID))
         fetchedMandate match {
           case MandateFetched(fetched) => fetched.currentStatus.status mustBe Status.New
+          case _ => scalatest.Assertions.fail()
         }
       }
     }

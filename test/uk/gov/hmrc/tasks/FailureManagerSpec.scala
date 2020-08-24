@@ -20,10 +20,9 @@ import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.Matchers.{be, convertToAnyShouldWrapper}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
-import org.scalatestplus.play.PlaySpec
 
 import scala.collection.mutable.ArrayBuffer
 

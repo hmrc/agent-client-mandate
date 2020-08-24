@@ -3,6 +3,7 @@ package controllers
 import com.github.tomakehurst.wiremock.client.WireMock._
 import helpers.IntegrationSpec
 import org.joda.time.DateTime
+import org.scalatest
 import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
@@ -125,7 +126,7 @@ class RelationshipServiceISpec extends IntegrationSpec {
 
         val result: WSResponse = await(
           hitApplicationEndpoint(s"/agent/FAKE-AB123456/mandate/activate/$mandateID")
-            .withHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
+            .withHttpHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
             .post(Json.toJson("""{}"""))
         )
 
@@ -134,6 +135,7 @@ class RelationshipServiceISpec extends IntegrationSpec {
         val fetchedMandate: MandateFetchStatus = await(mandateRepo.repository.fetchMandate(mandateID))
         fetchedMandate match {
           case MandateFetched(fetched) => fetched.currentStatus.status mustBe Status.PendingActivation
+          case _ => scalatest.Assertions.fail()
         }
       }
     }

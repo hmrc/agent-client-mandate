@@ -20,7 +20,7 @@ import com.codahale.metrics.Timer
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
@@ -75,7 +75,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
     "create allocation" in new Setup {
       val enrolment = NewEnrolment(newEnrolment)
       when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(CREATED, None)))
+        thenReturn(Future.successful(HttpResponse(CREATED, "")))
       val result = await(connector.allocateAgent(enrolment, groupID, clientID, agentCode))
       result.status mustBe CREATED
     }
@@ -83,7 +83,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
     "create allocation error code" in new Setup {
       val enrolment = NewEnrolment(newEnrolment)
       when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None)))
+        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
       val result = await(connector.allocateAgent(enrolment, groupID, clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
     }
@@ -110,9 +110,9 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       )
 
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(NO_CONTENT, None)))
+        thenReturn(Future.successful(HttpResponse(NO_CONTENT, "")))
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
+        .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe NO_CONTENT
@@ -139,9 +139,9 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       )
 
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None)))
+        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
       when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse))))
+        .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe INTERNAL_SERVER_ERROR
@@ -169,7 +169,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
         )
         when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, Some(successResponse)) ))
+          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString) ))
         val response = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (agentGroupID)
       }
@@ -177,7 +177,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       "return an exception when unable to return the agent groupID" in new Setup {
         intercept[RuntimeException] {
           when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
-            .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, None)))
+            .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
           val result = await(connector.getGroupsWithEnrolment("agentRefNum"))
           val response = the[RuntimeException] thrownBy result
           response.getMessage must include("Error retrieving agent group ID")

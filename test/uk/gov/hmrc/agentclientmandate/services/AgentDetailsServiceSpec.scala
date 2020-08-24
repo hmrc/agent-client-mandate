@@ -22,7 +22,7 @@ import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.test.Helpers._
@@ -101,7 +101,6 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
         Future.successful(successResponseJsonETMP)
       }
 
-      implicit val hc = new HeaderCarrier()
       val result = await(TestAgentDetailsService.getAgentDetails)
       result.organisation.map(_.organisationName) must be(None)
     }
@@ -136,7 +135,6 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
         Future.successful(successResponseJsonETMP)
       }
 
-      implicit val hc: HeaderCarrier = HeaderCarrier()
       val result: AgentDetails = await(TestAgentDetailsService.getAgentDetails)
       result.organisation.map(_.organisationName) must be(Some(companyName))
     }

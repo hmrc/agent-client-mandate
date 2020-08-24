@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.config
 
-import play.api.inject.{Binding, Module}
+import play.api.inject.{Binding, Module, bind => playBind}
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.agentclientmandate.connectors._
 import uk.gov.hmrc.agentclientmandate.controllers.auth.{AgentDelegationForAtedController, DefaultAgentDelegationForAtedController}
@@ -27,7 +27,6 @@ import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.http.{DefaultHttpClient, HttpClient}
-import play.api.inject.{bind => playBind}
 
 class ServiceBindings extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
