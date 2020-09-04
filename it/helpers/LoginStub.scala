@@ -21,7 +21,6 @@ import java.util.UUID
 import play.api.Application
 import play.api.mvc.{DefaultCookieHeaderEncoding, DefaultSessionCookieBaker}
 import uk.gov.hmrc.auth.core.retrieve.{LegacyCredentials, SimpleRetrieval}
-import uk.gov.hmrc.http.SessionKeys
 
 trait LoginStub {
 
@@ -36,9 +35,9 @@ trait LoginStub {
     val rollbackTimestamp = (timeStamp - timeStampRollback).toString
 
     Map(
-      SessionKeys.sessionId -> SessionId,
+      "sessionId" -> SessionId,
       SimpleRetrieval("authProviderId", LegacyCredentials.reads).toString -> "GGW",
-      SessionKeys.lastRequestTimestamp -> rollbackTimestamp
+      "ts" -> rollbackTimestamp
     ) ++ additionalData
   }
 
