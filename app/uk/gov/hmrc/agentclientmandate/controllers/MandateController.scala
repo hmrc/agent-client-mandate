@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate._
@@ -25,6 +24,7 @@ import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
+import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -57,7 +57,7 @@ class MandateClientController @Inject()(val createService: MandateCreateService,
   val userType = "client"
 }
 
-trait MandateController extends BackendController with Auditable with AuthFunctionality with Logging {
+trait MandateController extends BackendController with Auditable with AuthFunctionality {
 
   def createService: MandateCreateService
   def relationshipService: RelationshipService
@@ -77,12 +77,12 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
           } recover {
             case e =>
-              logger.error(s"[MandateController][create] Error trying to create mandate - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+              logError(s"[MandateController][create] Error trying to create mandate - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
               NotFound
           }
         }
       case None =>
-        logger.warn("Could not parse request to create mandate")
+        logWarn("Could not parse request to create mandate")
         Future.successful(BadRequest)
     }
   }
@@ -91,7 +91,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
     fetchService.fetchClientMandate(mandateId).map {
       case MandateFetched(x)  => Ok(Json.toJson(x))
       case MandateNotFound    =>
-        logger.warn("Could not find mandate: " + mandateId)
+        logWarn("Could not find mandate: " + mandateId)
         NotFound
       case _ => throw new Exception("Unknown mandate status")
     }
@@ -113,7 +113,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
           case mandateList => Ok(Json.toJson(mandateList))
         } recover {
           case e =>
-            logger.error(s"[MandateController][fetchAll] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+            logError(s"[MandateController][fetchAll] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
             NotFound
         }
       }
@@ -131,24 +131,24 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
               doAudit("approved", "", m)
               Ok(Json.toJson(m))
             case MandateUpdateError =>
-              logger.warn("Could not approve mandate to activate: " + newMandate.id)
+              logWarn("Could not approve mandate to activate: " + newMandate.id)
               InternalServerError
             case _ => throw new Exception("Unknown mandate status")
           } recover {
             case e =>
-              logger.error(s"[MandateController][approve] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+              logError(s"[MandateController][approve] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
               NotFound
           }
         }
 
       case None =>
-        logger.warn("Could not parse request to approve mandate")
+        logWarn("Could not parse request to approve mandate")
         Future.successful(BadRequest)
     }
   }
 
   def activate(agentCode: String, mandateId: String): Action[AnyContent] = Action.async { implicit request =>
-    logger.warn("Attempting to activate mandate:" + mandateId)
+    logWarn("Attempting to activate mandate:" + mandateId)
 
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
@@ -158,19 +158,19 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             relationshipService.createAgentClientRelationship(x, agentCode)
             Future.successful(Ok)
           case MandateUpdateError =>
-            logger.warn("Could not find mandate to activate after fetching: " + mandateId)
+            logWarn("Could not find mandate to activate after fetching: " + mandateId)
             Future.successful(NotFound)
           case _ => throw new Exception("Unknown mandate status")
           } recover {
             case e =>
-              logger.error(s"[MandateController][activate] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+              logError(s"[MandateController][activate] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
               NotFound
           }
         }
       case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Approved =>
         throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be activated")
       case MandateNotFound =>
-        logger.warn("Could not find mandate to activate: " + mandateId)
+        logWarn("Could not find mandate to activate: " + mandateId)
         Future.successful(NotFound)
       case _ => throw new Exception("Unknown mandate status")
     }
@@ -191,7 +191,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             relationshipService.breakAgentClientRelationship(x, agentCode, userType)
             Future.successful(Ok)
           case MandateUpdateError => {
-            logger.warn("Could not find mandate to remove after fetching: " + mandate.id)
+            logWarn("Could not find mandate to remove after fetching: " + mandate.id)
             Future.successful(NotFound)
           }
           case _ => throw new Exception("Unknown mandate status")
@@ -204,7 +204,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             doAudit("removed", "", x)
             Future.successful(Ok)
           case MandateUpdateError => {
-            logger.warn("Could not find mandate to remove after fetching: " + mandate.id)
+            logWarn("Could not find mandate to remove after fetching: " + mandate.id)
             Future.successful(NotFound)
           }
           case _ => throw new Exception("Unknown mandate status")
@@ -215,7 +215,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             doAudit("removed", "", x)
             Future.successful(Ok)
           case MandateUpdateError => {
-            logger.warn("Could not find mandate to remove after fetching: " + mandate.id)
+            logWarn("Could not find mandate to remove after fetching: " + mandate.id)
             Future.successful(NotFound)
           }
           case _ => throw new Exception("Unknown mandate status")
@@ -223,13 +223,13 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
       case MandateFetched(mandate) =>
         throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be removed")
       case MandateNotFound => {
-        logger.warn("Could not find mandate to remove: " + mandateId)
+        logWarn("Could not find mandate to remove: " + mandateId)
         Future.successful(NotFound)
       }
       case _ => throw new Exception("Unknown mandate status")
     } recover {
       case e =>
-        logger.error(s"[MandateController][remove] Recover Error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+        logError(s"[MandateController][remove] Recover Error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
         NotFound
     }
     }
@@ -250,12 +250,12 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
             case _ => throw new Exception("Unknown update mandate status")
           } recover {
             case e =>
-              logger.error(s"[MandateController][agentRejectsClient] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+              logError(s"[MandateController][agentRejectsClient] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
               NotFound
           }
         }
       case MandateNotFound =>
-        logger.warn("Could not find mandate for agent rejecting client: " + mandateId)
+        logWarn("Could not find mandate for agent rejecting client: " + mandateId)
         Future.successful(NotFound)
 
     }
@@ -267,7 +267,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
         Ok(Json.toJson(agentDetails))
       } recover {
         case e =>
-          logger.error(s"[MandateController][getAgentDetails] No AgentBusinessUtr found - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+          logError(s"[MandateController][getAgentDetails] No AgentBusinessUtr found - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
           NotFound
       }
     }
@@ -278,7 +278,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
       authRetrieval{ implicit ar =>
         createService.createMandateForNonUKClient(ac, nonUKClientDto) map { _ => Created } recover {
           case e =>
-            logger.error(s"[MandateController][createRelationship] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+            logError(s"[MandateController][createRelationship] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
             NotFound
         }
       }
@@ -294,7 +294,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
           case _ => throw new Exception("Unknown update mandate status")
         } recover {
           case e =>
-            logger.error(s"[MandateController][editMandate] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+            logError(s"[MandateController][editMandate] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
             NotFound
         }
       }
@@ -317,7 +317,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
           case _ => throw new Exception("Unknown update mandate status")
         }
       case _ =>
-        logger.warn("Could not find agent email address")
+        logWarn("Could not find agent email address")
         Future.successful(BadRequest)
     }
   }
@@ -331,7 +331,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
           case _ => throw new Exception("Unknown update mandate status")
         }
       case _ =>
-        logger.warn("Could not find client email address")
+        logWarn("Could not find client email address")
         Future.successful(BadRequest)
     }
   }
@@ -343,17 +343,17 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
           updateService.updateAgentCredId(x).map {
             case MandateUpdatedCredId => Ok
             case MandateUpdateError =>
-              logger.warn("Error updating cred id")
+              logWarn("Error updating cred id")
               InternalServerError
             case _ => throw new Exception("Unknown update mandate status")
           }
         } recover {
           case e =>
-            logger.error(s"[MandateController][updateAgentCredId] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+            logError(s"[MandateController][updateAgentCredId] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
             NotFound
         }
       case _ =>
-        logger.warn("Could not find cred id")
+        logWarn("Could not find cred id")
         Future.successful(BadRequest)
     }
   }
@@ -370,7 +370,7 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
       authRetrieval { implicit ar =>
         createService.updateMandateForNonUKClient(ac, oldMandate) map { _ => Created } recover {
           case e =>
-            logger.error(s"[MandateController][updateRelationship] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+            logError(s"[MandateController][updateRelationship] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
             NotFound
         }
       }

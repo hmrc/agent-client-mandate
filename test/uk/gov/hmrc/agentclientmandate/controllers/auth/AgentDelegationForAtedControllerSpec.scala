@@ -57,6 +57,13 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with MockitoSugar wi
       }
     }
 
+    "return not found" when {
+      "Runtime Exception is thrown" in {
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.failed(new RuntimeException("some error")))
+        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
+        status(result) must be(NOT_FOUND)
+      }
+    }
   }
 
   val agentCode: AgentCode = AgentCode("XYZ")

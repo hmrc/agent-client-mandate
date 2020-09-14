@@ -26,6 +26,7 @@ import reactivemongo.bson.{BSONArray, BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -46,6 +47,7 @@ case object MandateUpdatedCredId extends MandateUpdate
 sealed trait MandateFetchStatus
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
 case object MandateNotFound extends MandateFetchStatus
+case object MandateException extends MandateFetchStatus
 
 sealed trait MandateRemove
 case object MandateRemoved extends MandateRemove
@@ -145,7 +147,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => logger.warn("Failed to update mandate", e)
+      case e => logWarn("Failed to update mandate", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -245,7 +247,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
           x.map { _.id }
         }
       case Failure(f) =>
-        logger.warn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
+        logWarn(s"[MandateRepository][findMandatesMissingAgentEmail] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
   }
@@ -265,7 +267,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => logger.warn("Failed to update agent email", e)
+      case e => logWarn("Failed to update agent email", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -285,7 +287,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => logger.warn("Failed to update client email", e)
+      case e => logWarn("Failed to update client email", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -305,7 +307,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateUpdateError
       }
     }.recover {
-      case e => logger.warn("Failed to update agent cred id", e)
+      case e => logWarn("Failed to update agent cred id", e)
         timerContext.stop()
         MandateUpdateError
     }
@@ -347,7 +349,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
           x.map { _.clientDisplayName }
         }
       case Failure(f) =>
-        logger.warn(s"[MandateRepository][getClientCancelledMandates] failed: ${f.getMessage}")
+        logWarn(s"[MandateRepository][getClientCancelledMandates] failed: ${f.getMessage}")
         Future.successful(Nil)
     }
   }
@@ -361,7 +363,7 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
         MandateRemoveError
       }
     }.recover {
-      case e => logger.warn("Failed to delete mandate", e)
+      case e => logWarn("Failed to delete mandate", e)
         MandateRemoveError
     }
   }

@@ -17,14 +17,14 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import javax.inject.Inject
-import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.logging.Authorization
+import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
@@ -34,13 +34,13 @@ import scala.concurrent.Future
 class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
                                      val auditConnector: AuditConnector,
                                      val servicesConfig: ServicesConfig,
-                                     val http: HttpClient) extends EtmpConnector with Logging {
+                                     val http: HttpClient) extends EtmpConnector {
   val urlHeaderEnvironment: String = servicesConfig.getConfString("etmp-hod.environment", "")
   val urlHeaderAuthorization: String = s"Bearer ${servicesConfig.getConfString("etmp-hod.authorization-token", "")}"
   val etmpUrl: String = servicesConfig.baseUrl("etmp-hod")
 }
 
-trait EtmpConnector extends RawResponseReads with Auditable with Logging {
+trait EtmpConnector extends RawResponseReads with Auditable {
 
   val etmpUrl: String
 
@@ -63,7 +63,7 @@ trait EtmpConnector extends RawResponseReads with Auditable with Logging {
           metrics.incrementSuccessCounter(MetricsEnum.MaintainAtedRelationship)
           response
         case _ =>
-          logger.warn("maintainAtedRelationship failed")
+          logWarn("maintainAtedRelationship failed")
           metrics.incrementFailedCounter(MetricsEnum.MaintainAtedRelationship)
           doFailedAudit("maintainRelationshipFailed", jsonData.toString, response.body)
           response
@@ -94,7 +94,7 @@ trait EtmpConnector extends RawResponseReads with Auditable with Logging {
       case "safeid" => getDetailsFromEtmp(s"$etmpUrl/registration/details?safeid=$identifier")
       case "utr" => getDetailsFromEtmp(s"$etmpUrl/registration/details?utr=$identifier")
       case unknownIdentifier =>
-        logger.warn(s"[EtmpConnector][getDetails] - unexpected identifier type supplied of $unknownIdentifier")
+        logWarn(s"[EtmpConnector][getDetails] - unexpected identifier type supplied of $unknownIdentifier")
         throw new RuntimeException(s"Unexpected identifier type supplied - $unknownIdentifier")
     }
   }
