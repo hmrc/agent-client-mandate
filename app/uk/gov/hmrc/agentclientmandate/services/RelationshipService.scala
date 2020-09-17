@@ -64,7 +64,6 @@ trait RelationshipService extends AuthorisedFunctions with Logging {
           "mandateId" -> mandate.id,
           "credId" -> credId,
           "groupId" -> groupId,
-          "token" -> hc.token.get.value,
           "authorization" -> hc.authorization.get.value
         ), ActivationTaskMessage(activationTaskService, serviceMetrics))
         TaskController.execute(task)
@@ -92,7 +91,6 @@ trait RelationshipService extends AuthorisedFunctions with Logging {
           "mandateId" -> mandate.id,
           "credId" -> credId,
           "groupId" -> groupId,
-          "token" -> hc.token.get.value,
           "authorization" -> hc.authorization.get.value,
           "userType" -> userType
         ), DeActivationTaskMessage(deactivationTaskService, serviceMetrics))

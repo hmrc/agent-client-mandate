@@ -28,7 +28,7 @@ import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpda
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
 import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.http.{HeaderCarrier, Token, UserId}
+import uk.gov.hmrc.http.{HeaderCarrier, UserId}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks._
 import utils.ScheduledService
@@ -63,7 +63,6 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
 
   private def createHeaderCarrier(signal: Signal): HeaderCarrier = {
     HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))),
-      token = Some(Token(signal.args.getOrElse("token", "dummy token"))),
       userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
   }
 

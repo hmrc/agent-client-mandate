@@ -28,7 +28,7 @@ import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpda
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
 import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.http.{HeaderCarrier, Token, UserId}
+import uk.gov.hmrc.http.{HeaderCarrier, UserId}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks._
 import utils.ScheduledService
@@ -51,10 +51,9 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
 
   override def execute(signal: Signal): Try[Signal] = {
     val auth: String = signal.args.getOrElse("authorization", "dummy auth")
-    val token: String = signal.args.getOrElse("token", "dummy token")
     val credId = signal.args.getOrElse("credId", "your-dummy-id")
 
-    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(auth)), token = Some(Token(token)), userId = Some(UserId(credId)))
+    implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(auth)), userId = Some(UserId(credId)))
 
     signal match {
       case Start(args)                          => start(args)
