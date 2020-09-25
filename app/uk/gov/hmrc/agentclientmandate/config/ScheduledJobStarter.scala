@@ -19,9 +19,10 @@ package uk.gov.hmrc.agentclientmandate.config
 import akka.actor.{Cancellable, Scheduler}
 import javax.inject.Inject
 import org.apache.commons.lang3.time.StopWatch
+import play.api.Application
 import play.api.inject.ApplicationLifecycle
-import play.api.{Application, Logging}
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
+import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logInfo, logWarn}
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -47,21 +48,21 @@ class DefaultScheduledJobStarter @Inject()(val app: Application,
     scheduler(app).schedule(job.initialDelay, job.interval) {
       val stopWatch = new StopWatch
       stopWatch.start()
-      logger.info(s"Executing job ${job.name}")
+      logInfo(s"Executing job ${job.name}")
 
       job.execute.onComplete {
         case Success(job.Result(message)) =>
           stopWatch.stop()
-          logger.info(s"Completed job ${job.name} in $stopWatch: $message")
+          logInfo(s"Completed job ${job.name} in $stopWatch: $message")
         case Failure(throwable) =>
           stopWatch.stop()
-          logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
+          logError(s"Exception running job ${job.name} after $stopWatch", throwable)
       }
     }
   }
 }
 
-trait ScheduledJobStarter extends Logging {
+trait ScheduledJobStarter {
   val scheduledJobs: Seq[ScheduledJob]
   val app: Application
   val applicationLifecycle: ApplicationLifecycle
@@ -70,17 +71,17 @@ trait ScheduledJobStarter extends Logging {
   private[config] def scheduler(app: Application): Scheduler = app.actorSystem.scheduler
 
   applicationLifecycle.addStopHook { () =>
-    logger.info(s"Cancelling all scheduled jobs.")
+    logInfo(s"Cancelling all scheduled jobs.")
 
     Future {
       cancellables.foreach(_.cancel())
       scheduledJobs.foreach { job =>
-        logger.info(s"Checking if job ${job.configKey} is running")
+        logInfo(s"Checking if job ${job.configKey} is running")
         while (Await.result(job.isRunning, 5.seconds)) {
-          logger.warn(s"Waiting for job ${job.configKey} to finish")
+          logWarn(s"Waiting for job ${job.configKey} to finish")
           Thread.sleep(1000)
         }
-        logger.warn(s"Job ${job.configKey} is finished")
+        logWarn(s"Job ${job.configKey} is finished")
       }
     }
   }

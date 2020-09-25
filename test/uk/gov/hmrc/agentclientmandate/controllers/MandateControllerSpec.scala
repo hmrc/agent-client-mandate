@@ -274,6 +274,12 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         status(result) must be(NOT_FOUND)
       }
 
+      "throw exception when no mandate is passed" in {
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateException)
+        val thrown = the[Exception] thrownBy await(TestMandateController.fetch(agentCode, mandateId).apply(FakeRequest()))
+        thrown.getMessage must include("Unknown mandate status")
+      }
+
       "mandate found when fetching by client and valid clientId" in {
         when(fetchServiceMock.fetchClientMandate(any(), any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest())
@@ -286,6 +292,12 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
         val result = TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
+      }
+
+      "throw exception when fetching by client without a mandate" in {
+        when(fetchServiceMock.fetchClientMandate(any(), any())) thenReturn Future.successful(MandateException)
+        val thrown = the[Exception] thrownBy await(TestMandateController.fetchByClient(orgId, clientId, service).apply(FakeRequest()))
+        thrown.getMessage must include("Unknown mandate status")
       }
     }
 
