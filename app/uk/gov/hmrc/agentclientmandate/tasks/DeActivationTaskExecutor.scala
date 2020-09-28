@@ -134,6 +134,8 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
       case MandateNotFound =>
         logWarn(s"[DeActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
         Failure(new Exception("Could not find mandate to activate"))
+      case MandateException =>
+        throw new Exception("Unknown update result")
     }
   }
 
