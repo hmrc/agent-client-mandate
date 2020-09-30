@@ -233,7 +233,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       }
 
       "return None when group ID is not found" in new Setup {
-        val agentGroupID = Some("FF5E2869-C291-446C-826F-8A8CF6B8D631")
         val successResponse = Json.parse(
           s"""
              |{

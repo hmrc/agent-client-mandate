@@ -44,8 +44,8 @@ class DefaultScheduledJobStarter @Inject()(val app: Application,
     override def initialDelay: FiniteDuration = 0 seconds
   })
 
-  cancellables = scheduledJobs.map { job =>
-    scheduler(app).schedule(job.initialDelay, job.interval) {
+  class RunnableTask(job: ScheduledJob) extends Runnable {
+    override def run(): Unit = {
       val stopWatch = new StopWatch
       stopWatch.start()
       logInfo(s"Executing job ${job.name}")
@@ -59,6 +59,10 @@ class DefaultScheduledJobStarter @Inject()(val app: Application,
           logError(s"Exception running job ${job.name} after $stopWatch", throwable)
       }
     }
+  }
+
+  cancellables = scheduledJobs.map { job =>
+    scheduler(app).scheduleWithFixedDelay(job.initialDelay, job.interval)(new RunnableTask(job))
   }
 }
 

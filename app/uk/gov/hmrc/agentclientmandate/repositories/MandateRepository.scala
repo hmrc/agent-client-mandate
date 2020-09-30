@@ -47,7 +47,6 @@ case object MandateUpdatedCredId extends MandateUpdate
 sealed trait MandateFetchStatus
 case class MandateFetched(mandate: Mandate) extends MandateFetchStatus
 case object MandateNotFound extends MandateFetchStatus
-case object MandateException extends MandateFetchStatus
 
 sealed trait MandateRemove
 case object MandateRemoved extends MandateRemove
