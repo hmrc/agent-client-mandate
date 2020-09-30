@@ -257,7 +257,6 @@ trait MandateController extends BackendController with Auditable with AuthFuncti
       case MandateNotFound =>
         logWarn("Could not find mandate for agent rejecting client: " + mandateId)
         Future.successful(NotFound)
-
     }
   }
 
