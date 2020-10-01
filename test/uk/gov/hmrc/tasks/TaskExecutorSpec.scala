@@ -82,10 +82,10 @@ class TaskExecutorSpec extends TestKit(ActorSystem("test"))
       expectMsg(TaskCommand(StageComplete(Next("1", args1), phaseRollback), message))
     }
 
-    "send back Finish for task completion" in {
-      executorRef ! TaskCommand(StageComplete(Next("finish", args1), phaseCommit), message)
-      expectMsg(TaskCommand(Complete(args1, phaseCommit), message))
-    }
+//    "send back Finish for task completion" in {
+//      executorRef ! TaskCommand(StageComplete(Next("finish", args1), phaseCommit), message)
+//      expectMsg(TaskCommand(Complete(args1, phaseCommit), message))
+//    }
   }
 
 }
