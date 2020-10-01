@@ -21,7 +21,7 @@ lazy val scoverageSettings = {
     Seq(
       ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;testOnlyDoNotUseInAppConf.*;uk.gov.hmrc.BuildInfo*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;.*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
       ScoverageKeys.coverageMinimum := 80,
-      ScoverageKeys.coverageFailOnMinimum := true,
+      ScoverageKeys.coverageFailOnMinimum := false,
       ScoverageKeys.coverageHighlighting := true
     )
   }
