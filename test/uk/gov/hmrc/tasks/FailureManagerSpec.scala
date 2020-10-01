@@ -36,7 +36,7 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
   val phaseRollback = Phase.Rollback
 
   override def afterAll {
-    TestKit.shutdownActorSystem(system)
+//    TestKit.shutdownActorSystem(system)
   }
 
   val message = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)

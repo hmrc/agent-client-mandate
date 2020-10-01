@@ -98,7 +98,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
   }
 
   override def afterAll {
-    TestKit.shutdownActorSystem(system)
+//    TestKit.shutdownActorSystem(system)
   }
 
   object ActivationTaskExecutorMock {
