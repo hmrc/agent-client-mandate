@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import java.time.LocalDate
 
 import javax.inject.Inject
+import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
@@ -30,7 +31,7 @@ import scala.concurrent.Future
 class DefaultAgentDetailsService @Inject()(val etmpConnector: EtmpConnector,
                                            val mandateFetchService: MandateFetchService) extends AgentDetailsService
 
-trait AgentDetailsService {
+trait AgentDetailsService extends Logging {
 
   def etmpConnector: EtmpConnector
   def mandateFetchService: MandateFetchService

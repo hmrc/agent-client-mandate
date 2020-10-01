@@ -19,10 +19,9 @@ package uk.gov.hmrc.agentclientmandate.config
 import akka.actor.{Cancellable, Scheduler}
 import javax.inject.Inject
 import org.apache.commons.lang3.time.StopWatch
-import play.api.Application
 import play.api.inject.ApplicationLifecycle
+import play.api.{Application, Logging}
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
-import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logInfo, logWarn}
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -44,29 +43,25 @@ class DefaultScheduledJobStarter @Inject()(val app: Application,
     override def initialDelay: FiniteDuration = 0 seconds
   })
 
-  class RunnableTask(job: ScheduledJob) extends Runnable {
-    override def run(): Unit = {
+  cancellables = scheduledJobs.map { job =>
+    scheduler(app).schedule(job.initialDelay, job.interval) {
       val stopWatch = new StopWatch
       stopWatch.start()
-      logInfo(s"Executing job ${job.name}")
+      logger.info(s"Executing job ${job.name}")
 
       job.execute.onComplete {
         case Success(job.Result(message)) =>
           stopWatch.stop()
-          logInfo(s"Completed job ${job.name} in $stopWatch: $message")
+          logger.info(s"Completed job ${job.name} in $stopWatch: $message")
         case Failure(throwable) =>
           stopWatch.stop()
-          logError(s"Exception running job ${job.name} after $stopWatch", throwable)
+          logger.error(s"Exception running job ${job.name} after $stopWatch", throwable)
       }
     }
   }
-
-  cancellables = scheduledJobs.map { job =>
-    scheduler(app).scheduleWithFixedDelay(job.initialDelay, job.interval)(new RunnableTask(job))
-  }
 }
 
-trait ScheduledJobStarter {
+trait ScheduledJobStarter extends Logging {
   val scheduledJobs: Seq[ScheduledJob]
   val app: Application
   val applicationLifecycle: ApplicationLifecycle
@@ -75,17 +70,17 @@ trait ScheduledJobStarter {
   private[config] def scheduler(app: Application): Scheduler = app.actorSystem.scheduler
 
   applicationLifecycle.addStopHook { () =>
-    logInfo(s"Cancelling all scheduled jobs.")
+    logger.info(s"Cancelling all scheduled jobs.")
 
     Future {
       cancellables.foreach(_.cancel())
       scheduledJobs.foreach { job =>
-        logInfo(s"Checking if job ${job.configKey} is running")
+        logger.info(s"Checking if job ${job.configKey} is running")
         while (Await.result(job.isRunning, 5.seconds)) {
-          logWarn(s"Waiting for job ${job.configKey} to finish")
+          logger.warn(s"Waiting for job ${job.configKey} to finish")
           Thread.sleep(1000)
         }
-        logWarn(s"Job ${job.configKey} is finished")
+        logger.warn(s"Job ${job.configKey} is finished")
       }
     }
   }

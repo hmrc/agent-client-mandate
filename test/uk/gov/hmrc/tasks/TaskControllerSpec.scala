@@ -32,7 +32,7 @@ class TaskControllerSpec extends TestKit(ActorSystem("test"))
   with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   override def afterAll {
-//    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system)
   }
 
   val mockActivationTaskService: ActivationTaskService = mock[ActivationTaskService]

@@ -19,17 +19,17 @@ package uk.gov.hmrc.agentclientmandate.services
 
 
 import javax.inject.Inject
+import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailStatus}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logError
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
 class DefaultNotificationEmailService @Inject()(val emailConnector: EmailConnector) extends NotificationEmailService
 
-trait NotificationEmailService {
+trait NotificationEmailService extends Logging {
   def emailConnector: EmailConnector
 
   def sendMail(emailString: String, action: Status, userType: Option[String], recipient: Option[String],
@@ -45,7 +45,7 @@ trait NotificationEmailService {
         case (Status.Cancelled, Some("agent"), _, Some("client")) => "agent_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved), Some("agent")) => "client_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.PendingCancellation), Some("agent")) => "client_cancels_active_mandate"
-        case _ => logError("Relevant email does not exist for supplied params"); "NO_TEMPLATE"
+        case _ => logger.error("Relevant email does not exist for supplied params"); "NO_TEMPLATE"
       }
     }
 
