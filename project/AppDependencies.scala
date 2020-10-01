@@ -7,7 +7,10 @@ object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-27",
-    "com.typesafe.akka" %% "akka-actor" % "2.5.23" force(),
+    "com.typesafe.akka" %% "akka-actor" % "2.6.9",
+    "com.typesafe.akka" %% "akka-protobuf" % "2.6.9",
+    "com.typesafe.akka" %% "akka-stream" % "2.6.9",
+    "com.typesafe.akka" %% "akka-slf4j" % "2.6.9",
     ws,
     "uk.gov.hmrc"%% "bootstrap-backend-play-27"  % "2.25.0",
     "uk.gov.hmrc" %% "domain" % "5.10.0-play-27",
@@ -30,7 +33,7 @@ object AppDependencies {
         "org.pegdown"              % "pegdown"            % "1.6.0"             % scope,
         "com.typesafe.play"       %% "play-test"          % PlayVersion.current % scope,
         "uk.gov.hmrc"             %% "reactivemongo-test" % "4.21.0-play-27"    % scope,
-        "com.typesafe.akka"       %% "akka-testkit"       % "2.5.23"            % scope,
+        "com.typesafe.akka"       %% "akka-testkit"       % "2.6.9"             % scope,
         "org.mockito"              % "mockito-core"       % "2.24.5"            % scope,
         "org.scalacheck"          %% "scalacheck"         % "1.14.3"            % scope,
         "com.github.tomakehurst"   % "wiremock-jre8"      % "2.23.2"            % IntegrationTest withSources()
@@ -41,4 +44,3 @@ object AppDependencies {
 
   def apply(): Seq[ModuleID] = compile ++ Test()
 }
-
