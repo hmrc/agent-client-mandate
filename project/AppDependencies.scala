@@ -9,11 +9,11 @@ object AppDependencies {
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-27",
     "com.typesafe.akka" %% "akka-actor" % "2.5.23" force(),
     ws,
-    "uk.gov.hmrc"%% "bootstrap-backend-play-27"  % "2.24.0",
-    "uk.gov.hmrc" %% "domain" % "5.9.0-play-27",
+    "uk.gov.hmrc"%% "bootstrap-backend-play-27"  % "2.25.0",
+    "uk.gov.hmrc" %% "domain" % "5.10.0-play-27",
     "uk.gov.hmrc" %% "mongo-lock" % "6.23.0-play-27",
     "uk.gov.hmrc" %% "play-scheduling-play-27" % "7.10.0",
-    "uk.gov.hmrc" %% "auth-client" % "3.0.0-play-27",
+    "uk.gov.hmrc" %% "auth-client" % "3.2.0-play-27",
     "com.typesafe.play" %% "play-json-joda" % "2.6.14"
   )
 
