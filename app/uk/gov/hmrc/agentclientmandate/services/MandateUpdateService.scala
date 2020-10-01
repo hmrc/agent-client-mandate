@@ -18,13 +18,13 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
 import org.joda.time.DateTime
+import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -40,7 +40,7 @@ class DefaultMandateUpdateService @Inject()(val etmpConnector: EtmpConnector,
   lazy val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
 }
 
-trait MandateUpdateService extends Auditable {
+trait MandateUpdateService extends Auditable with Logging {
   val expiryAfterDays: Int
 
   def mandateRepository: MandateRepository
@@ -67,11 +67,11 @@ trait MandateUpdateService extends Auditable {
                 updateMandate(updatedMandate, Some(Status.Approved))
               }
           case MandateNotFound =>
-            logWarn(s"[MandateUpdateService][approveMandate] - mandate not found")
+            logger.warn(s"[MandateUpdateService][approveMandate] - mandate not found")
             throw new RuntimeException(s"mandate not found for mandate id::${approvedMandate.id}")
         }
       case any =>
-        logWarn(s"[MandateUpdateService][approveMandate] - $any service not supported yet")
+        logger.warn(s"[MandateUpdateService][approveMandate] - $any service not supported yet")
         throw new RuntimeException("currently supported only for ATED")
     }
   }
@@ -109,7 +109,7 @@ trait MandateUpdateService extends Auditable {
           case MandateUpdated(m) =>
             implicit val hc: HeaderCarrier = HeaderCarrier()
             doAudit("expire", "", m)
-          case MandateUpdateError => logWarn("Could not expire mandate")
+          case MandateUpdateError => logger.warn("Could not expire mandate")
           case _ => throw new Exception("Unknown update status")
         }
       }

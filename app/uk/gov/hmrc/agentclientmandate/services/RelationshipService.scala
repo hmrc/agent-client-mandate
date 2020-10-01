@@ -18,10 +18,10 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.inject.Inject
+import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, ActivationTaskService, DeActivationTaskService, DeactivationTaskExecutor}
-import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{credentials, groupIdentifier}
@@ -42,7 +42,7 @@ class DefaultRelationshipService @Inject()(val serviceMetrics: ServiceMetrics,
   val identifiers: Config = ConfigFactory.load("identifiers.properties")
 }
 
-trait RelationshipService extends AuthorisedFunctions {
+trait RelationshipService extends AuthorisedFunctions with Logging {
   val serviceMetrics: ServiceMetrics
   val identifiers: Config
   val activationTaskService: ActivationTaskService
@@ -74,7 +74,7 @@ trait RelationshipService extends AuthorisedFunctions {
   }
 
   def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    logWarn(s"$userType is breaking AgentClientRelationship")
+    logger.warn(s"$userType is breaking AgentClientRelationship")
 
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
@@ -105,7 +105,7 @@ trait RelationshipService extends AuthorisedFunctions {
     authorised().retrieve(credentials and groupIdentifier) {
       case Some(Credentials(ggCredId, _)) ~ Some(groupId) => Future.successful((MandateUtils.validateGroupId(groupId), ggCredId))
       case _ =>
-        logWarn("No details found for agent")
+        logger.warn("No details found for agent")
         throw new RuntimeException("No details found for the agent!")
     }
   }

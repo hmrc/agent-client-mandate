@@ -39,7 +39,7 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
   val phaseCommit = Phase.Commit
 
   override def afterAll {
-//    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(system)
   }
 
   "TaskRouter" must {

@@ -340,16 +340,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         status(result) must be(OK)
       }
 
-      "agent has rejected client but mandate cannot be updated" in {
+      "agent has rejected client and status returned not ok" in {
         when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
-    }
 
-    "return NotFound" when {
-      "agent has rejected client and mandate cannot be found" in {
+      "agent has rejected client and status returned not found" in {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)

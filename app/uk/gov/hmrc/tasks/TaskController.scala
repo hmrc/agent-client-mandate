@@ -45,14 +45,12 @@ trait TaskControllerT {
 
   private var cancellable: Cancellable = _
 
-  class RunnableTask extends Runnable {
-    override def run(): Unit = taskManagers.values.foreach(tm => tm ! Tick)
-  }
-
   protected def startClock(intervalSecs: Int): Unit = {
     implicit val ec: ExecutionContextExecutor = system.dispatcher
     cancellable =
-      system.scheduler.scheduleWithFixedDelay(0 seconds, intervalSecs seconds)(new RunnableTask)
+      system.scheduler.schedule(0 seconds, intervalSecs seconds) {
+        taskManagers.values.foreach(tm => tm ! Tick)
+      }
   }
 
   def shutdown(): Unit = {

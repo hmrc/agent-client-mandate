@@ -65,30 +65,6 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
     reset(mockMandateFetchService)
   }
 
-  val mandateDto: CreateMandateDto = CreateMandateDto(emailGen.sample.get, "ated", "client display name")
-
-  val mandate: Mandate =
-    Mandate(
-      id = "B3671590",
-      createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
-      agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
-      clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
-      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
-      statusHistory = Nil,
-      subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ated")),
-      clientDisplayName = "client display name")
-
-  val mandateUpdated: Mandate =
-    Mandate(
-      id = "B3671590",
-      createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
-      agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
-      clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
-      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
-      statusHistory = Seq(MandateStatus(Status.Cancelled, new DateTime(), "cred-id-113244018119"), MandateStatus(Status.PendingCancellation, new DateTime(), "cred-id-113244018119")),
-      subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
-      clientDisplayName = "client display name")
-
   implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
     enrolments = Set(
       Enrolment(
@@ -438,6 +414,8 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
     }
   }
 
+  val mandateDto = CreateMandateDto(emailGen.sample.get, "ated", "client display name")
+
   def mandate(id: String, statusTime: DateTime): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), nameGen.sample.get, Some(agentCode)),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
@@ -447,6 +425,28 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
     )
+
+  val mandate =
+    Mandate(
+      id = "B3671590",
+      createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
+      agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
+      clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
+      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
+      statusHistory = Nil,
+      subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ated")),
+      clientDisplayName = "client display name")
+
+  val mandateUpdated =
+    Mandate(
+      id = "B3671590",
+      createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
+      agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
+      clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
+      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
+      statusHistory = Seq(MandateStatus(Status.Cancelled, new DateTime(), "cred-id-113244018119"), MandateStatus(Status.PendingCancellation, new DateTime(), "cred-id-113244018119")),
+      subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
+      clientDisplayName = "client display name")
 
   def mandateWithClient(id: String, statusTime: DateTime): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), nameGen.sample.get, Some(agentCode)),
