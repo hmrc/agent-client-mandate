@@ -18,7 +18,6 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 
 import javax.inject.Inject
-import play.api.Logging
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.Auditable
@@ -26,6 +25,7 @@ import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,7 +41,7 @@ class DefaultEmailConnector @Inject()(val auditConnector: AuditConnector,
   val serviceUrl: String = servicesConfig.baseUrl("email")
 }
 
-trait EmailConnector extends RawResponseReads with Auditable with Logging {
+trait EmailConnector extends RawResponseReads with Auditable {
   def sendEmailUri: String
   def serviceUrl: String
   def http: CorePost
@@ -60,7 +60,7 @@ trait EmailConnector extends RawResponseReads with Auditable with Logging {
       response.status match {
         case ACCEPTED => EmailSent
         case _        =>
-          logger.warn("email failed")
+          logWarn("email failed")
           doFailedAudit("emailFailed", jsonData.toString, response.body)
           EmailNotSent
       }
