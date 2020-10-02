@@ -19,9 +19,11 @@ lazy val playSettings: Seq[Setting[_]] = Seq.empty
 lazy val scoverageSettings = {
     import scoverage.ScoverageKeys
     Seq(
-      ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;testOnlyDoNotUseInAppConf.*;uk.gov.hmrc.BuildInfo*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;.*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
+      ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;.*testOnly.*;" +
+        "uk.gov.hmrc.BuildInfo*;.*binders.*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;" +
+        ".*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
       ScoverageKeys.coverageMinimum := 80,
-      ScoverageKeys.coverageFailOnMinimum := false,
+      ScoverageKeys.coverageFailOnMinimum := true,
       ScoverageKeys.coverageHighlighting := true
     )
   }
@@ -29,7 +31,7 @@ lazy val scoverageSettings = {
 val silencerVersion = "1.7.1"
 
 lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins: _*)
+    .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins: _*)
     .settings(playSettings: _*)
     .settings(majorVersion := 1)
     .configs(IntegrationTest)
