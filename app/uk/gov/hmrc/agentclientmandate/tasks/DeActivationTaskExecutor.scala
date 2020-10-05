@@ -90,7 +90,7 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             Failure(new Exception("Tax Enrolment call failed, status: " + resp.status))
         }
       case Failure(ex) =>
-        logWarn(s"[DeActivationTaskExecutor] execption while calling deAllocateAgent :: ${ex.getMessage}")
+        logWarn(s"[DeActivationTaskExecutor] exception while calling deAllocateAgent :: ${ex.getMessage}")
         Failure(new Exception("Tax Enrolment call failed, status: " + ex.getMessage))
 
     }
@@ -104,24 +104,16 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
         updateResult match {
           case MandateUpdated(m) =>
-            val service = m.subscription.service.id
             args("userType") match {
               case "agent" =>
-                val receiverParty = if(whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
-                else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
-                Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Cancelled, userType = Some("agent"), recipient = receiverParty._2,service)) match {
-                  case Success(v) =>
-                    doAudit("emailSent", args("agentCode"), m)
-                  case Failure(reason) =>
-                    doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
-                }
+                handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), args, mandate, Some("agent"))
+                m.clientParty.foreach( client =>
+                  if(client.contactDetails.email != ""){
+                    handleRemoveMandateEmailRequest(client.contactDetails.email, Some("client"), args, mandate, Some("agent"))
+                  }
+                )
               case _ =>
-                val agentEmail = m.agentParty.contactDetails.email
-                Try(emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, Some(args("userType")), Some("agent"), service, Some(mandate.currentStatus.status))) match {
-                  case Success(v) => doAudit("emailSent", args("agentCode"), m)
-                  case Failure(reason) =>
-                    doFailedAudit("emailSentFailed", s"agent email::$agentEmail status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
-                }
+                handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), args, mandate, Some("client"))
             }
             doAudit("removed", args("agentCode"), m)
             Success(Finish)
@@ -135,6 +127,22 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         logWarn(s"[DeActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
         Failure(new Exception("Could not find mandate to activate"))
     }
+  }
+
+  private def handleRemoveMandateEmailRequest(email: String, recipient: Option[String], args: Map[String, String],
+                                              mandate: Mandate, userType: Option[String])(implicit hc: HeaderCarrier): Unit = {
+
+    val service = mandate.subscription.service.id
+    val uniqueAuthNo: Option[String] = if(recipient.contains("client")) Some(mandate.id) else None
+
+    Try(emailNotificationService.sendMail(email, models.Status.Cancelled, userType,
+      recipient, service, uniqueAuthNo = uniqueAuthNo)) match {
+        case Success(_) =>
+          doAudit("emailSent", args("agentCode"), mandate)
+        case Failure(reason) =>
+          doFailedAudit("emailSentFailed", s"receiver email::$email " +
+            s"status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
+      }
   }
 
   override def rollback(signal: Signal): Try[Signal] = {

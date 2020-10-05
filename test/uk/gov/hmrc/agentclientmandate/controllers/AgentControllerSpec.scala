@@ -139,7 +139,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
       "cant find mandate while changing the status to PENDINGACTIVATION" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
-        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 

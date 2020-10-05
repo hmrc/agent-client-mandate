@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.{HttpClient, _}
@@ -61,7 +62,32 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(202,"")))
 
-        val response = connector.sendTemplatedEmail(emailString, templateId, "ATED")
+        val response = connector.sendTemplatedEmail(emailString, templateId, "ATED", None)
+        await(response) must be(EmailSent)
+
+      }
+
+      "a uniqueAuthNumber has been added to the request" in new Setup {
+        implicit val hc: HeaderCarrier = HeaderCarrier()
+        val emailString = emailGen.sample.get
+        val templateId = "agent_removes_mandate"
+
+        val expectedRequestBody: JsValue = Json.obj(
+            "to" -> Json.arr(emailString),
+            "templateId" -> "agent_removes_mandate",
+            "parameters" -> Json.obj(
+               "emailAddress" -> emailString,
+               "service" -> "ATED",
+               "uniqueAuthNo" -> "123456"
+            ),
+            "force" -> true
+        )
+
+        when(mockWSHttp.POST[JsValue, HttpResponse](any(), ArgumentMatchers.eq[JsValue](expectedRequestBody),
+          any())(any(), any(), any(), any()))
+          .thenReturn(Future.successful(HttpResponse(202,"")))
+
+        val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", Some("123456"))
         await(response) must be(EmailSent)
 
       }
@@ -78,7 +104,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(404,"")))
 
-        val response = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED")
+        val response = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None)
         await(response) must be(EmailNotSent)
 
       }
