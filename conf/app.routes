@@ -2,59 +2,74 @@
 
 # Auth call for agent-client relationship
 GET    /ated/agent/:ac/client/:ated                 uk.gov.hmrc.agentclientmandate.controllers.auth.AgentDelegationForAtedController.isAuthorisedForAted(ac: uk.gov.hmrc.domain.AgentCode, ated: uk.gov.hmrc.domain.AtedUtr)
+GET    /ated/agent/client/:ated                     uk.gov.hmrc.agentclientmandate.controllers.auth.AgentDelegationForAtedController.isAuthorisedForAtedNew(ated: uk.gov.hmrc.domain.AtedUtr)
 
 # get agent details
 GET    /agent/:ac/mandate/agentDetails              uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getAgentDetails(ac: String)
+GET    /agent/mandate/agentDetails                  uk.gov.hmrc.agentclientmandate.controllers.AgentController.getAgentDetails()
 
 #create mandate
 POST   /agent/:ac/mandate                           uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.create(ac: String)
+POST   /agent/:ac/mandate                           uk.gov.hmrc.agentclientmandate.controllers.AgentController.create(ac: String)
 
 # fetch mandate
 GET    /agent/:ac/mandate/:mandateId                uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetch(ac: String, mandateId: String)
-
 GET    /org/:org/mandate/:mandateId                 uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetch(org: String, mandateId: String)
+GET    /mandate/:mandateId                          uk.gov.hmrc.agentclientmandate.controllers.MandateControllerNew.fetch(mandateId: String)
 
 # fetch mandate for service
 GET    /agent/:ac/mandate/service/:arn/:service     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.fetchAll(ac: String, arn: String, service: String, credId: Option[String] ?= None, displayName: Option[String] ?= None)
+GET    /agent/mandate/service/:arn/:service         uk.gov.hmrc.agentclientmandate.controllers.AgentController.fetchAll(arn: String, service: String, credId: Option[String] ?= None, displayName: Option[String] ?= None)
 
 # update mandate as client approves it
 POST   /org/:org/mandate/approve                    uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.approve(org: String)
+POST   /org/mandate/approve                         uk.gov.hmrc.agentclientmandate.controllers.ClientController.approve()
 
 # agent activates/approves client
 POST   /agent/:ac/mandate/activate/:mandateId       uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.activate(ac: String, mandateId: String)
+POST   /agent/:ac/mandate/activate/:mandateId       uk.gov.hmrc.agentclientmandate.controllers.AgentController.activate(ac: String, mandateId: String)
 
 # agent rejects client
 POST   /agent/:ac/mandate/rejectClient/:mandateId   uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.agentRejectsClient(ac: String, mandateId: String)
+POST   /agent/:ac/mandate/rejectClient/:mandateId   uk.gov.hmrc.agentclientmandate.controllers.AgentController.agentRejectsClient(ac: String, mandateId: String)
 
-# remove client
+# remove client/agent
 POST   /agent/:ac/mandate/remove/:mandateId         uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.remove(ac: String, mandateId: String)
-
-# remove agent
 POST   /org/:org/mandate/remove/:mandateId          uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.remove(org: String, mandateId: String)
+POST   /mandate/remove/:mandateId                   uk.gov.hmrc.agentclientmandate.controllers.MandateControllerNew.remove(mandateId: String)
 
 # create relationship for non-uk clients by agent
 POST  /agent/:ac/mandate/non-uk                     uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.createRelationship(ac: String)
+POST  /agent/:ac/mandate/non-uk                     uk.gov.hmrc.agentclientmandate.controllers.AgentController.createRelationship(ac: String)
 
 #update an existing non-uk mandate
 POST  /agent/:ac/mandate/non-uk/update              uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateRelationship(ac: String)
+POST  /agent/:ac/mandate/non-uk/update              uk.gov.hmrc.agentclientmandate.controllers.AgentController.updateRelationship(ac: String)
 
 #edit-mandate
 POST   /agent/:ac/mandate/edit                      uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.editMandate(ac: String)
+POST   /agent/:ac/mandate/edit                      uk.gov.hmrc.agentclientmandate.controllers.AgentController.editMandate(ac: String)
 
 # fetch mandate for client
 GET    /org/:org/mandate/:clientId/:service         uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.fetchByClient(org: String, clientId: String, service: String)
+GET    /org/mandate/:clientId/:service              uk.gov.hmrc.agentclientmandate.controllers.ClientController.fetchByClient(clientId: String, service: String)
 
 # check for agents missing email
 GET   /agent/:ac/mandate/isAgentMissingEmail/:arn/:service  uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.isAgentMissingEmail(ac: String, arn:String, service: String)
+GET   /agent/mandate/isAgentMissingEmail/:arn/:service      uk.gov.hmrc.agentclientmandate.controllers.AgentController.isAgentMissingEmail(arn:String, service: String)
 
 # update missing email for agent
 POST   /agent/:ac/mandate/updateAgentEmail/:arn/:service    uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentEmail(ac: String, arn:String, service: String)
+POST   /agent/mandate/updateAgentEmail/:arn/:service        uk.gov.hmrc.agentclientmandate.controllers.AgentController.updateAgentEmail(arn:String, service: String)
 
 # update client email
 POST   /org/:org/mandate/updateClientEmail/:mandateId       uk.gov.hmrc.agentclientmandate.controllers.MandateClientController.updateClientEmail(org: String, mandateId: String)
+POST   /org/mandate/updateClientEmail/:mandateId            uk.gov.hmrc.agentclientmandate.controllers.ClientController.updateClientEmail(mandateId: String)
 
 # update agent credId
 POST   /agent/:ac/mandate/updateAgentCredId            uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.updateAgentCredId(ac: String)
+POST   /agent/mandate/updateAgentCredId                uk.gov.hmrc.agentclientmandate.controllers.AgentController.updateAgentCredId()
 
 # get client friendly names where client cancelled within 28 days
 GET     /agent/:ac/mandate/clientCancelledNames/:arn/:service       uk.gov.hmrc.agentclientmandate.controllers.MandateAgentController.getClientsThatCancelled(ac: String, arn:String, service: String)
+GET     /agent/mandate/clientCancelledNames/:arn/:service           uk.gov.hmrc.agentclientmandate.controllers.AgentController.getClientsThatCancelled(arn:String, service: String)

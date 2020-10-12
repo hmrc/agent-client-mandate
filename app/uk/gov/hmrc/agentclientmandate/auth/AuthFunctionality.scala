@@ -34,6 +34,7 @@ case class AuthRetrieval(enrolments: Set[Enrolment],
     val optionalId = credentials.find(_.providerType == "GovernmentGateway") map { _.providerId }
     optionalId.getOrElse(throw new RuntimeException(s"[AuthRetrieval] No GGCredId found."))
   }
+  def userType: String = if(enrolments.exists(_.key == "HMRC-AGENT-AGENT")) "agent" else "client"
 
   def atedUtr: EnrolmentIdentifier = getEnrolmentId(enrolments.find(_.key == "HMRC-ATED-ORG"), enrolmentId = "ATEDRefNumber")
 
