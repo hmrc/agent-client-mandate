@@ -48,17 +48,4 @@ trait AgentDelegationForAtedController extends BackendController with AuthFuncti
       }
     }
   }
-
-  def isAuthorisedForAtedNew(ated: AtedUtr): Action[AnyContent] = Action.async { implicit request =>
-    authRetrieval{ implicit ar =>
-      agentDetailsService.isAuthorisedForAted(ated) map { isAuthorised =>
-        if (isAuthorised) Ok
-        else Unauthorized
-      } recover {
-        case e: RuntimeException =>
-          logError(s"[AgentDelegationForAtedController] Authorisation Error - $e - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
-          NotFound
-      }
-    }
-  }
 }
