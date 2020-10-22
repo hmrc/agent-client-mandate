@@ -37,7 +37,7 @@ trait IntegrationSpec
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    // await(mandateRepo.repository.collection.drop(failIfNotFound = false))
+    await(mandateRepo.repository.collection.drop(failIfNotFound = false))
     stopWmServer()
   }
 

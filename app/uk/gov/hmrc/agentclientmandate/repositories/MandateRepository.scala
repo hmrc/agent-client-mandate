@@ -353,6 +353,8 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
     }
   }
 
+  // $COVERAGE-OFF$
+
   def removeMandate(mandateId: String): Future[MandateRemove] = {
     val query = BSONDocument("id" -> mandateId)
     collection.delete().one(query).map { writeResult =>
@@ -367,4 +369,5 @@ class MandateMongoRepository (mongo: () => DB, val metrics: ServiceMetrics)
     }
   }
 
+  // $COVERAGE-ON$
 }

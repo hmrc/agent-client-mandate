@@ -110,8 +110,6 @@ trait EtmpConnector extends RawResponseReads with Auditable {
           metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
           response.json
         case _ =>
-          logInfo("response" + response)
-          logInfo("Getting something" + getUrl)
           metrics.incrementFailedCounter(MetricsEnum.AtedSubscriptionDetails)
           doFailedAudit("getAtedSubscriptionDetailsFailed", getUrl, response.body)
           throw new RuntimeException("Error in getting ATED subscription details from ETMP")

@@ -26,7 +26,7 @@ object Stubs {
 
   def stubGetAuth: StubMapping = {
 
-    stubFor(get(urlMatching("/auth/authority"))
+    stubFor(get(urlMatching("/auth/authorise"))
       .willReturn(
         aResponse()
           .withStatus(200)
