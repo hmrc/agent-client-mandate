@@ -109,7 +109,8 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             val receiverParty = if (whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
             else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
             val service = m.subscription.service.id
-            Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active, userType = Some("agent"), recipient = receiverParty._2,service = service)) match {
+            Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active,
+              userType = Some("agent"), recipient = receiverParty._2,service = service)) match {
               case Success(v) =>
                 doAudit("emailSent", args("agentCode"), m)
               case Failure(reason) =>

@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-
 import javax.inject.Inject
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
@@ -46,11 +45,15 @@ trait EmailConnector extends RawResponseReads with Auditable {
   def serviceUrl: String
   def http: CorePost
 
-  def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
-    val params = Map(
-      "emailAddress" -> emailString,
-      "service" -> serviceString
-    )
+  def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String,
+                         uniqueAuthNo: Option[String])(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+
+    val defaultParams = Map("emailAddress" -> emailString, "service" -> serviceString)
+
+    val params = templateName match {
+        case "agent_removes_mandate" => defaultParams + ("uniqueAuthNo" -> uniqueAuthNo.getOrElse(""))
+        case _ => defaultParams
+      }
 
     val sendEmailReq = SendEmailRequest(List(emailString), templateName, params, force = true)
     val postUrl = s"$serviceUrl/$sendEmailUri"
