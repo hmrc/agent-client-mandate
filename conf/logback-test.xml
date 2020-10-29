@@ -49,7 +49,7 @@
     <logger name="play.core.netty" level="OFF"/>
     <logger name="reactivemongo" level="OFF"/>
 
-    <logger name="uk.gov" level="OFF"/>
+    <logger name="uk.gov" level="INFO"/>
 
     <logger name="application" level="INFO"/>
 
