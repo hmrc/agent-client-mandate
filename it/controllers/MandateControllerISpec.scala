@@ -6,9 +6,9 @@ import org.scalatest
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.agentclientmandate.models
-import uk.gov.hmrc.agentclientmandate.models.Status.{Approved, Cancelled, New, PendingCancellation}
+import uk.gov.hmrc.agentclientmandate.models.Status.{Cancelled, New}
 import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateRemoved}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
 import utils.Stubs._
 
 class MandateControllerISpec extends IntegrationSpec {
