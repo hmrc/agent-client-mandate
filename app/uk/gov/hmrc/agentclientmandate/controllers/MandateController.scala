@@ -61,10 +61,6 @@ class MandateController @Inject()(val createService: MandateCreateService,
           updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
             case MandateUpdated(x) =>
               val service = x.subscription.service.id
-              val agentEmail = x.agentParty.contactDetails.email
-              val clientEmail = x.clientParty.map(_.contactDetails.email).getOrElse("")
-              emailNotificationService.sendMail(agentEmail, models.Status.Cancelled, service = service, userType = Some(ar.userType), recipient = Some("agent"), prevStatus = Some(models.Status.Approved))
-              emailNotificationService.sendMail(clientEmail, models.Status.Cancelled, service = service, userType = Some(ar.userType), recipient = Some("client"), prevStatus = Some(models.Status.Approved))
               relationshipService.breakAgentClientRelationship(x, agentCode, ar.userType)
               Future.successful(Ok)
             case MandateUpdateError => {
