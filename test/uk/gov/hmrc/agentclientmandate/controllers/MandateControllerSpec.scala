@@ -23,7 +23,6 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
@@ -42,7 +41,7 @@ import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach  with GuiceOneServerPerSuite {
+class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   "MandateController" should {
     "remove the mandate" when {
