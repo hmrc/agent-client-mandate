@@ -61,7 +61,8 @@ class ClientController @Inject()(val createService: MandateCreateService,
             case MandateUpdated(m) =>
               val agentEmail = m.agentParty.contactDetails.email
               val service = m.subscription.service.id
-              emailNotificationService.sendMail(agentEmail, models.Status.Approved, service = service, userType = Some("client"), recipient = Some("agent"))
+              emailNotificationService.sendMail(agentEmail, models.Status.Approved, service = service,
+                userType = Some("client"), recipient = Some("agent"), recipientName = m.agentParty.name)
               doAudit("approved", "", m)
               Ok(Json.toJson(m))
             case MandateUpdateError =>

@@ -106,11 +106,11 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
         updateResult match {
           case MandateUpdated(m) =>
-            val receiverParty = if (whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
-            else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
+            val receiverParty = if (whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"), m.agentParty.name)
+            else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"), mandate.clientParty.fold("")(_.name))
             val service = m.subscription.service.id
             Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active,
-              userType = Some("agent"), recipient = receiverParty._2,service = service)) match {
+              userType = Some("agent"), recipient = receiverParty._2,service = service, recipientName = receiverParty._3)) match {
               case Success(v) =>
                 doAudit("emailSent", args("agentCode"), m)
               case Failure(reason) =>

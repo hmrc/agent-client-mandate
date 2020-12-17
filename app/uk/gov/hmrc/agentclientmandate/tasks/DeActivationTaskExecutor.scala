@@ -106,14 +106,15 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
           case MandateUpdated(m) =>
             args("userType") match {
               case "agent" =>
-                handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), args, mandate, Some("agent"))
+                handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), mandate.agentParty.name, args, mandate, Some("agent"))
                 m.clientParty.foreach( client =>
                   if(client.contactDetails.email != ""){
-                    handleRemoveMandateEmailRequest(client.contactDetails.email, Some("client"), args, mandate, Some("agent"))
+                    handleRemoveMandateEmailRequest(client.contactDetails.email, Some("client"),
+                      mandate.clientParty.fold("")(_.name), args, mandate, Some("agent"))
                   }
                 )
               case _ =>
-                handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), args, mandate, Some("client"))
+                handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), mandate.agentParty.name, args, mandate, Some("client"))
             }
             doAudit("removed", args("agentCode"), m)
             Success(Finish)
@@ -129,14 +130,14 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     }
   }
 
-  private def handleRemoveMandateEmailRequest(email: String, recipient: Option[String], args: Map[String, String],
+  private def handleRemoveMandateEmailRequest(email: String, recipient: Option[String], recipientName: String, args: Map[String, String],
                                               mandate: Mandate, userType: Option[String])(implicit hc: HeaderCarrier): Unit = {
 
     val service = mandate.subscription.service.id
     val uniqueAuthNo: Option[String] = if(recipient.contains("client")) Some(mandate.id) else None
 
     Try(emailNotificationService.sendMail(email, models.Status.Cancelled, userType,
-      recipient, service, uniqueAuthNo = uniqueAuthNo)) match {
+      recipient, recipientName = recipientName, service, uniqueAuthNo = uniqueAuthNo)) match {
         case Success(_) =>
           doAudit("emailSent", args("agentCode"), mandate)
         case Failure(reason) =>

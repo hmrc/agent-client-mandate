@@ -46,9 +46,9 @@ trait EmailConnector extends RawResponseReads with Auditable {
   def http: CorePost
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String,
-                         uniqueAuthNo: Option[String])(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+                         uniqueAuthNo: Option[String], recipientName: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
 
-    val defaultParams = Map("emailAddress" -> emailString, "service" -> serviceString)
+    val defaultParams = Map("emailAddress" -> emailString, "service" -> serviceString, "recipient" -> recipientName)
 
     val params = templateName match {
         case "agent_removes_mandate" => defaultParams + ("uniqueAuthNo" -> uniqueAuthNo.getOrElse(""))
