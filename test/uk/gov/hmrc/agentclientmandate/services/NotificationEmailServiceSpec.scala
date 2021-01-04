@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
     }
 
     "send email to default" when {
-      "service name not be found" in new Setup {
+      "service name not found" in new Setup {
         val email = "some_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         val response = service.sendMail(email, Status.Active, None, None, "", service = "aaaa")

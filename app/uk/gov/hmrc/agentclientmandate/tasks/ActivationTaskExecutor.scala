@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
 import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.http.{HeaderCarrier, UserId}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks._
 import utils.ScheduledService
@@ -62,8 +62,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
   }
 
   private def createHeaderCarrier(signal: Signal): HeaderCarrier = {
-    HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))),
-      userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
+    HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))))
   }
 
   private def start(args: Map[String, String]): Try[Signal] = {
