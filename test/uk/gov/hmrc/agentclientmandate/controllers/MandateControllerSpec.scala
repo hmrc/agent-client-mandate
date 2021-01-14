@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "request is valid and client mandate found and status is approved" in new Setup {
-        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
         val result = TestMandateController.remove(mandateId).apply(FakeRequest())

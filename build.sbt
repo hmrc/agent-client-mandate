@@ -43,7 +43,7 @@ lazy val microservice = Project(appName, file("."))
     .settings(
       addTestReportOption(IntegrationTest, "int-test-reports"),
       inConfig(IntegrationTest)(Defaults.itSettings),
-      scalaVersion := "2.12.11",
+      scalaVersion := "2.12.11", //left at 2.12.11 because 2.12.12 caused pipeline issues
       libraryDependencies ++= appDependencies,
       retrieveManaged := true,
       evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),

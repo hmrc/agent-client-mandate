@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,9 +46,9 @@ trait EmailConnector extends RawResponseReads with Auditable {
   def http: CorePost
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String,
-                         uniqueAuthNo: Option[String])(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+                         uniqueAuthNo: Option[String], recipientName: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
 
-    val defaultParams = Map("emailAddress" -> emailString, "service" -> serviceString)
+    val defaultParams = Map("emailAddress" -> emailString, "service" -> serviceString, "recipient" -> recipientName)
 
     val params = templateName match {
         case "agent_removes_mandate" => defaultParams + ("uniqueAuthNo" -> uniqueAuthNo.getOrElse(""))

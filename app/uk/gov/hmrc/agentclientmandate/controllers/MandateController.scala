@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,9 @@ class MandateController @Inject()(val createService: MandateCreateService,
           updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
             case MandateUpdated(x) =>
               val service = x.subscription.service.id
-              emailNotificationService.sendMail(x.agentParty.contactDetails.email, models.Status.Cancelled, service = service, userType = Some(ar.userType), recipient = Some("agent"), prevStatus = Some(models.Status.Approved))
+              emailNotificationService.sendMail(x.agentParty.contactDetails.email, models.Status.Cancelled,
+                service = service, userType = Some(ar.userType), recipient = Some("agent"),
+                prevStatus = Some(models.Status.Approved), recipientName = mandate.agentParty.name)
               doAudit("removed", "", x)
               Future.successful(Ok)
             case MandateUpdateError => {

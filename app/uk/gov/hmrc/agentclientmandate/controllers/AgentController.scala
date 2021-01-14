@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,7 +113,8 @@ class AgentController @Inject()(val createService: MandateCreateService,
             case MandateUpdated(m) =>
               val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
               val service = m.subscription.service.id
-              emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service, userType = Some("agent"), recipient = Some("client"))
+              emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service,
+                userType = Some("agent"), recipient = Some("client"), recipientName = mandate.clientParty.fold("")(_.name))
               doAudit("rejected", ac, m)
               Ok
             case MandateUpdateError => InternalServerError

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(202,"")))
 
-        val response = connector.sendTemplatedEmail(emailString, templateId, "ATED", None)
+        val response = connector.sendTemplatedEmail(emailString, templateId, "ATED", None, "Recipient")
         await(response) must be(EmailSent)
 
       }
@@ -78,6 +78,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
             "parameters" -> Json.obj(
                "emailAddress" -> emailString,
                "service" -> "ATED",
+               "recipient" -> "Recipient",
                "uniqueAuthNo" -> "123456"
             ),
             "force" -> true
@@ -87,7 +88,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(202,"")))
 
-        val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", Some("123456"))
+        val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", Some("123456"), "Recipient")
         await(response) must be(EmailSent)
 
       }
@@ -104,7 +105,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(404,"")))
 
-        val response = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None)
+        val response = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None, "Recipient")
         await(response) must be(EmailNotSent)
 
       }

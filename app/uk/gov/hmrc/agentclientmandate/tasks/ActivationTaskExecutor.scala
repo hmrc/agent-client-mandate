@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
 import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.http.{HeaderCarrier, UserId}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks._
 import utils.ScheduledService
@@ -62,8 +62,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
   }
 
   private def createHeaderCarrier(signal: Signal): HeaderCarrier = {
-    HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))),
-      userId = Some(UserId(signal.args.getOrElse("credId", "your-dummy-id"))))
+    HeaderCarrier(authorization = Some(Authorization(signal.args.getOrElse("authorization", "dummy auth"))))
   }
 
   private def start(args: Map[String, String]): Try[Signal] = {
@@ -106,11 +105,11 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
         updateResult match {
           case MandateUpdated(m) =>
-            val receiverParty = if (whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"))
-            else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"))
+            val receiverParty = if (whetherSelfAuthorised(m)) (m.agentParty.contactDetails.email, Some("agent"), m.agentParty.name)
+            else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"), mandate.clientParty.fold("")(_.name))
             val service = m.subscription.service.id
             Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active,
-              userType = Some("agent"), recipient = receiverParty._2,service = service)) match {
+              userType = Some("agent"), recipient = receiverParty._2,service = service, recipientName = receiverParty._3)) match {
               case Success(v) =>
                 doAudit("emailSent", args("agentCode"), m)
               case Failure(reason) =>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ class DefaultNotificationEmailService @Inject()(val emailConnector: EmailConnect
 trait NotificationEmailService {
   def emailConnector: EmailConnector
 
-  def sendMail(emailString: String, action: Status, userType: Option[String], recipient: Option[String],
+  def sendMail(emailString: String, action: Status, userType: Option[String], recipient: Option[String], recipientName: String,
                service: String, prevStatus: Option[Status] = None, uniqueAuthNo: Option[String] = None)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
 
     def template: String = {
@@ -54,7 +54,7 @@ trait NotificationEmailService {
       }
     }
 
-    emailConnector.sendTemplatedEmail(emailString, template, serviceString, uniqueAuthNo)
+    emailConnector.sendTemplatedEmail(emailString, template, serviceString, uniqueAuthNo, recipientName)
   }
 
 }
