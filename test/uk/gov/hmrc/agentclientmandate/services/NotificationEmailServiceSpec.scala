@@ -73,7 +73,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
        "agent rejects mandate" in new Setup {
          val email = "client_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Rejected, Some("client"), Some("client"),"Client name","ATED")
+        val response = service.sendMail(email, Status.Rejected, Some("agent"), Some("client"),"Client name","ATED")
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_rejects_mandate", "Annual Tax on Enveloped Dwellings", None, "Client name")
       }

@@ -38,7 +38,7 @@ trait NotificationEmailService {
         case (Status.Approved, Some("client"), _, Some("agent"))=> "client_approves_mandate"
         case (Status.Active, Some("agent"), _, Some("agent")) => "agent_self_auth_activates_mandate"
         case (Status.Active, Some("agent"), _, Some("client")) => "agent_activates_mandate"
-        case (Status.Rejected, Some("client"), _, Some("client")) => "agent_rejects_mandate"
+        case (Status.Rejected, Some("agent"), _, Some("client")) => "agent_rejects_mandate"
         case (Status.Cancelled, Some("agent"), _, Some("agent")) => "agent_self_auth_deactivates_mandate"
         case (Status.Cancelled, Some("agent"), _, Some("client")) => "agent_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved), Some("agent")) => "client_removes_mandate"
