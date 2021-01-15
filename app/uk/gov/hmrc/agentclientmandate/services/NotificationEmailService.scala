@@ -43,7 +43,7 @@ trait NotificationEmailService {
         case (Status.Cancelled, Some("agent"), _, Some("client")) => "agent_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved), Some("agent")) => "client_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.PendingCancellation), Some("agent")) => "client_cancels_active_mandate"
-        case _ => logError(s"Relevant email does not exist for supplied params"); "NO_TEMPLATE"
+        case _ => logError(s"No template for action: $action, userType: $userType, prevStatus: $prevStatus, recipient: $recipient"); "NO_TEMPLATE"
       }
     }
 
