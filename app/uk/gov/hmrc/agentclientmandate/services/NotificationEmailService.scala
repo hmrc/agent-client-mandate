@@ -31,7 +31,7 @@ trait NotificationEmailService {
   def emailConnector: EmailConnector
 
   def sendMail(emailString: String, action: Status, userType: Option[String], recipient: Option[String], recipientName: String,
-               service: String, prevStatus: Option[Status] = None, uniqueAuthNo: Option[String] = None)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+               service: String, prevStatus: Option[Status], uniqueAuthNo: Option[String] = None)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
 
     def template: String = {
       (action, userType, prevStatus, recipient) match {
@@ -43,7 +43,7 @@ trait NotificationEmailService {
         case (Status.Cancelled, Some("agent"), _, Some("client")) => "agent_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved), Some("agent")) => "client_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.PendingCancellation), Some("agent")) => "client_cancels_active_mandate"
-        case _ => logError(s"Relevant email does not exist for supplied params ($action, $userType, $prevStatus, $uniqueAuthNo)"); "NO_TEMPLATE"
+        case _ => logError(s"Relevant email does not exist for supplied params"); "NO_TEMPLATE"
       }
     }
 

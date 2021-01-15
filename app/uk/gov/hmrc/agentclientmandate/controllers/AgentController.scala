@@ -21,6 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate._
 import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
+import uk.gov.hmrc.agentclientmandate.models.Status.{Status => MandateStatus}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
@@ -109,12 +110,14 @@ class AgentController @Inject()(val createService: MandateCreateService,
     fetchService.fetchClientMandate(mandateId).flatMap {
       case MandateFetched(mandate) =>
         authRetrieval { implicit ar =>
+          val previousStatus: Option[MandateStatus] = mandate.statusHistory.lastOption.fold[Option[MandateStatus]](None)(mandateStatus => Some(mandateStatus.status))
+
           updateService.updateMandate(mandate, Some(models.Status.Rejected)).map {
             case MandateUpdated(m) =>
               val clientEmail = m.clientParty.map(_.contactDetails.email).getOrElse("")
               val service = m.subscription.service.id
               emailNotificationService.sendMail(clientEmail, models.Status.Rejected, service = service,
-                userType = Some("agent"), recipient = Some("client"), recipientName = mandate.clientParty.fold("")(_.name))
+                userType = Some("agent"), recipient = Some("client"), recipientName = mandate.clientParty.fold("")(_.name), prevStatus = previousStatus)
               doAudit("rejected", ac, m)
               Ok
             case MandateUpdateError => InternalServerError
