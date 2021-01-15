@@ -21,6 +21,7 @@ import org.joda.time.DateTime
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
+import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
@@ -101,6 +102,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
     fetchResult match {
       case MandateFetched(mandate) =>
+        val previousStatus: Option[Status.Status] = mandate.statusHistory.lastOption.fold[Option[Status]](None)(mandateStatus => Some(mandateStatus.status))
         val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
         val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
         updateResult match {
@@ -109,7 +111,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"), mandate.clientParty.fold("")(_.name))
             val service = m.subscription.service.id
             Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active,
-              userType = Some("agent"), recipient = receiverParty._2,service = service, recipientName = receiverParty._3)) match {
+              userType = Some("agent"), recipient = receiverParty._2,service = service, recipientName = receiverParty._3, prevStatus = previousStatus)) match {
               case Success(v) =>
                 doAudit("emailSent", args("agentCode"), m)
               case Failure(reason) =>
