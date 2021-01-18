@@ -42,7 +42,7 @@ trait NotificationEmailService {
         case (Status.Cancelled, Some("agent"), _, Some("agent")) => "agent_self_auth_deactivates_mandate"
         case (Status.Cancelled, Some("agent"), _, Some("client")) => "agent_removes_mandate"
         case (Status.Cancelled, Some("client"), Some(Status.Approved), Some("agent")) => "client_removes_mandate"
-        case (Status.Cancelled, Some("client"), Some(Status.PendingCancellation), Some("agent")) => "client_cancels_active_mandate"
+        case (Status.Cancelled, Some("client"), Some(Status.Active), Some("agent")) => "client_cancels_active_mandate"
         case _ => logError(s"No template for action: $action, userType: $userType, prevStatus: $prevStatus, recipient: $recipient"); "NO_TEMPLATE"
       }
     }
