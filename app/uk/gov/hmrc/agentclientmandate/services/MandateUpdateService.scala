@@ -29,18 +29,20 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultMandateUpdateService @Inject()(val etmpConnector: EtmpConnector,
                                             val auditConnector: AuditConnector,
                                             val mandateRepo: MandateRepo,
+                                            val ec: ExecutionContext,
                                             val servicesConfig: ServicesConfig) extends MandateUpdateService {
   val mandateRepository: MandateRepository = mandateRepo.repository
   lazy val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
 }
 
 trait MandateUpdateService extends Auditable {
+  implicit val ec: ExecutionContext
+
   val expiryAfterDays: Int
 
   def mandateRepository: MandateRepository

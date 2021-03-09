@@ -23,7 +23,7 @@ import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 class DefaultPerformanceTestSupportController @Inject()(
                                                          val mandateRepo: MandateRepo,
@@ -33,6 +33,8 @@ class DefaultPerformanceTestSupportController @Inject()(
 }
 
 trait PerformanceTestSupportController extends BackendController {
+  implicit lazy val executionContext: ExecutionContext = defaultExecutionContext
+
   def mandateRepository: MandateRepository
 
   def createMandate(): Action[JsValue] = Action.async(parse.json) { implicit request =>

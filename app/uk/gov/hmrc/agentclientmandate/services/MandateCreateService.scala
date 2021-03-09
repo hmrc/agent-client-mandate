@@ -27,20 +27,20 @@ import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultMandateCreateService @Inject()(val etmpConnector: EtmpConnector,
                                             val relationshipService: RelationshipService,
                                             val mandateFetchService: MandateFetchService,
                                             val auditConnector: AuditConnector,
+                                            val ec: ExecutionContext,
                                             val mandateRepo: MandateRepo) extends MandateCreateService {
   val mandateRepository: MandateRepository = mandateRepo.repository
   val identifiers: Config = ConfigFactory.load("identifiers.properties")
 }
 
 trait MandateCreateService extends Auditable {
+  implicit val ec: ExecutionContext
 
   val identifiers: Config
 

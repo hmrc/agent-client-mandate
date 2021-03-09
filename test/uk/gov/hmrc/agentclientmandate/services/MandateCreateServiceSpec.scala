@@ -36,7 +36,7 @@ import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
@@ -50,6 +50,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   object TestClientMandateCreateService extends MandateCreateService {
+    val ec: ExecutionContext = ExecutionContext.global
     override val mandateRepository: MandateRepository = mandateRepositoryMock
     override val mandateFetchService: MandateFetchService = mockMandateFetchService
     override val etmpConnector: EtmpConnector = etmpConnectorMock
@@ -129,7 +130,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           """.stripMargin
         )
 
-        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
           Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
         }
 
@@ -157,7 +158,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           """.stripMargin
         )
 
-        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
           Future.successful(MandateCreateError)
         }
 
@@ -260,7 +261,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           Future.successful(successResponseJsonETMP)
         }
 
-        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
           Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
         }
 
@@ -292,7 +293,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           Future.successful(successResponseJsonETMP)
         }
 
-        when(mandateRepositoryMock.insertMandate(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
           Future.successful(MandateCreateError)
         }
 
@@ -324,10 +325,10 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(newAgentETMPRegJson)
         }
-        when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())(any())) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
-        when(mandateRepositoryMock.updateMandate(any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(any())(any())) thenReturn {
           Future.successful(MandateUpdated(mandateWithClient(mandateId, DateTime.now())))
         }
 
@@ -391,7 +392,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq(agentReferenceNumber),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())(any())) thenReturn {
           Future.successful(MandateNotFound)
         }
         
@@ -423,11 +424,11 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         when(etmpConnectorMock.getRegistrationDetails(any(), any())) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())(any())) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
 
-        when(mandateRepositoryMock.updateMandate(any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(any())(any())) thenReturn {
           Future.successful(MandateUpdateError)
         }
 

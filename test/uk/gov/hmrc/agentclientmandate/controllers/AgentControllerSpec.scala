@@ -47,7 +47,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
   "AgentController" should {
     "return a NOT_FOUND " when {
       "an exception is thrown by updateMandate in 'activate'" in  new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found."))
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
@@ -63,7 +63,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
       }
 
       "an exception is thrown by getAllMandates in 'fetchAll'" in new Setup {
-        when(fetchServiceMock.getAllMandates(any(), any(), any(), any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
+        when(fetchServiceMock.getAllMandates(any(), any(), any(), any())(any(),any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
 
         val result = TestMandateController.fetchAll(arn, service, None, None).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
@@ -85,7 +85,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
       }
 
       "an exception is thrown by updateMandate in 'agentRejectsClient'" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No GGCredId found.")))
 
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
@@ -121,7 +121,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
       "request is valid and client mandate found " in new Setup {
 
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(ArgumentMatchers.eq(approvedMandate), any())(any())) thenReturn Future.successful(MandateUpdated(pendingActiveMandate))
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
         status(result) must be (OK)
@@ -131,13 +131,13 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
     "not activate the client" when {
 
       "status of mandate returned is not ACTIVE" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
         val thrown = the[RuntimeException] thrownBy await(TestMandateController.activate(agentCode, mandateId).apply(FakeRequest()))
         thrown.getMessage must include("Mandate with status New cannot be activated")
       }
 
       "cant find mandate while changing the status to PENDINGACTIVATION" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
         when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
@@ -147,7 +147,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
       }
 
       "cant find mandate" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateNotFound)
 
         val result = TestMandateController.activate(agentCode, mandateId).apply(FakeRequest())
 
@@ -177,7 +177,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
     "fetch all mandates with respect to a service and ARN" when {
       "agent supplies valid service and ARN" in new Setup {
-        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Seq(newMandate)))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any(),any())).thenReturn(Future.successful(Seq(newMandate)))
         val result = TestMandateController.fetchAll(arn, service, None, None).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq(newMandate)))
@@ -186,7 +186,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
     "return not-found when trying to fetch all mandates with respect to a service and ARN" when {
       "agent supplies invalid/non-existing service and ARN" in new Setup {
-        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any())).thenReturn(Future.successful(Nil))
+        when(fetchServiceMock.getAllMandates(ArgumentMatchers.eq(arn), ArgumentMatchers.eq(service), any(), any())(any(),any())).thenReturn(Future.successful(Nil))
         val result = TestMandateController.fetchAll(arn, service, None, None).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
@@ -195,14 +195,14 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
     "update mandate with pending cancellation status" when {
       "agent has rejected client and status returned ok" in new Setup {
         when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "agent has rejected client but mandate cannot be updated" in new Setup {
         when(updateServiceMock.updateMandate(any(), any())(any())).thenReturn(Future.successful(MandateUpdateError))
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(INTERNAL_SERVER_ERROR)
       }
@@ -210,7 +210,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
     "return NotFound" when {
       "agent has rejected client and mandate cannot be found" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateNotFound)
         val result = TestMandateController.agentRejectsClient("", mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
@@ -266,13 +266,13 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
     "isAgentMissingEmail" must {
       "return Found when mandates found" in new Setup {
-        when(fetchServiceMock.getMandatesMissingAgentsEmails(any(), any())) thenReturn Future.successful(mandates)
+        when(fetchServiceMock.getMandatesMissingAgentsEmails(any(), any())(any())) thenReturn Future.successful(mandates)
         val result = TestMandateController.isAgentMissingEmail(arn, service).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "return Ok when no mandates found without email addresses" in new Setup {
-        when(fetchServiceMock.getMandatesMissingAgentsEmails(any(), any())) thenReturn Future.successful(Nil)
+        when(fetchServiceMock.getMandatesMissingAgentsEmails(any(), any())(any())) thenReturn Future.successful(Nil)
         val result = TestMandateController.isAgentMissingEmail(arn, service).apply(FakeRequest())
         status(result) must be(NO_CONTENT)
       }
@@ -324,14 +324,14 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
     "getClientsThatCancelled" must {
       "return ok if mandates found and return client display names" in new Setup {
-        when(fetchServiceMock.fetchClientCancelledMandates(any(), any())) thenReturn Future.successful(List("AAA", "BBB"))
+        when(fetchServiceMock.fetchClientCancelledMandates(any(), any())(any())) thenReturn Future.successful(List("AAA", "BBB"))
         val result = TestMandateController.getClientsThatCancelled(arn, service).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(Seq("AAA", "BBB")))
       }
 
       "return NotFound if no mandates returned" in new Setup {
-        when(fetchServiceMock.fetchClientCancelledMandates(any(), any())) thenReturn Future.successful(Nil)
+        when(fetchServiceMock.fetchClientCancelledMandates(any(), any())(any())) thenReturn Future.successful(Nil)
         val result = TestMandateController.getClientsThatCancelled(arn, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }

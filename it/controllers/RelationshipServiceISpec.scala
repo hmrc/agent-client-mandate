@@ -9,6 +9,7 @@ import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class RelationshipServiceISpec extends IntegrationSpec {
 

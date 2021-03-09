@@ -27,7 +27,6 @@ import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-
 import scala.concurrent.{ExecutionContext, Future}
 
 class MandateController @Inject()(val createService: MandateCreateService,

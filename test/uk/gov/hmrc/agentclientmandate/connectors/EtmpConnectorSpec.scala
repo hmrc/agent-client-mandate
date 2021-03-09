@@ -30,7 +30,7 @@ import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
@@ -57,6 +57,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
       override val metrics = mockMetrics
       override val etmpUrl: String = mockUrl
       override val auditConnector: AuditConnector = mockAuditConnector
+      val ec: ExecutionContext = ExecutionContext.global
     }
 
     val connector = new TestEtmpConnector

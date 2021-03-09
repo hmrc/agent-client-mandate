@@ -28,13 +28,13 @@ import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val auditConnector: AuditConnector,
                                              val servicesConfig: ServicesConfig,
+                                             val ec: ExecutionContext,
                                              val http: HttpClient) extends TaxEnrolmentConnector {
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
   val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}/enrolment-store-proxy"
@@ -42,6 +42,8 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
 }
 
 trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
+
+  implicit val ec: ExecutionContext
 
   def serviceUrl: String
   def enrolmentStoreProxyURL: String

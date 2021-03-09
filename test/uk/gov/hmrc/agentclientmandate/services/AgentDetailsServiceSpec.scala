@@ -33,7 +33,6 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.auth.core.retrieve.AgentInformation
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
-
 import scala.concurrent.Future
 
 
@@ -141,7 +140,7 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "returns true - for delegation authorization check for Ated" when {
       "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandate)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any())).thenReturn(Future.successful(Seq(mandate)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
       }
     }
@@ -163,12 +162,12 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any())).thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
     }

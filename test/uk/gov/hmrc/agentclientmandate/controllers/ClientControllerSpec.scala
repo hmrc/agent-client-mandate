@@ -37,8 +37,7 @@ import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext,Future}
 
 class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
@@ -55,14 +54,14 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
 
     "fetch a mandate" when {
       "mandate found when fetching by client and valid clientId" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(any(), any())) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(any(), any())(any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result = TestMandateController.fetchByClient(clientId, service).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(newMandate))
       }
 
       "mandate not found when fetching by client using invalid clientId" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(any(), any())) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(any(), any())(any())) thenReturn Future.successful(MandateNotFound)
 
         val result = TestMandateController.fetchByClient(clientId, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
