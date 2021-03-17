@@ -34,7 +34,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks._
 import utils.ScheduledService
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
@@ -47,7 +47,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                       val emailNotificationService: NotificationEmailService,
                                       val auditConnector: AuditConnector,
                                       val fetchService: MandateFetchService,
-                                      val mandateRepo: MandateRepo) extends Auditable with ScheduledService {
+                                      val mandateRepo: MandateRepo)(implicit ec: ExecutionContext) extends Auditable with ScheduledService {
 
   val mandateRepository: MandateRepository = mandateRepo.repository
 

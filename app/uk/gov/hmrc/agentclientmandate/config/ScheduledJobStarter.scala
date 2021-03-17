@@ -24,8 +24,6 @@ import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logInfo, logWarn}
 import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
-
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
@@ -33,14 +31,18 @@ import scala.util.{Failure, Success}
 
 class DefaultScheduledJobStarter @Inject()(val app: Application,
                                            val applicationLifecycle: ApplicationLifecycle,
-                                           val mandateUpdateService: MandateUpdateService) extends ScheduledJobStarter {
+                                           val mandateUpdateService: MandateUpdateService,
+                                           implicit val ec : ExecutionContext) extends ScheduledJobStarter {
   override val scheduledJobs: Seq[ScheduledJob] = Seq(new ExclusiveScheduledJob {
     override def name: String = "ExpirationService"
+
     override def executeInMutex(implicit ec: ExecutionContext): Future[Result] = {
       mandateUpdateService.checkStaleDocuments()
       Future.successful(Result("[executeInMutex] Checking expiry of stale documents"))
     }
+
     override def interval: FiniteDuration = 1 day
+
     override def initialDelay: FiniteDuration = 0 seconds
   })
 
@@ -61,17 +63,18 @@ class DefaultScheduledJobStarter @Inject()(val app: Application,
     }
   }
 
-  cancellables = scheduledJobs.map { job =>
-    scheduler(app).scheduleWithFixedDelay(job.initialDelay, job.interval)(new RunnableTask(job))
-  }
+  cancellables = scheduledJobs.map(job => scheduler(app).scheduleWithFixedDelay(job.initialDelay, job.interval)(new RunnableTask(job)))
 }
 
 trait ScheduledJobStarter {
+  implicit val ec: ExecutionContext
+
   val scheduledJobs: Seq[ScheduledJob]
   val app: Application
   val applicationLifecycle: ApplicationLifecycle
 
   private[config] var cancellables: Seq[Cancellable] = Seq.empty
+
   private[config] def scheduler(app: Application): Scheduler = app.actorSystem.scheduler
 
   applicationLifecycle.addStopHook { () =>

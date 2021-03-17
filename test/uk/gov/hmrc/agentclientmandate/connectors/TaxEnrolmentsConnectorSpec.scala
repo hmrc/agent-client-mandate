@@ -31,7 +31,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.http.HttpClient
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
@@ -58,6 +58,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
     val connector = new TestTaxEnrolmentsConnector
 
     class TestTaxEnrolmentsConnector extends TaxEnrolmentConnector {
+      val ec: ExecutionContext = ExecutionContext.global
       override val http: CoreDelete with CorePost with CoreGet = mockWSHttp
       override val taxEnrolmentsUrl: String = ""
       override val metrics: ServiceMetrics = mockMetrics

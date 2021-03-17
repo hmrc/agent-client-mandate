@@ -29,6 +29,7 @@ import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateF
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.http.HeaderCarrier
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
 
@@ -64,7 +65,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
       "a client mandate is found for a valid mandate id in MongoDB" in new Setup {
 
-        when(mockMandateRepository.fetchMandate(any())) thenReturn Future.successful(MandateFetched(clientMandate))
+        when(mockMandateRepository.fetchMandate(any())(any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
         val response: Future[MandateFetchStatus] = service.fetchClientMandate(mandateId)
         await(response) must be(MandateFetched(clientMandate))
@@ -75,7 +76,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "list of client mandate is found for a valid arn and service name in MongoDB" in new Setup {
 
-      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(List(clientMandate))
 
       val response: Future[Seq[Mandate]] = service.getAllMandates(agentReferenceNumberGen.sample.get, "ATED", None, None)
       await(response) must be(List(clientMandate))
@@ -85,7 +86,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in new Setup {
 
       val agentRefNumber: String = agentReferenceNumberGen.sample.get
-      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(List(clientMandate))
 
       val response: Future[Seq[Mandate]] = service.getAllMandates(agentRefNumber, "ATED", Some("credId"), None)
       await(response) must be(List(clientMandate))
@@ -93,7 +94,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "a mandate is found for a valid client id and service" in new Setup {
 
-      when(mockMandateRepository.fetchMandateByClient(any(), any())) thenReturn Future.successful(MandateFetched(clientMandate))
+      when(mockMandateRepository.fetchMandateByClient(any(), any())(any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
       val response: Future[MandateFetchStatus] = service.fetchClientMandate("clientId", "service")
       await(response) must be(MandateFetched(clientMandate))
@@ -101,14 +102,14 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     }
 
     "a list of mandates is found for an agent id" in new Setup {
-      when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(List(clientMandate.id))
+      when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())(any())) thenReturn Future.successful(List(clientMandate.id))
 
       val response: Future[Seq[String]] = service.getMandatesMissingAgentsEmails("agentId", "ated")
       await(response) must be(List(clientMandate.id))
     }
 
     "a list of client display names" in new Setup {
-      when(mockMandateRepository.getClientCancelledMandates(any(), any(), any())) thenReturn Future.successful(List("AAA", "BBB"))
+      when(mockMandateRepository.getClientCancelledMandates(any(), any(), any())(any())) thenReturn Future.successful(List("AAA", "BBB"))
       val response: Future[Seq[String]] = service.fetchClientCancelledMandates("arn", "service")
       await(response) must be(List("AAA", "BBB"))
     }

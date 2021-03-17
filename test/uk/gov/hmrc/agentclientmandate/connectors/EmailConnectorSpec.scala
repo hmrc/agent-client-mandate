@@ -28,7 +28,7 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
@@ -41,9 +41,10 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
       val sendEmailUri: String = "send-templated-email"
       val http: CorePost = mockWSHttp
       val serviceUrl: String = "email"
+      val ec: ExecutionContext = ExecutionContext.global
+
       override val auditConnector: AuditConnector = mockAuditConnector
     }
-
     val connector = new TestEmailConnector
   }
 

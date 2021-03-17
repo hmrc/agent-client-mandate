@@ -10,6 +10,7 @@ import uk.gov.hmrc.agentclientmandate.models.Status.{Cancelled, New}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
 import utils.Stubs._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class MandateControllerISpec extends IntegrationSpec {
 

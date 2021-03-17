@@ -28,11 +28,11 @@ import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
                                      val auditConnector: AuditConnector,
+                                     val ec: ExecutionContext,
                                      val servicesConfig: ServicesConfig,
                                      val http: HttpClient) extends EtmpConnector {
   val urlHeaderEnvironment: String = servicesConfig.getConfString("etmp-hod.environment", "")
@@ -41,6 +41,8 @@ class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
 }
 
 trait EtmpConnector extends RawResponseReads with Auditable {
+
+  implicit val ec: ExecutionContext
 
   val etmpUrl: String
 

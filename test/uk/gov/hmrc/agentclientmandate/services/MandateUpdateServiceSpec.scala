@@ -36,7 +36,7 @@ import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with MockitoSugar {
 
@@ -57,6 +57,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
   trait Setup {
 
     class TestMandateUpdateService extends MandateUpdateService {
+      val ec: ExecutionContext = ExecutionContext.global
       override val mandateRepository: MandateRepository = mockMandateRepository
       override val etmpConnector: EtmpConnector = mockEtmpConnector
       override val auditConnector: AuditConnector = mockAuditConnector
@@ -88,7 +89,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
     "update data in mongo with given data provided" when {
 
       "requested to do so - updateMandate" in new Setup {
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(clientApprovedMandate)))
 
         await(service.updateMandate(mandate, Some(Status.Approved))(testAuthRetrieval)) must be(MandateUpdated(clientApprovedMandate))
       }
@@ -97,18 +98,18 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
     "approveMandate" must {
       "change status of mandate to approve, if all calls are successful and service name is ated" in new Setup {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
-        when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.fetchMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         val result: MandateUpdate = await(service.approveMandate(clientApprovedMandate))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "throw exception, if post was made without client party in it" in new Setup {
         DateTimeUtils.setCurrentMillisFixed(currentMillis)
-        when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.fetchMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         val thrown: RuntimeException = the[RuntimeException] thrownBy await(service.approveMandate(mandate))
         thrown.getMessage must be("Client party not found")
       }
@@ -120,7 +121,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
       }
 
       "throw exception if no mandate is fetched" in new Setup {
-        when(mockMandateRepository.fetchMandate(any())).thenReturn(Future.successful(MandateNotFound))
+        when(mockMandateRepository.fetchMandate(any())(any())).thenReturn(Future.successful(MandateNotFound))
         val thrown: RuntimeException = the[RuntimeException] thrownBy await(service.approveMandate(mandate))
         thrown.getMessage must startWith("mandate not found for mandate id")
 
@@ -129,14 +130,14 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
 
     "updateStatus" must {
       "change mandate status and send email for client" in new Setup {
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
         val result: MandateUpdate = await(service.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
       }
 
       "change mandate status and send email for agent" in new Setup {
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
         val result: MandateUpdate = await(service.updateMandate(updatedMandate, Some(Status.PendingCancellation)))
         result must be(MandateUpdated(updatedMandate))
@@ -145,8 +146,8 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
 
     "updateAgentEmail" must {
       "update all mandates with email for agent" in new Setup {
-        when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())) thenReturn Future.successful(mandateIds)
-        when(mockMandateRepository.updateAgentEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
+        when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())(any())) thenReturn Future.successful(mandateIds)
+        when(mockMandateRepository.updateAgentEmail(any(), any())(any())) thenReturn Future.successful(MandateUpdatedEmail)
         val result: MandateUpdate = await(service.updateAgentEmail("agentId", emailGen.sample.get, "ated"))
         result must be(MandateUpdatedEmail)
       }
@@ -154,7 +155,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
 
     "updateClientEmail" must {
       "update the mandate with email for client" in new Setup {
-        when(mockMandateRepository.updateClientEmail(any(), any())) thenReturn Future.successful(MandateUpdatedEmail)
+        when(mockMandateRepository.updateClientEmail(any(), any())(any())) thenReturn Future.successful(MandateUpdatedEmail)
         val result: MandateUpdate = await(service.updateClientEmail("mandateId", emailGen.sample.get))
         result must be(MandateUpdatedEmail)
       }
@@ -162,7 +163,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
 
     "updateAgentCredId" must {
       "update the mandate with the proper cred id" in new Setup {
-        when(mockMandateRepository.updateAgentCredId(any(), any())) thenReturn Future.successful(MandateUpdatedCredId)
+        when(mockMandateRepository.updateAgentCredId(any(), any())(any())) thenReturn Future.successful(MandateUpdatedCredId)
         val result: MandateUpdate = await(service.updateAgentCredId("credId"))
         result must be(MandateUpdatedCredId)
       }
@@ -170,17 +171,17 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
 
     "checkExpiry" must {
       "get expired mandate list and update all to be expired" in new Setup {
-        when(mockMandateRepository.findOldMandates(any())).thenReturn(Future.successful(List(mandate)))
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdated(mandate)))
+        when(mockMandateRepository.findOldMandates(any())(any())).thenReturn(Future.successful(List(mandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(mandate)))
         await(service.checkStaleDocuments())
-        verify(mockMandateRepository, times(1)).updateMandate(any())
+        verify(mockMandateRepository, times(1)).updateMandate(any())(any())
       }
 
       "get expired mandate list but fail when updating mandate" in new Setup {
-        when(mockMandateRepository.findOldMandates(any())).thenReturn(Future.successful(List(mandate)))
-        when(mockMandateRepository.updateMandate(any())).thenReturn(Future.successful(MandateUpdateError))
+        when(mockMandateRepository.findOldMandates(any())(any())).thenReturn(Future.successful(List(mandate)))
+        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdateError))
         await(service.checkStaleDocuments())
-        verify(mockMandateRepository, times(1)).updateMandate(any())
+        verify(mockMandateRepository, times(1)).updateMandate(any())(any())
       }
     }
   }

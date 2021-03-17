@@ -26,8 +26,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 sealed trait EmailStatus
 case object EmailSent extends EmailStatus
@@ -35,12 +34,15 @@ case object EmailNotSent extends EmailStatus
 
 class DefaultEmailConnector @Inject()(val auditConnector: AuditConnector,
                                       val servicesConfig: ServicesConfig,
+                                      val ec: ExecutionContext,
                                       val http: HttpClient) extends EmailConnector {
   val sendEmailUri: String = "hmrc/email"
   val serviceUrl: String = servicesConfig.baseUrl("email")
 }
 
 trait EmailConnector extends RawResponseReads with Auditable {
+  implicit val ec: ExecutionContext
+
   def sendEmailUri: String
   def serviceUrl: String
   def http: CorePost

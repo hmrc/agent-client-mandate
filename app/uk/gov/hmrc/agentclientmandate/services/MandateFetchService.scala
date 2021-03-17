@@ -23,7 +23,7 @@ import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepo, MandateRepository}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultMandateFetchService @Inject()(val mandateRepo: MandateRepo,
                                            val servicesConfig: ServicesConfig) extends MandateFetchService {
@@ -36,16 +36,16 @@ trait MandateFetchService {
 
   def mandateRepository: MandateRepository
 
-  def fetchClientMandate(mandateId: String): Future[MandateFetchStatus] = {
+  def fetchClientMandate(mandateId: String)(implicit ec: ExecutionContext): Future[MandateFetchStatus] = {
     mandateRepository.fetchMandate(mandateId)
   }
 
-  def fetchClientMandate(clientId: String, service: String): Future[MandateFetchStatus] = {
+  def fetchClientMandate(clientId: String, service: String)(implicit ec: ExecutionContext): Future[MandateFetchStatus] = {
     mandateRepository.fetchMandateByClient(clientId, service)
   }
 
   def getAllMandates(arn: String, serviceName: String, credId: Option[String], displayName: Option[String])
-                    (implicit ar: AuthRetrieval): Future[Seq[Mandate]] = {
+                    (implicit ar: AuthRetrieval, ec :ExecutionContext): Future[Seq[Mandate]] = {
     if (credId.isDefined) {
         val otherCredId = ar.govGatewayId
         mandateRepository.getAllMandatesByServiceName(arn, serviceName, credId, Some(otherCredId), displayName)
@@ -55,11 +55,11 @@ trait MandateFetchService {
     }
   }
 
-  def getMandatesMissingAgentsEmails(arn: String, service: String): Future[Seq[String]] = {
+  def getMandatesMissingAgentsEmails(arn: String, service: String)(implicit ec: ExecutionContext): Future[Seq[String]] = {
     mandateRepository.findMandatesMissingAgentEmail(arn, service)
   }
 
-  def fetchClientCancelledMandates(arn: String, serviceName: String): Future[Seq[String]] = {
+  def fetchClientCancelledMandates(arn: String, serviceName: String)(implicit ec: ExecutionContext): Future[Seq[String]] = {
     val dateFrom = DateTime.now().minusDays(clientCancelledMandateNotification)
     mandateRepository.getClientCancelledMandates(dateFrom, arn, serviceName)
   }
