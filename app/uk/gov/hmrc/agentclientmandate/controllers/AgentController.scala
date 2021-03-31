@@ -34,21 +34,21 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AgentController @Inject()(val createService: MandateCreateService,
-                                 val updateService: MandateUpdateService,
-                                 val relationshipService: RelationshipService,
-                                 val agentDetailsService: AgentDetailsService,
-                                 val auditConnector: AuditConnector,
-                                 val emailNotificationService: NotificationEmailService,
-                                 val fetchService: MandateFetchService,
-                                 val authConnector: DefaultAuthConnector,
-                                 val cc: ControllerComponents) extends BackendController(cc) with Auditable with AuthFunctionality {
+                                val updateService: MandateUpdateService,
+                                val relationshipService: RelationshipService,
+                                val agentDetailsService: AgentDetailsService,
+                                val auditConnector: AuditConnector,
+                                val emailNotificationService: NotificationEmailService,
+                                val fetchService: MandateFetchService,
+                                val authConnector: DefaultAuthConnector,
+                                val cc: ControllerComponents) extends BackendController(cc) with Auditable with AuthFunctionality {
 
   implicit lazy val executionContext: ExecutionContext = defaultExecutionContext
 
   def create(agentCode: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.asOpt[CreateMandateDto] match {
       case Some(x) =>
-        authRetrieval{ implicit ar =>
+        authRetrieval { implicit ar =>
           createService.createMandate(agentCode, x) map { mandateId =>
             Created(Json.parse(s"""{"mandateId": "$mandateId"}"""))
           } recover {
@@ -81,28 +81,32 @@ class AgentController @Inject()(val createService: MandateCreateService,
     logWarn("Attempting to activate mandate:" + mandateId)
 
     fetchService.fetchClientMandate(mandateId).flatMap {
-      case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
-        authRetrieval { implicit ar =>
-          updateService.updateMandate(mandate, Some(models.Status.PendingActivation)).flatMap {
-            case MandateUpdated(x) =>
-              relationshipService.createAgentClientRelationship(x, agentCode)
-              Future.successful(Ok)
-            case MandateUpdateError =>
-              logWarn("Could not find mandate to activate after fetching: " + mandateId)
-              Future.successful(NotFound)
-            case _ => throw new Exception("Unknown mandate status")
-          } recover {
-            case e =>
-              logError(s"[MandateController][activate] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
-              NotFound
+      case MandateFetched(mandate) =>
+        if (mandate.currentStatus.status == models.Status.Approved) {
+          authRetrieval { implicit ar =>
+            updateService.updateMandate(mandate, Some(models.Status.PendingActivation)).flatMap {
+              case MandateUpdated(x) =>
+                relationshipService.createAgentClientRelationship(x, agentCode)
+                Future.successful(Ok)
+              case MandateUpdateError =>
+                logWarn("Could not find mandate to activate after fetching: " + mandateId)
+                Future.successful(NotFound)
+              case _ => throw new Exception("Unknown mandate status")
+            } recover {
+              case e =>
+                logError(s"[MandateController][activate] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
+                NotFound
+            }
           }
         }
-      case MandateFetched(mandate) if mandate.currentStatus.status != models.Status.Approved =>
-        throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be activated")
+        else {
+          logWarn(s"Mandate with status ${mandate.currentStatus.status} cannot be activated")
+          Future.successful(UnprocessableEntity)
+        }
+
       case MandateNotFound =>
         logWarn("Could not find mandate to activate: " + mandateId)
         Future.successful(NotFound)
-      case _ => throw new Exception("Unknown mandate status")
     }
   }
 
@@ -148,7 +152,7 @@ class AgentController @Inject()(val createService: MandateCreateService,
 
   def createRelationship(ac: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[NonUKClientDto] { nonUKClientDto =>
-      authRetrieval{ implicit ar =>
+      authRetrieval { implicit ar =>
         createService.createMandateForNonUKClient(ac, nonUKClientDto) map { _ => Created } recover {
           case e =>
             logError(s"[MandateController][createRelationship] Auth Retrieval error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
@@ -162,7 +166,7 @@ class AgentController @Inject()(val createService: MandateCreateService,
     withJsonBody[Mandate] { updatedMandate =>
       authRetrieval { implicit ar =>
         updateService.updateMandate(updatedMandate) map {
-          case MandateUpdated(mandate) =>  doAudit("edited", agentCode, mandate); Ok(Json.toJson(mandate))
+          case MandateUpdated(mandate) => doAudit("edited", agentCode, mandate); Ok(Json.toJson(mandate))
           case MandateUpdateError => InternalServerError
           case _ => throw new Exception("Unknown update mandate status")
         } recover {

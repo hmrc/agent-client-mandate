@@ -19,8 +19,8 @@ package uk.gov.hmrc.agentclientmandate.utils
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
+import uk.gov.hmrc.agentclientmandate.models.Status
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
 
 object Generators {
@@ -122,4 +122,7 @@ object Generators {
       place <- digitString(1)
       finalLetters <- upperStrGen(2)
     } yield s"$startLetters$postfix $place$finalLetters"
+
+  implicit val statusGen: Gen[Status.Status] = Gen.oneOf(Status.values.toSeq)
+  implicit val statusArbitrary: Arbitrary[Status.Status] = Arbitrary(statusGen)
 }
