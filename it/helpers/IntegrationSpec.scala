@@ -31,13 +31,12 @@ trait IntegrationSpec
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    await(mandateRepo.repository.collection.drop(failIfNotFound = false))
+    await(mandateRepo.repository.removeAll())
     resetWmServer()
   }
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    await(mandateRepo.repository.collection.drop(failIfNotFound = false))
     stopWmServer()
   }
 

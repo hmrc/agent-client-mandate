@@ -153,7 +153,7 @@ class MandateMongoRepository(mongo: () => DB, val metrics: ServiceMetrics)
       collection.update(ordered = false).one(query, mandate, upsert = false)
     }.map { writeResult =>
       timerContext.stop()
-      if (writeResult.ok) {
+      if (writeResult.nModified > 0) {
         MandateUpdated(mandate)
       } else {
         MandateUpdateError
