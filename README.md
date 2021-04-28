@@ -1,7 +1,7 @@
 agent-client-mandate
 ====================
 
-[![Build Status](https://travis-ci.org/hmrc/agent-client-mandate.svg)](https://travis-ci.org/hmrc/agent-client-mandate) [ ![Download](https://api.bintray.com/packages/hmrc/releases/agent-client-mandate/images/download.svg) ](https://bintray.com/hmrc/releases/agent-client-mandate/_latestVersion)
+[![Build Status](https://travis-ci.org/hmrc/agent-client-mandate.svg)](https://travis-ci.org/hmrc/agent-client-mandate)
 
 Microservice for Agent Client Mandate service. This implements the main business logic for maintaining relationship between HMRC agents and clients using mandates, communicating with ETMP(HOD), Government Gateway and Mongo Database for storage/retrieval of mandates. 
 The microservice is based on the RESTful API structure, receives and sends data using JSON to either from.
