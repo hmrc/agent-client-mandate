@@ -17,6 +17,7 @@
 package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Cancellable}
+import scala.language.postfixOps
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor

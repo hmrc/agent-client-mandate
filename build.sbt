@@ -17,51 +17,52 @@ lazy val plugins: Seq[Plugins] = Seq.empty
 lazy val playSettings: Seq[Setting[_]] = Seq.empty
 
 lazy val scoverageSettings = {
-    import scoverage.ScoverageKeys
-    Seq(
-      ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;.*testOnly.*;" +
-        "uk.gov.hmrc.BuildInfo*;.*binders.*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;" +
-        ".*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
-      ScoverageKeys.coverageMinimum := 80,
-      ScoverageKeys.coverageFailOnMinimum := true,
-      ScoverageKeys.coverageHighlighting := true
-    )
-  }
+  import scoverage.ScoverageKeys
+  Seq(
+    ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;.*testOnly.*;" +
+      "uk.gov.hmrc.BuildInfo*;.*binders.*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;" +
+      ".*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
+    ScoverageKeys.coverageMinimum := 80,
+    ScoverageKeys.coverageFailOnMinimum := true,
+    ScoverageKeys.coverageHighlighting := true
+  )
+}
 
 val silencerVersion = "1.7.1"
 
 lazy val microservice = Project(appName, file("."))
-    .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins: _*)
-    .settings(playSettings: _*)
-    .settings(majorVersion := 1)
-    .configs(IntegrationTest)
-    .settings(scalaSettings: _*)
-    .settings(publishingSettings: _*)
-    .settings(defaultSettings(): _*)
-    .settings(RoutesKeys.routesImport ++= Seq("uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._"))
-    .settings(playSettings ++ scoverageSettings: _*)
-    .settings(
-      addTestReportOption(IntegrationTest, "int-test-reports"),
-      inConfig(IntegrationTest)(Defaults.itSettings),
-      scalaVersion := "2.12.11", //left at 2.12.11 because 2.12.12 caused pipeline issues
-      libraryDependencies ++= appDependencies,
-      retrieveManaged := true,
-      evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
-      routesGenerator := InjectedRoutesGenerator,
-      parallelExecution          in Test := true,
-      fork                       in Test := true,
-      Keys.fork                  in IntegrationTest :=  false,
-      unmanagedSourceDirectories in IntegrationTest :=  (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
-      parallelExecution in IntegrationTest := false,
-      scalacOptions += "-P:silencer:pathFilters=views;routes",
-      libraryDependencies ++= Seq(
-        compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
-        "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-      )
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins: _*)
+  .settings(playSettings: _*)
+  .settings(majorVersion := 1)
+  .configs(IntegrationTest)
+  .settings(scalaSettings: _*)
+  .settings(publishingSettings: _*)
+  .settings(defaultSettings(): _*)
+  .settings(RoutesKeys.routesImport ++= Seq("uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._"))
+  .settings(playSettings ++ scoverageSettings: _*)
+  .settings(
+    addTestReportOption(IntegrationTest, "int-test-reports"),
+    inConfig(IntegrationTest)(Defaults.itSettings),
+    scalaVersion := "2.12.11", //left at 2.12.11 because 2.12.12 caused pipeline issues
+    libraryDependencies ++= appDependencies,
+    retrieveManaged := true,
+    evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
+    routesGenerator := InjectedRoutesGenerator,
+    parallelExecution in Test := true,
+    fork in Test := true,
+    Keys.fork in IntegrationTest := false,
+    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it")).value,
+    parallelExecution in IntegrationTest := false,
+    scalacOptions += "-P:silencer:pathFilters=views;routes",
+    scalacOptions ++= Seq("-feature"),
+    libraryDependencies ++= Seq(
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
     )
-    .configs(IntegrationTest)
-    .disablePlugins(JUnitXmlReportPlugin)
-    .settings(
-      resolvers += Resolver.jcenterRepo
-    )
+  )
+  .configs(IntegrationTest)
+  .disablePlugins(JUnitXmlReportPlugin)
+  .settings(
+    resolvers += Resolver.jcenterRepo
+  )
 
