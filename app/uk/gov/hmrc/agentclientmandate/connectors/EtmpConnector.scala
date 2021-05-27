@@ -16,25 +16,24 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import javax.inject.Inject
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
-import uk.gov.hmrc.http.logging.Authorization
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
                                      val auditConnector: AuditConnector,
                                      val ec: ExecutionContext,
                                      val servicesConfig: ServicesConfig,
-                                     val http: HttpClient) extends EtmpConnector {
+val http: HttpClient) extends EtmpConnector {
   val urlHeaderEnvironment: String = servicesConfig.getConfString("etmp-hod.environment", "")
   val urlHeaderAuthorization: String = s"Bearer ${servicesConfig.getConfString("etmp-hod.authorization-token", "")}"
   val etmpUrl: String = servicesConfig.baseUrl("etmp-hod")
@@ -43,22 +42,24 @@ class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
 trait EtmpConnector extends RawResponseReads with Auditable {
 
   implicit val ec: ExecutionContext
+  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   val etmpUrl: String
 
   def urlHeaderEnvironment: String
-  def urlHeaderAuthorization: String
-  def http: CoreGet with CorePost
-  def metrics: ServiceMetrics
 
+  def urlHeaderAuthorization: String
+
+  def http: CoreGet with CorePost
+
+  def metrics: ServiceMetrics
   def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
 
-    implicit val headerCarrier: HeaderCarrier = createHeaderCarrier
 
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
-    http.POST(postUrl, jsonData) map { response =>
+    http.POST(postUrl, jsonData, headers = additionalHeaders) map { response =>
       timerContext.stop()
       response.status match {
         case OK | NO_CONTENT =>
@@ -75,9 +76,8 @@ trait EtmpConnector extends RawResponseReads with Auditable {
 
   def getRegistrationDetails(identifier: String, identifierType: String): Future[JsValue] = {
     def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
-      implicit val hc = createHeaderCarrier
       val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)
-      http.GET[HttpResponse](getUrl).map { response =>
+      http.GET[HttpResponse](url = getUrl, headers = additionalHeaders).map { response =>
         timerContext.stop()
         response.status match {
           case OK =>
@@ -102,10 +102,9 @@ trait EtmpConnector extends RawResponseReads with Auditable {
   }
 
   def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
-    implicit val headerCarrier: HeaderCarrier = createHeaderCarrier
     val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
     val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
-    http.GET[HttpResponse](s"$getUrl") map { response =>
+    http.GET[HttpResponse](s"$getUrl", headers = additionalHeaders) map { response =>
       timerContext.stop()
       response.status match {
         case OK =>
@@ -119,9 +118,11 @@ trait EtmpConnector extends RawResponseReads with Auditable {
     }
   }
 
-  private def createHeaderCarrier: HeaderCarrier = {
-    HeaderCarrier(extraHeaders = Seq("Environment" -> urlHeaderEnvironment),
-      authorization = Some(Authorization(urlHeaderAuthorization)))
+  def additionalHeaders: Seq[(String, String)] = {
+    Seq(
+      "Environment"   -> urlHeaderEnvironment,
+      "Authorization" -> urlHeaderAuthorization
+    )
   }
 
 }

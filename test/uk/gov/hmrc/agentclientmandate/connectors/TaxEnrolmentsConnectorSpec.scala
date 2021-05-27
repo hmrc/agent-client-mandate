@@ -112,7 +112,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NO_CONTENT, "")))
-      when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+      when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
@@ -141,7 +141,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
-      when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+      when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
@@ -170,7 +170,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
       when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
         thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
-      when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+      when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
       val result = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe NOT_FOUND
@@ -198,7 +198,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       intercept[RuntimeException] {
         when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
           thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
-        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+        when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
         val result = await(connector.deAllocateAgent("", clientID, agentCode, userType))
         val response = the[RuntimeException] thrownBy result
@@ -227,7 +227,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
             |}
              """.stripMargin
         )
-        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+        when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString) ))
         val response = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (agentGroupID)
@@ -252,7 +252,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              |}
              """.stripMargin
         )
-        when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+        when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(NOT_FOUND, successResponse.toString) ))
         val response = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (None)
@@ -260,7 +260,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
       "return an exception when unable to return the agent groupID" in new Setup {
         intercept[RuntimeException] {
-          when(mockWSHttp.GET[HttpResponse](any())(any(), any(), any()))
+          when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
             .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
           val result = await(connector.getGroupsWithEnrolment("agentRefNum"))
           val response = the[RuntimeException] thrownBy result

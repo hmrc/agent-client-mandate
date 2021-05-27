@@ -28,11 +28,12 @@ import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpda
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
-import uk.gov.hmrc.http.logging.Authorization
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks._
 import utils.ScheduledService
+import scala.language.postfixOps
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._

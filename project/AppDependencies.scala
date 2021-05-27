@@ -12,7 +12,7 @@ object AppDependencies {
     "com.typesafe.akka" %% "akka-stream" % "2.6.14",
     "com.typesafe.akka" %% "akka-slf4j" % "2.6.14",
     ws,
-    "uk.gov.hmrc"%% "bootstrap-backend-play-27"  % "3.4.0",
+    "uk.gov.hmrc"%% "bootstrap-backend-play-27"  % "5.2.0",
     "uk.gov.hmrc" %% "domain" % "5.11.0-play-27",
     "uk.gov.hmrc" %% "mongo-lock" % "6.24.0-play-27",
     "uk.gov.hmrc" %% "play-scheduling-play-27" % "7.10.0",
