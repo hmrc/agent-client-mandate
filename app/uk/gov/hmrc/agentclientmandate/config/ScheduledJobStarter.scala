@@ -17,13 +17,14 @@
 package uk.gov.hmrc.agentclientmandate.config
 
 import akka.actor.{Cancellable, Scheduler}
-import javax.inject.Inject
 import org.apache.commons.lang3.time.StopWatch
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
 import uk.gov.hmrc.agentclientmandate.services.MandateUpdateService
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logInfo, logWarn}
-import uk.gov.hmrc.play.scheduling.{ExclusiveScheduledJob, ScheduledJob}
+import uk.gov.hmrc.agentclientmandate.utils.{ExclusiveScheduledJob, ScheduledJob}
+
+import javax.inject.Inject
 import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps

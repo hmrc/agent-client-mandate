@@ -19,7 +19,8 @@ package uk.gov.hmrc.tasks
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import utils.ScheduledService
@@ -27,7 +28,7 @@ import utils.ScheduledService
 import scala.util.{Success, Try}
 
 class TaskRouterSpec extends TestKit(ActorSystem("test"))
-  with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
+  with AnyWordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)

@@ -16,9 +16,21 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
-import org.mockito.MockitoSugar
-import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.FiniteDuration
 
-object MockMetricsCache extends MockitoSugar {
-  lazy val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
+trait ScheduledJob {
+  def name: String
+  def execute(implicit ec: ExecutionContext): Future[Result]
+  def isRunning: Future[Boolean]
+
+  case class Result(message: String)
+
+  def configKey: String = name
+
+  def initialDelay: FiniteDuration
+
+  def interval: FiniteDuration
+
+  override def toString = s"$name after $initialDelay every $interval"
 }

@@ -19,9 +19,9 @@ package uk.gov.hmrc.agentclientmandate.services
 import com.typesafe.config.{Config, ConfigFactory}
 import org.joda.time.DateTime
 import org.mockito.Mockito._
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest._
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics

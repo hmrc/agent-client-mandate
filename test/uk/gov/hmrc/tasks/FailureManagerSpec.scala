@@ -18,16 +18,17 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import org.scalatest.Matchers.{be, convertToAnyShouldWrapper}
+import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 
 import scala.collection.mutable.ArrayBuffer
 
 class FailureManagerSpec extends TestKit(ActorSystem("test"))
-   with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
+   with AnyWordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   val args1 = Map("a" -> "1", "b" -> "2")
