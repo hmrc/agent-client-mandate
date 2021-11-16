@@ -19,12 +19,10 @@ package uk.gov.hmrc.agentclientmandate.tasks
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
@@ -35,7 +33,7 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.tasks._
+import uk.gov.hmrc.tasks.{Phase, _}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -43,24 +41,39 @@ import scala.concurrent.Future
 class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task")) with AnyWordSpecLike
   with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar with BeforeAndAfterEach {
 
-  lazy val phaseCommit = Phase.Commit
-  lazy val phaseRollback = Phase.Rollback
-  lazy val startSignal = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
-  lazy val startSignal1 = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "credId" -> "credId"))
-  lazy val nextSignal = Next("gg-proxy-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "groupId" -> "groupId", "credId" -> "credId"))
-  lazy val finalizeSignal = Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "credId" -> "credId"))
-  val etmpMock = mock[EtmpConnector]
-  val mockMandateFetchService = mock[MandateFetchService]
-  val mockMandateUpdateService = mock[MandateUpdateService]
-  val mockMandateRepository = mock[MandateRepository]
-  val mockEmailNotificationService = mock[NotificationEmailService]
-  val taxEnrolmentMock = mock[TaxEnrolmentConnector]
-  val mockServiceMetrics = mock[ServiceMetrics]
-  val mockAuditConnector = mock[AuditConnector]
-  val mockMandateRepo = mock[MandateRepo]
+  lazy val phaseCommit: Phase.Value = Phase.Commit
+  lazy val phaseRollback: Phase.Value = Phase.Rollback
+  lazy val startSignal: Start = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId"))
+  lazy val startSignal1: Start = Start(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "credId" -> "credId"))
+  lazy val nextSignal: Next = Next(
+    "gg-proxy-activation", Map(
+      "serviceIdentifier" -> "serviceIdentifier",
+      "clientId" -> "clientId",
+      "agentCode" -> "agentCode",
+      "clientId" -> "clientId",
+      "agentPartyId" -> "agentPartyId",
+      "mandateId" -> "mandateId",
+      "groupId" -> "groupId",
+      "credId" -> "credId"))
+  lazy val finalizeSignal: Next = Next(
+    "finalize-activation", Map(
+      "serviceIdentifier" -> "serviceIdentifier",
+      "clientId" -> "clientId",
+      "agentCode" -> "agentCode",
+      "mandateId" -> "mandateId",
+      "credId" -> "credId"))
+  val etmpMock: EtmpConnector = mock[EtmpConnector]
+  val mockMandateFetchService: MandateFetchService = mock[MandateFetchService]
+  val mockMandateUpdateService: MandateUpdateService = mock[MandateUpdateService]
+  val mockMandateRepository: MandateRepository = mock[MandateRepository]
+  val mockEmailNotificationService: NotificationEmailService = mock[NotificationEmailService]
+  val taxEnrolmentMock: TaxEnrolmentConnector = mock[TaxEnrolmentConnector]
+  val mockServiceMetrics: ServiceMetrics = mock[ServiceMetrics]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockMandateRepo: MandateRepo = mock[MandateRepo]
 
-  val timeToUse = DateTime.now()
-  val mandate = Mandate(mandateReferenceGen.sample.get,
+  val timeToUse: DateTime = DateTime.now()
+  val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
     User("credid", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
@@ -68,7 +81,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
-  val updatedMandate = Mandate(mandateReferenceGen.sample.get,
+  val updatedMandate: Mandate = Mandate(mandateReferenceGen.sample.get,
     User("credid", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
@@ -77,7 +90,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
-  val updatedMandate1 = Mandate(mandateReferenceGen.sample.get,
+  val updatedMandate1: Mandate = Mandate(mandateReferenceGen.sample.get,
     User("credid", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(emailGen.sample.get))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
@@ -118,8 +131,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     mockMandateRepo
   )
 
-
-  implicit val hc = HeaderCarrier()
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   "ActivationTaskExecutor" should {
     lazy val message = ActivationTaskMessage(activationTaskService, MockMetricsCache.mockMetrics)
@@ -132,21 +144,28 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(New(startSignal), message)
-        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit), message))
+        expectMsg(TaskCommand(StageComplete(Next(
+          "gg-proxy-activation", Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId")), phaseCommit), message))
       }
     }
 
     "execute and move to 'finalize' step Tax Enrolment" when {
       "signal is Next('gg-proxy-activation', args)" in {
 
-
         when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(CREATED, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseCommit), message)
-        expectMsg(TaskCommand(StageComplete(Next("finalize-activation", Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId",
-          "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "groupId" -> "groupId", "credId" -> "credId")), phaseCommit), message))
+        expectMsg(TaskCommand(StageComplete(Next(
+          "finalize-activation", Map(
+            "serviceIdentifier" -> "serviceIdentifier",
+            "clientId" -> "clientId",
+            "agentCode" -> "agentCode",
+            "agentPartyId" -> "agentPartyId",
+            "mandateId" -> "mandateId",
+            "groupId" -> "groupId",
+            "credId" -> "credId")), phaseCommit), message))
       }
 
     }
@@ -154,24 +173,37 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "execute and FINISH" when {
       "signal is Next('finalize-activation', args), sends mail to client" in {
         when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
-        when(mockEmailNotificationService.sendMail(ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+        when(mockMandateRepository.updateMandate(any())(any()))
+          .thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
+        when(mockEmailNotificationService.sendMail(
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit), message)
-        expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier"), phaseCommit), message))
+        expectMsg(TaskCommand(Complete(Map(
+          "credId" -> "credId",
+          "clientId" -> "clientId",
+          "agentCode" -> "agentCode",
+          "mandateId" -> "mandateId",
+          "serviceIdentifier" -> "serviceIdentifier"), phaseCommit), message))
       }
 
       "signal is Next('finalize-activation', args), sends mail to agent" in {
         when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailNotificationService.sendMail(ArgumentMatchers.eq("agent@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(
+          ArgumentMatchers.eq("agent@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseCommit), message)
-        expectMsg(TaskCommand(Complete(Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier"), phaseCommit), message))
+        expectMsg(TaskCommand(Complete(Map(
+          "credId" -> "credId",
+          "clientId" -> "clientId",
+          "agentCode" -> "agentCode",
+          "mandateId" -> "mandateId",
+          "serviceIdentifier" -> "serviceIdentifier"), phaseCommit), message))
       }
     }
 
@@ -188,7 +220,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize', args) but no mandate is returned" in {
         when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateNotFound))
         when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
-        when(mockEmailNotificationService.sendMail(ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(),any(), any())(any())).thenReturn(Future.successful(EmailSent))
+        when(mockEmailNotificationService.sendMail(
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(),any(), any())(any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -213,7 +246,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
-        when(mockEmailNotificationService.sendMail(ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(),any(), any(), any())(any())) thenThrow exception
+        when(mockEmailNotificationService.sendMail(
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(),any(), any(), any())(any())) thenThrow exception
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -231,7 +265,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(StageComplete(startSignal1, phaseRollback), message)
-        expectMsg(TaskCommand(Complete(Map("clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "credId" -> "credId"), phaseRollback), message))
+        expectMsg(TaskCommand(Complete(Map(
+          "clientId" -> "clientId", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "credId" -> "credId"), phaseRollback), message))
 
       }
 
@@ -241,7 +276,14 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(StageComplete(nextSignal, phaseRollback), message)
-        expectMsg(TaskCommand(StageComplete(Start(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "groupId" -> "groupId", "credId" -> "credId")), phaseRollback), message))
+        expectMsg(TaskCommand(StageComplete(Start(Map(
+          "serviceIdentifier" -> "serviceIdentifier",
+          "clientId" -> "clientId",
+          "agentCode" -> "agentCode",
+          "agentPartyId" -> "agentPartyId",
+          "mandateId" -> "mandateId",
+          "groupId" -> "groupId",
+          "credId" -> "credId")), phaseRollback), message))
 
       }
 
@@ -251,8 +293,13 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
         actorRef ! TaskCommand(StageComplete(finalizeSignal, phaseRollback), message)
-        expectMsg(TaskCommand(StageComplete(Next("gg-proxy-activation", Map("credId" -> "credId", "clientId" -> "clientId", "agentCode" -> "agentCode", "mandateId" -> "mandateId", "serviceIdentifier" -> "serviceIdentifier")), phaseRollback), message))
-
+        expectMsg(TaskCommand(StageComplete(Next(
+          "gg-proxy-activation", Map(
+            "credId" -> "credId",
+            "clientId" -> "clientId",
+            "agentCode" -> "agentCode",
+            "mandateId" -> "mandateId",
+            "serviceIdentifier" -> "serviceIdentifier")), phaseRollback), message))
       }
     }
 
@@ -277,7 +324,14 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         actorRef ! TaskCommand(Failed(nextSignal, phaseRollback), message)
 
-        expectMsg(TaskCommand(RollbackFailureHandled(Map("serviceIdentifier" -> "serviceIdentifier", "clientId" -> "clientId", "agentCode" -> "agentCode", "agentPartyId" -> "agentPartyId", "mandateId" -> "mandateId", "groupId" -> "groupId", "credId" -> "credId")), message))
+        expectMsg(TaskCommand(RollbackFailureHandled(Map(
+          "serviceIdentifier" -> "serviceIdentifier",
+          "clientId" -> "clientId",
+          "agentCode" -> "agentCode",
+          "agentPartyId" -> "agentPartyId",
+          "mandateId" -> "mandateId",
+          "groupId" -> "groupId",
+          "credId" -> "credId")), message))
       }
     }
 

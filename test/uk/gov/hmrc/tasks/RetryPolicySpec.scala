@@ -16,11 +16,13 @@
 
 package uk.gov.hmrc.tasks
 
-import org.scalatest.{MustMatchers, WordSpec}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class RetryPolicySpec extends WordSpec with MustMatchers {
+class RetryPolicySpec extends AnyWordSpec with Matchers {
 
   "RetryUptoCount without exp backoff" must {
     "retry till the max count is reached irrespective of time" in {
@@ -94,6 +96,5 @@ class RetryPolicySpec extends WordSpec with MustMatchers {
       rCount.evalRetry(11000, RetryState(0, 1, 10000)) mustBe StopRetrying
     }
   }
-
 
 }

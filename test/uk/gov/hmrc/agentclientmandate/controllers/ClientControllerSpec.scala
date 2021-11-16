@@ -17,11 +17,9 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
-import org.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
@@ -37,7 +35,8 @@ import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-import scala.concurrent.{ExecutionContext,Future}
+
+import scala.concurrent.{ExecutionContext, Future}
 
 class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
@@ -145,7 +144,7 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
   lazy val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   class Setup {
-    val TestMandateController = new ClientController(
+    val TestMandateController: ClientController = new ClientController(
       createServiceMock,
       updateServiceMock,
       relationshipServiceMock,
@@ -175,7 +174,7 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
   val clientId = "XYZ"
   val service = "ated"
 
-  val newMandate =
+  val newMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),

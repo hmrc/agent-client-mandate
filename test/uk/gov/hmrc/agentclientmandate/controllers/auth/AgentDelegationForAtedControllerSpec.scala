@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers.auth
 
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
-import org.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._

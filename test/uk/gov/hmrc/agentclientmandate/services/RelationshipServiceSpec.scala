@@ -18,26 +18,25 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.joda.time.DateTime
-import org.mockito.Mockito._
-import org.scalatest.matchers.should.Matchers._
-import org.scalatest._
 import org.mockito.MockitoSugar
+import org.scalatest._
+import org.scalatest.matchers.should.Matchers._
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskService, DeActivationTaskService}
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.tasks._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  val mockMetrics = mock[ServiceMetrics]
+  val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val agentCode = "ABC"
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -50,7 +49,7 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     val service = new TestRelationshipService
 
     class TestRelationshipService extends RelationshipService {
-      override val authConnector = mockAuthConnector
+      override val authConnector: AuthConnector = mockAuthConnector
       override val serviceMetrics: ServiceMetrics = mockMetrics
       override val identifiers: _root_.com.typesafe.config.Config = mockConfig
       override val activationTaskService: ActivationTaskService = mockActivationTaskService
@@ -62,13 +61,13 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "throw an exception" when {
       "trying to create a relationship but service name is not ATED" in new Setup {
-        val caught = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
+        val caught: BadRequestException = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
           service.createAgentClientRelationship(mandate1, agentCode)
         }
         caught.getMessage should endWith("This is only defined for ATED")
       }
       "trying to break a relationship but service name is not ATED" in new Setup {
-        val caught = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
+        val caught: BadRequestException = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
           service.breakAgentClientRelationship(mandate1, agentCode, "client")
         }
         caught.getMessage should endWith("This is only defined for ATED")
@@ -80,7 +79,7 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
   val authoriseAction = "Authorise"
   val deAuthoriseAction = "De-Authorise"
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
-  val mandate =
+  val mandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", nameGen.sample.get, None),
@@ -91,13 +90,15 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
       clientDisplayName = "client display name"
     )
-  val task = Task("create", Map("clientId" -> mandate.subscription.referenceNumber.getOrElse(""),
+
+  val task: Task = Task("create", Map("clientId" -> mandate.subscription.referenceNumber.getOrElse(""),
     "agentPartyId" -> mandate.agentParty.id,
     "serviceIdentifier" -> mockConfig.getString(s"${mandate.subscription.service.id.toLowerCase()}.identifier"),
     "agentCode" -> agentCode,
     "mandateId" -> mandate.id,
     "credId" -> "credId"), ActivationTaskMessage(mockActivationTaskService, mockMetrics))
-  val mandate1 =
+
+  val mandate1: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
@@ -108,9 +109,10 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       subscription = Subscription(Some(atedUtr.utr), Service("ebc", "ABC")),
       clientDisplayName = "client display name"
     )
-  val mockAuthConnector = mock[AuthConnector]
-  val tc1mock = mock[TaskControllerT]
-  val successResponseJsonAuth = Json.parse(
+
+  val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  val tc1mock: TaskControllerT = mock[TaskControllerT]
+  val successResponseJsonAuth: JsValue = Json.parse(
     s"""{
                "credentials": {
                  "gatewayId": "cred-id-113244018119",

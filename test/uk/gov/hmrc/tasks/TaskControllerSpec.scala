@@ -18,9 +18,9 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
-import org.scalatest.matchers.should.Matchers.{contain, convertToAnyShouldWrapper}
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers.{contain, convertToAnyShouldWrapper}
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService

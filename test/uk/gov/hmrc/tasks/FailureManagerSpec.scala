@@ -18,9 +18,9 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
@@ -32,15 +32,15 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
 
   val retryPolicy = new TestRetry
   val args1 = Map("a" -> "1", "b" -> "2")
-  val retryState1 = RetryState(1000L,1,1000L)
-  val phaseCommit = Phase.Commit
-  val phaseRollback = Phase.Rollback
+  val retryState1: RetryState = RetryState(1000L,1,1000L)
+  val phaseCommit: Phase.Value = Phase.Commit
+  val phaseRollback: Phase.Value = Phase.Rollback
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
 
-  val message = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)
+  val message: ActivationTaskMessage = ActivationTaskMessage(mock[ActivationTaskService], MockMetricsCache.mockMetrics)
 
   "Failure Manager" must {
     "enqueue any task command sent to it" in {

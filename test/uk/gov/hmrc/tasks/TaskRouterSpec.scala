@@ -18,8 +18,8 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
@@ -32,12 +32,12 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
 
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)
-  val config = TestRouterConfig_TaskRouter("test", classOf[TestExecutor_TaskRouter], 1, retryPolicy)
-  val routerRef = TestActorRef[TaskRouter[TestExecutor_TaskRouter]](Props(new TaskRouter(config)))
-  val routerActor = routerRef.underlyingActor
+  val config: TestRouterConfig_TaskRouter[TestExecutor_TaskRouter] = TestRouterConfig_TaskRouter("test", classOf[TestExecutor_TaskRouter], 1, retryPolicy)
+  val routerRef: TestActorRef[TaskRouter[TestExecutor_TaskRouter]] = TestActorRef[TaskRouter[TestExecutor_TaskRouter]](Props(new TaskRouter(config)))
+  val routerActor: TaskRouter[TestExecutor_TaskRouter] = routerRef.underlyingActor
   val args1 = Map("a" -> "1", "b" -> "2")
 
-  val phaseCommit = Phase.Commit
+  val phaseCommit: Phase.Value = Phase.Commit
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
@@ -53,7 +53,6 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
     }
   }
 
-
 }
 
 case class TestRouterConfig_TaskRouter[A <: Actor](taskType:String,
@@ -68,5 +67,4 @@ class TestExecutor_TaskRouter extends TaskExecutor {
   override def execute(signal: Signal, service: ScheduledService): Try[Signal] = Success(signal)
   override def rollback(signal: Signal, service: ScheduledService): Try[Signal] = Success(signal)
   override def onRollbackFailure(lastSignal: Signal, service: ScheduledService): Unit = {}
-
 }

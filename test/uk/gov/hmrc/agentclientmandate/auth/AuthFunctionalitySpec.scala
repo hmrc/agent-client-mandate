@@ -17,10 +17,9 @@
 package uk.gov.hmrc.agentclientmandate.auth
 
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.MockitoSugar
 import org.scalatest.matchers.should.Matchers.{convertToAnyShouldWrapper, the}
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.mockito.MockitoSugar
 import play.api.mvc.Results._
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
@@ -45,8 +44,8 @@ class AuthFunctionalitySpec extends AnyWordSpecLike with MockitoSugar {
     override def authConnector: PlayAuthConnector = mockAuthConnector
   }
 
-  val atedEnrolmentIdentifier = EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")
-  val agentEnrolmentIdentifier = EnrolmentIdentifier(key = "AgentRefNumber", value = "agent-ref-num")
+  val atedEnrolmentIdentifier: EnrolmentIdentifier = EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")
+  val agentEnrolmentIdentifier: EnrolmentIdentifier = EnrolmentIdentifier(key = "AgentRefNumber", value = "agent-ref-num")
 
   val optionalAtedEnrolment: Option[Enrolment] = Option(Enrolment(
     key = "HMRC-ATED-ORG",
@@ -167,7 +166,8 @@ class AuthFunctionalitySpec extends AnyWordSpecLike with MockitoSugar {
 
     "throw an exception" when {
       "there is no ATED enrolment present" in {
-        val error = the[RuntimeException] thrownBy testAuthRetrieval.getEnrolmentId(Option(optionalAtedEnrolment.get.copy(identifiers = Seq())), "ATEDRefNumber")
+        val error = the[RuntimeException] thrownBy testAuthRetrieval
+          .getEnrolmentId(Option(optionalAtedEnrolment.get.copy(identifiers = Seq())), "ATEDRefNumber")
         error.getMessage shouldBe "[AuthRetrieval] No enrolment id found for ATEDRefNumber"
       }
 
