@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
@@ -56,21 +54,21 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
 
       "correct emailId Id is passed" in new Setup {
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        val emailString = emailGen.sample.get
+        val emailString: String = emailGen.sample.get
         val templateId = "client_approves_mandate"
 
         when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(),
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(202,"")))
 
-        val response = connector.sendTemplatedEmail(emailString, templateId, "ATED", None, "Recipient")
+        val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", None, "Recipient")
         await(response) must be(EmailSent)
 
       }
 
       "a uniqueAuthNumber has been added to the request" in new Setup {
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        val emailString = emailGen.sample.get
+        val emailString: String = emailGen.sample.get
         val templateId = "agent_removes_mandate"
 
         val expectedRequestBody: JsValue = Json.obj(
@@ -100,13 +98,13 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
 
       "incorrect email Id are passed" in new Setup {
         implicit val hc: HeaderCarrier = HeaderCarrier()
-        val invalidEmailString = emailGen.sample.get
+        val invalidEmailString: String = emailGen.sample.get
 
         when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(),
           any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(404,"")))
 
-        val response = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None, "Recipient")
+        val response: Future[EmailStatus] = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None, "Recipient")
         await(response) must be(EmailNotSent)
 
       }

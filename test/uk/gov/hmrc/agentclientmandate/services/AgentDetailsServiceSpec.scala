@@ -17,14 +17,12 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
@@ -33,9 +31,8 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.auth.core.retrieve.AgentInformation
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
+
 import scala.concurrent.Future
-
-
 
 class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
@@ -64,11 +61,9 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     override val mandateFetchService: MandateFetchService = mockMandateFetchService
   }
 
-
   "AgentDetailsService" must {
 
     "get agent details for individual" in {
-
 
       val successResponseJsonETMP = Json.parse(
         s"""
@@ -157,25 +152,24 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
           credentials = None
         )
 
-
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(testAuthRetrievalNoAgentRef)) must be(false)
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any()))
+          .thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any())).thenReturn(Future.successful(Seq(mandateToUse)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any()))
+          .thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
     }
   }
 
-
-
-  val mandate =
+  val mandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
@@ -187,7 +181,7 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       clientDisplayName = "client display name"
     )
 
-  val notRegisteredAgentJsonAuth = Json.parse(
+  val notRegisteredAgentJsonAuth: JsValue = Json.parse(
     s"""
       {
         "accounts": {

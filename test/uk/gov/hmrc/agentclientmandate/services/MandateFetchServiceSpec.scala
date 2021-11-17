@@ -18,9 +18,8 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
@@ -29,8 +28,8 @@ import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateF
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.http.HeaderCarrier
-import scala.concurrent.ExecutionContext.Implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
@@ -116,7 +115,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
   }
 
-  val clientMandate =
+  val clientMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", nameGen.sample.get, None),

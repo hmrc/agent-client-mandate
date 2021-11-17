@@ -18,9 +18,8 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import com.codahale.metrics.Timer
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
@@ -54,7 +53,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
       override val urlHeaderEnvironment: String = ""
       override val urlHeaderAuthorization: String = ""
       override val http: CoreGet with CorePost = mockWSHttp
-      override val metrics = mockMetrics
+      override val metrics: ServiceMetrics = mockMetrics
       override val etmpUrl: String = mockUrl
       override val auditConnector: AuditConnector = mockAuditConnector
       val ec: ExecutionContext = ExecutionContext.global
@@ -69,7 +68,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
         when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
-        val result = await(connector.getRegistrationDetails("ABC", "arn"))
+        val result: JsValue = await(connector.getRegistrationDetails("ABC", "arn"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
       }
 
@@ -77,7 +76,7 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
         when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
-        val result = await(connector.getRegistrationDetails("ABC", "safeid"))
+        val result: JsValue = await(connector.getRegistrationDetails("ABC", "safeid"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
       }
 
@@ -85,12 +84,12 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
         when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
-        val result = await(connector.getRegistrationDetails("ABC", "utr"))
+        val result: JsValue = await(connector.getRegistrationDetails("ABC", "utr"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
       }
 
       "throw exception when Invalid identifier type is passed" in new Setup {
-        val thrown = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "INVALID"))
+        val thrown: RuntimeException = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "INVALID"))
         thrown.getMessage must include("Unexpected identifier type supplied - INVALID")
       }
 
@@ -98,53 +97,55 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
         when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "")))
 
-        val thrown = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "arn"))
+        val thrown: RuntimeException = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "arn"))
         thrown.getMessage must include("No ETMP details found")
       }
     }
 
     "maintainAtedRelationship" must {
       "return valid response, if create/update relationship is successful in ETMP" in new Setup {
-        val successResponse = Json.parse("""{"processingDate" :  "2014-12-17T09:30:47Z"}""")
+        val successResponse: JsValue = Json.parse("""{"processingDate" :  "2014-12-17T09:30:47Z"}""")
         when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
-        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
-        val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
-        val response = await(connector.maintainAtedRelationship(agentClientRelationship))
+        val etmpRelationship: EtmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
+        val agentClientRelationship: EtmpAtedAgentClientRelationship = EtmpAtedAgentClientRelationship(
+          SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
+        val response: HttpResponse = await(connector.maintainAtedRelationship(agentClientRelationship))
         response.status must be(OK)
         response.json must be(successResponse)
       }
 
       "Check for a failure response when we try to create/update ATED relation in ETMP" in new Setup {
-        val failureResponse = Json.parse("""{"Reason" : "Service Unavailable"}""")
+        val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
         when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))
 
-        val etmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
-        val agentClientRelationship = EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
-        val response = await(connector.maintainAtedRelationship(agentClientRelationship))
+        val etmpRelationship: EtmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
+        val agentClientRelationship: EtmpAtedAgentClientRelationship = EtmpAtedAgentClientRelationship(
+          SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
+        val response: HttpResponse = await(connector.maintainAtedRelationship(agentClientRelationship))
         response.status must be(INTERNAL_SERVER_ERROR)
       }
     }
 
     "getAtedSubscriptionDetails" must {
       "return valid response, if success response received from ETMP" in new Setup {
-        val successResponse = Json.parse("""{"safeId" :  "safe-id"}""")
+        val successResponse: JsValue = Json.parse("""{"safeId" :  "safe-id"}""")
         when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
-        val response = await(connector.getAtedSubscriptionDetails("ated-ref-num"))
+        val response: JsValue = await(connector.getAtedSubscriptionDetails("ated-ref-num"))
         response must be(successResponse)
       }
 
       "throws error, if response status is not OK from ETMP" in new Setup {
-        val failureResponse = Json.parse("""{"Reason" : "Service Unavailable"}""")
+        val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
         when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
           .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
 
-        val result = connector.getAtedSubscriptionDetails("ated-ref-num")
-        val response = the[RuntimeException] thrownBy await(result)
+        val result: Future[JsValue] = connector.getAtedSubscriptionDetails("ated-ref-num")
+        val response: RuntimeException = the[RuntimeException] thrownBy await(result)
         response.getMessage must be("Error in getting ATED subscription details from ETMP")
       }
     }

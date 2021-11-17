@@ -28,7 +28,7 @@ class SessionUtilsSpec extends PlaySpec {
       first.length must be(32)
       second.length must be(32)
 
-      first must not be(second)
+      first must not be second
     }
   }
 }

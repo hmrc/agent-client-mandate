@@ -17,11 +17,9 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
@@ -49,7 +47,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "request is valid and client mandate found and status is active" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
@@ -57,14 +55,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
 
       "request is valid and client mandate found and status is New" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
         status(result) must be(OK)
       }
     }
@@ -74,7 +72,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "mandate with no agent code is fetched" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate1))
 
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
       }
 
@@ -82,7 +80,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
         status(result) must be(NOT_FOUND)
       }
@@ -91,7 +89,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
         status(result) must be(NOT_FOUND)
       }
@@ -100,7 +98,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
         when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
 
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
         status(result) must be(NOT_FOUND)
       }
@@ -114,7 +112,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       "no mandate is fetched" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateNotFound)
 
-        val result = TestMandateController.remove(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
         status(result) must be(NOT_FOUND)
       }
@@ -123,14 +121,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
     "fetch a mandate" when {
       "a valid mandate id is passed" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
-        val result = TestMandateController.fetch(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.fetch(mandateId).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(newMandate))
       }
 
       "return not found with invalid or non-existing mandateId is passed" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateNotFound)
-        val result = TestMandateController.fetch(mandateId).apply(FakeRequest())
+        val result: Future[Result] = TestMandateController.fetch(mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }
     }
@@ -164,7 +162,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
   lazy val cc: ControllerComponents = Helpers.stubControllerComponents()
 
   class Setup {
-    val TestMandateController = new MandateController(
+    val TestMandateController: MandateController = new MandateController(
       createServiceMock,
       updateServiceMock,
       relationshipServiceMock,
@@ -196,7 +194,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
   val arn = "JARN123456"
   val service = "ated"
 
-  val newMandate =
+  val newMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
@@ -208,7 +206,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       clientDisplayName = "client display name"
     )
 
-  val approvedMandate =
+  val approvedMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", Some("agent-code")),
@@ -220,7 +218,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       clientDisplayName = "client display name"
     )
 
-  val activeMandate =
+  val activeMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", Some("agent-code")),
@@ -232,7 +230,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       clientDisplayName = "client display name"
     )
 
-  val activeMandate1 =
+  val activeMandate1: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),
@@ -244,7 +242,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       clientDisplayName = "client display name"
     )
 
-  val cancelledMandate =
+  val cancelledMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid", "name", None),

@@ -18,9 +18,10 @@ package uk.gov.hmrc.tasks
 
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import org.scalatest.Matchers.convertToAnyShouldWrapper
-import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.wordspec.AnyWordSpecLike
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import utils.ScheduledService
@@ -28,24 +29,25 @@ import utils.ScheduledService
 import scala.collection.mutable.ArrayBuffer
 import scala.util.{Success, Try}
 
-
 class TaskManagerSpec extends TestKit(ActorSystem("test"))
-  with WordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
+  with AnyWordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)
-  val routerRef = TestActorRef[TestRouter_TaskManager]
-  val fmgrRef = TestActorRef[TestFailureManager_TaskManager]
-  val router = routerRef.underlyingActor
-  val fmgr = fmgrRef.underlyingActor
+  val routerRef: TestActorRef[TestRouter_TaskManager] = TestActorRef[TestRouter_TaskManager]
+  val fmgrRef: TestActorRef[TestFailureManager_TaskManager] = TestActorRef[TestFailureManager_TaskManager]
+  val router: TestRouter_TaskManager = routerRef.underlyingActor
+  val fmgr: TestFailureManager_TaskManager = fmgrRef.underlyingActor
 
-  val config = TestConfig_TaskManager("test", classOf[TestExecutor_TaskManager], 1, retryPolicy, routerRef, fmgrRef)
-  val taskManagerActorRef = TestActorRef[TaskManager[TestExecutor_TaskManager]](Props(new TaskManager(config)))
-  val actor = taskManagerActorRef.underlyingActor
+  val config: TestConfig_TaskManager[TestExecutor_TaskManager] = TestConfig_TaskManager(
+    "test", classOf[TestExecutor_TaskManager], 1, retryPolicy, routerRef, fmgrRef)
+  val taskManagerActorRef: TestActorRef[TaskManager[TestExecutor_TaskManager]] =
+    TestActorRef[TaskManager[TestExecutor_TaskManager]](Props(new TaskManager(config)))
+  val actor: TaskManager[TestExecutor_TaskManager] = taskManagerActorRef.underlyingActor
   val args1 = Map("a" -> "1", "b" -> "2")
-  val retryState1 = RetryState(1000L, 1, 1000L)
+  val retryState1: RetryState = RetryState(1000L, 1, 1000L)
 
-  val phaseCommit = Phase.Commit
+  val phaseCommit: Phase.Value = Phase.Commit
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
@@ -57,7 +59,7 @@ class TaskManagerSpec extends TestKit(ActorSystem("test"))
 
     "send task command to router on receiving a task" in {
       taskManagerActorRef ! Task("test", args1, message)
-      router.cmds(0) shouldBe (TaskCommand(New(Start(args1)), message))
+      router.cmds(0) shouldBe TaskCommand(New(Start(args1)), message)
       router.cmds.clear()
     }
 
@@ -97,7 +99,6 @@ class TaskManagerSpec extends TestKit(ActorSystem("test"))
   }
 
 }
-
 
 class TestRouter_TaskManager extends Actor {
   var cmds: ArrayBuffer[TaskCommand] = ArrayBuffer()

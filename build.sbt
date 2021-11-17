@@ -22,7 +22,7 @@ lazy val scoverageSettings = {
     ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;.*testOnly.*;" +
       "uk.gov.hmrc.BuildInfo*;.*binders.*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;" +
       ".*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
-    ScoverageKeys.coverageMinimum := 80,
+    ScoverageKeys.coverageMinimumStmtTotal := 80,
     ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true
   )
@@ -46,7 +46,6 @@ lazy val microservice = Project(appName, file("."))
     scalaVersion := "2.12.11", //left at 2.12.11 because 2.12.12 caused pipeline issues
     libraryDependencies ++= appDependencies,
     retrieveManaged := true,
-    evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     routesGenerator := InjectedRoutesGenerator,
     parallelExecution in Test := true,
     fork in Test := true,

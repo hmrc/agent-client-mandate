@@ -17,15 +17,13 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import org.joda.time.DateTime
-import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers._
-import org.mockito.Mockito._
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailSent}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailSent, EmailStatus}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -36,7 +34,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
 
   trait Setup {
     class TestNotificationEmailService extends NotificationEmailService {
-      override val emailConnector = mockEmailConnector
+      override val emailConnector: EmailConnector = mockEmailConnector
     }
 
     val service = new TestNotificationEmailService
@@ -49,7 +47,8 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
       "client approves mandate" in new Setup {
         val email = "agent_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Approved, Some("client"), Some("agent"), "Agent name", service = "ATED", Some(Status.New))
+        val response: Future[EmailStatus] = service.sendMail(
+          email, Status.Approved, Some("client"), Some("agent"), "Agent name", service = "ATED", Some(Status.New))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_approves_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
       }
@@ -57,7 +56,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
       "agent activates mandate" in new Setup {
         val email = "client_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Active, Some("agent"), Some("client"), "Client name", "ATED", Some(Status.Approved))
+        val response: Future[EmailStatus] = service.sendMail(email, Status.Active, Some("agent"), Some("client"), "Client name", "ATED", Some(Status.Approved))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_activates_mandate", "Annual Tax on Enveloped Dwellings", None, "Client name")
       }
@@ -65,7 +64,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
        "agent self-auth non-uk mandate" in new Setup {
          val email = "agent_email@email.com"
          when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-         val response = service.sendMail(email, Status.Active, Some("agent"), Some("agent"), "Agent name", "ATED", None)
+         val response: Future[EmailStatus] = service.sendMail(email, Status.Active, Some("agent"), Some("agent"), "Agent name", "ATED", None)
          await(response) must be(EmailSent)
          verify(mockEmailConnector).sendTemplatedEmail(email, "agent_self_auth_activates_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
        }
@@ -73,7 +72,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
        "agent rejects mandate" in new Setup {
          val email = "client_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Rejected, Some("agent"), Some("client"),"Client name","ATED", Some(Status.Approved))
+        val response: Future[EmailStatus] = service.sendMail(email, Status.Rejected, Some("agent"), Some("client"),"Client name","ATED", Some(Status.Approved))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_rejects_mandate", "Annual Tax on Enveloped Dwellings", None, "Client name")
       }
@@ -85,13 +84,21 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(clientEmail), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(agentEmail), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
-        val responseToAgent = service.sendMail(agentEmail, Status.Cancelled, Some("agent"), Some("agent"),"Agent name","ATED", Some(Status.Active))
-        val responseToClient = service.sendMail(clientEmail, Status.Cancelled, Some("agent"), Some("client"),"Client name","ATED", uniqueAuthNo = Some("UNIQUEREF123"), prevStatus = Some(Status.Active))
+        val responseToAgent: Future[EmailStatus] = service.sendMail(
+          agentEmail, Status.Cancelled, Some("agent"), Some("agent"),"Agent name","ATED", Some(Status.Active))
+        val responseToClient: Future[EmailStatus] = service.sendMail(
+          clientEmail,
+          Status.Cancelled,
+          Some("agent"),
+          Some("client"),"Client name","ATED",
+          uniqueAuthNo = Some("UNIQUEREF123"),
+          prevStatus = Some(Status.Active))
 
         await(responseToAgent) must be(EmailSent)
         await(responseToClient) must be(EmailSent)
 
-        verify(mockEmailConnector).sendTemplatedEmail(agentEmail, "agent_self_auth_deactivates_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
+        verify(mockEmailConnector).sendTemplatedEmail(
+          agentEmail, "agent_self_auth_deactivates_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
         verify(mockEmailConnector).sendTemplatedEmail(clientEmail, "agent_removes_mandate",
           "Annual Tax on Enveloped Dwellings", uniqueAuthNo = Some("UNIQUEREF123"), "Client name")
       }
@@ -99,7 +106,8 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
       "client cancels approved mandate" in new Setup {
         val email = "client@client_email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Cancelled, Some("client"), Some("agent"), "Agent name","ATED", Some(Status.Approved), None)
+        val response: Future[EmailStatus] = service.sendMail(
+          email, Status.Cancelled, Some("client"), Some("agent"), "Agent name","ATED", Some(Status.Approved), None)
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_removes_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
       }
@@ -107,7 +115,8 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
       "client cancels active mandate" in new Setup {
         val email = "client_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Cancelled, Some("client"), Some("agent"),"Agent name","ATED", Some(Status.Active), None)
+        val response: Future[EmailStatus] = service.sendMail(
+          email, Status.Cancelled, Some("client"), Some("agent"),"Agent name","ATED", Some(Status.Active), None)
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_cancels_active_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
       }
@@ -117,7 +126,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
       "service name not found" in new Setup {
         val email = "some_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response = service.sendMail(email, Status.Active, None, None, "", service = "aaaa", None)
+        val response: Future[EmailStatus] = service.sendMail(email, Status.Active, None, None, "", service = "aaaa", None)
         await(response) must be(EmailSent)
       }
     }
@@ -126,15 +135,16 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val validResponse = Json.parse( """{"valid":"true"}""")
-  val invalidResponse = Json.parse( """{"valid":"false"}""")
+  val validResponse: JsValue = Json.parse( """{"valid":"true"}""")
+  val invalidResponse: JsValue = Json.parse( """{"valid":"false"}""")
 
-  val clientMandate =
+  val clientMandate: Mandate =
     Mandate(
       id = "123",
       createdBy = User("credid",nameGen.sample.get , None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = Some(Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
+      clientParty = Some(Party(
+        partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
       currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ATED")),
@@ -146,7 +156,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
 
   val invalidEmail = "aa bb cc"
 
-  val mockEmailConnector = mock[EmailConnector]
+  val mockEmailConnector: EmailConnector = mock[EmailConnector]
 
   override def beforeEach(): Unit = {
     reset(mockEmailConnector)
