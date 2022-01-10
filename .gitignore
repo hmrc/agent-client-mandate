@@ -18,5 +18,7 @@ dist
 /.settings
 *.iws
 .bsp*
-
+.metals
+.bloop
+project/metals.sbt
     
