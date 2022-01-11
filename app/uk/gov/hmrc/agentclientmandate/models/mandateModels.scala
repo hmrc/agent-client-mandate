@@ -72,7 +72,7 @@ object MandateStatus {
     override def writes(o: MandateStatus): JsValue = {
       val status: JsValue = Json.toJson(o.status)
       val updatedBy: JsValue = Json.toJson(o.updatedBy)
-      val timestamp: JsValue = Json.toJson(o.timestamp.getMillis)
+      val timestamp: Long = o.timestamp.getMillis
 
       Json.obj(
         "status" -> status,
@@ -86,8 +86,8 @@ object MandateStatus {
     override def reads(json: JsValue): JsResult[MandateStatus] = {
       val status = (json \ "status").asOpt[Status]
       val updatedBy = (json \ "updatedBy").asOpt[String]
-      val timestamp = (json \ "timestamp").asOpt[JsNumber] map { number =>
-        new DateTime(number.value.longValue())
+      val timestamp = (json \ "timestamp").asOpt[Long] map { number =>
+        new DateTime(number.longValue())
       }
 
       (status, updatedBy, timestamp) match {
