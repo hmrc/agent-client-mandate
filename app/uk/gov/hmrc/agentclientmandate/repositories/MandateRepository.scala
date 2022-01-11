@@ -26,9 +26,6 @@ import org.mongodb.scala.model.Updates._
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo._
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import scala.concurrent.{ExecutionContext, Future}
-// import uk.gov.hmrc.mongo.play.json.formats.MongoFormats.Implicits._
-// import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats.Implicits._
 import org.mongodb.scala.result.InsertOneResult
 import org.mongodb.scala.result.DeleteResult
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
@@ -57,9 +54,6 @@ case object MandateNotFound extends MandateFetchStatus
 sealed trait MandateRemove
 case object MandateRemoved extends MandateRemove
 case object MandateRemoveError extends MandateRemove
-
-// class MandateRepositoryImpl @Inject()(val mongo: MongoComponent,
-//                                       val serviceMetrics: ServiceMetrics) extends MandateRepo
 
 trait MandateRepo {
   val repository: MandateRepository
@@ -106,7 +100,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     replaceIndexes = true)
     with MandateRepository {
 
-  val logger: Logger = Logger(getClass())
+  val logger: Logger = Logger(getClass)
   val repository: MandateRepository = this
 
   def insertMandate(mandate: Mandate)(implicit ec: ExecutionContext): Future[MandateCreate] = {
@@ -309,7 +303,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
         .findOneAndUpdate(query, modifier, FindOneAndUpdateOptions().upsert(false))
         .toFutureOption
     }.map {
-      case Some(result) =>
+      case Some(_) =>
         timerContext.stop()
         MandateUpdatedEmail
       case _ =>

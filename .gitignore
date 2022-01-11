@@ -21,4 +21,6 @@ dist
 .metals
 .bloop
 project/metals.sbt
-    
+.DS_Store
+/.DS_Store
+
