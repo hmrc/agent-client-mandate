@@ -18,5 +18,9 @@ dist
 /.settings
 *.iws
 .bsp*
+.metals
+.bloop
+project/metals.sbt
+.DS_Store
+/.DS_Store
 
-    

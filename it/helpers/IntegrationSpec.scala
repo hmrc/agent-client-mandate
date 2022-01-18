@@ -9,8 +9,6 @@ import play.api.libs.ws.WSRequest
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepo
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
 trait IntegrationSpec
   extends PlaySpec
     with BeforeAndAfterEach
@@ -31,13 +29,13 @@ trait IntegrationSpec
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    await(mandateRepo.repository.collection.drop(failIfNotFound = false))
+    await(mandateRepo.repository.collection.drop().toFuture)
     resetWmServer()
   }
 
   override protected def afterAll(): Unit = {
     super.afterAll()
-    await(mandateRepo.repository.collection.drop(failIfNotFound = false))
+    await(mandateRepo.repository.collection.drop().toFuture)
     stopWmServer()
   }
 
