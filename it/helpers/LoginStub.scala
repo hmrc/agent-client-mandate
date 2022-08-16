@@ -16,8 +16,6 @@
 
 package helpers
 
-import java.util.UUID
-
 import play.api.Application
 import play.api.mvc.{DefaultCookieHeaderEncoding, DefaultSessionCookieBaker}
 import uk.gov.hmrc.auth.core.retrieve.{LegacyCredentials, SimpleRetrieval}
@@ -28,7 +26,7 @@ trait LoginStub {
   lazy val signerSession: DefaultSessionCookieBaker = app.injector.instanceOf[DefaultSessionCookieBaker]
   lazy val cookieHeader: DefaultCookieHeaderEncoding = app.injector.instanceOf[DefaultCookieHeaderEncoding]
 
-  val SessionId = s"stubbed-${UUID.randomUUID}"
+  val SessionId: String = "mock-sessionid"
 
   private def cookieData(additionalData: Map[String, String], timeStampRollback: Long): Map[String, String] = {
     val timeStamp = new java.util.Date().getTime

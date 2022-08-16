@@ -4,11 +4,11 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import helpers.IntegrationSpec
 import org.joda.time.DateTime
 import org.scalatest
-import play.api.http.HeaderNames
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class RelationshipServiceISpec extends IntegrationSpec {
@@ -59,7 +59,7 @@ class RelationshipServiceISpec extends IntegrationSpec {
           )
         )
 
-        stubFor(post(urlMatching(s"/auth/authorise"))
+        stubFor(post(urlMatching("/auth/authorise"))
           .willReturn(
             aResponse()
               .withStatus(200)
@@ -127,7 +127,6 @@ class RelationshipServiceISpec extends IntegrationSpec {
 
         val result: WSResponse = await(
           hitApplicationEndpoint(s"/agent/FAKE-AB123456/mandate/activate/$mandateID")
-            .withHttpHeaders(HeaderNames.SET_COOKIE -> getSessionCookie())
             .post(Json.toJson("""{}"""))
         )
 
