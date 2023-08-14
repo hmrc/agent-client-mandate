@@ -108,14 +108,16 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .insertOne(mandate)
-        .toFutureOption
-    }.map {
-      case Some(res: InsertOneResult) if res.wasAcknowledged =>
-        timerContext.stop()
-        MandateCreated(mandate)
-      case None =>
-        timerContext.stop()
-        MandateCreateError
+        .toFutureOption()
+    }.map { result =>
+      (result: @unchecked) match {
+        case Some(res: InsertOneResult) if res.wasAcknowledged =>
+          timerContext.stop()
+          MandateCreated(mandate)
+        case None =>
+          timerContext.stop()
+          MandateCreateError
+      }
     }.recover {
       case e => logger.warn("Failed to insert mandate", e)
         timerContext.stop()
@@ -128,7 +130,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .replaceOne(equal("id", mandate.id), mandate, ReplaceOptions().upsert(false))
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(res: UpdateResult) if res.wasAcknowledged =>
         timerContext.stop()
@@ -176,7 +178,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       collection
         .find(query)
         .sort(orderBy(descending("_id")))
-        .headOption
+        .headOption()
         .map {
           case Some(mandate) =>
             timerContext.stop()
@@ -211,8 +213,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       collection
         .find(query)
         .sort(orderBy(ascending("clientDisplayName")))
-        .collect
-        .toFutureOption
+        .collect()
+        .toFutureOption()
         .map {
           case None => Nil
           case Some(mandates) if displayName.isDefined =>
@@ -242,7 +244,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       val queryResult = Mdc.preservingMdc {
         collection
           .find(query)
-          .collect
+          .collect()
           .toFutureOption()
           .map{
             case None => Nil
@@ -278,7 +280,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .updateMany(query, modifier)
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(result) if result.wasAcknowledged =>
         timerContext.stop()
@@ -301,7 +303,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .findOneAndUpdate(query, modifier, FindOneAndUpdateOptions().upsert(false))
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(_) =>
         timerContext.stop()
@@ -324,7 +326,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .updateMany(query, modifier)
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(result) if result.wasAcknowledged =>
         timerContext.stop()
@@ -352,8 +354,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val result = Mdc.preservingMdc {
       collection
         .find(query)
-        .collect
-        .toFutureOption
+        .collect()
+        .toFutureOption()
         .map{
           case None => Seq.empty
           case Some(res) => res
@@ -379,8 +381,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val result = Try(Mdc.preservingMdc {
       collection
         .find(query)
-        .collect
-        .toFutureOption
+        .collect()
+        .toFutureOption()
         .map{
           case None => Seq.empty
           case Some(res) => res
@@ -407,7 +409,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
       .deleteOne(query)
-      .toFutureOption
+      .toFutureOption()
     }.map {
       case Some(result: DeleteResult) if result.getDeletedCount > 0 => MandateRemoved
       case _ => MandateRemoveError

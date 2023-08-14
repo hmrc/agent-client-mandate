@@ -112,7 +112,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       .thenReturn(mockMandateRepository)
   }
 
-  override def afterAll {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 

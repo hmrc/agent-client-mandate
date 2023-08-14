@@ -113,7 +113,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterE
 
   }
 
-  override def beforeEach() {
+  override def beforeEach(): Unit = {
     reset(mockWSHttp)
   }
 }

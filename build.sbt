@@ -27,8 +27,6 @@ lazy val scoverageSettings = {
   )
 }
 
-val silencerVersion = "1.7.1"
-
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin) ++ plugins: _*)
   .settings(playSettings: _*)
@@ -41,7 +39,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     addTestReportOption(IntegrationTest, "int-test-reports"),
     inConfig(IntegrationTest)(Defaults.itSettings),
-    scalaVersion := "2.12.11", //left at 2.12.11 because 2.12.12 caused pipeline issues
+    scalaVersion := "2.13.8",
     libraryDependencies ++= appDependencies,
     retrieveManaged := true,
     routesGenerator := InjectedRoutesGenerator,
@@ -50,12 +48,8 @@ lazy val microservice = Project(appName, file("."))
     IntegrationTest / Keys.fork := false,
     IntegrationTest / unmanagedSourceDirectories := (IntegrationTest / baseDirectory) (base => Seq(base / "it")).value,
     IntegrationTest / parallelExecution := false,
-    scalacOptions += "-P:silencer:pathFilters=views;routes",
-    scalacOptions ++= Seq("-feature"),
-    libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-    )
+    scalacOptions += "-Wconf:src=routes/.*:s",
+    scalacOptions ++= Seq("-feature")
   )
   .configs(IntegrationTest)
   .disablePlugins(JUnitXmlReportPlugin)

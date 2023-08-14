@@ -36,7 +36,7 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
   val phaseCommit: Phase.Value = Phase.Commit
   val phaseRollback: Phase.Value = Phase.Rollback
 
-  override def afterAll {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 

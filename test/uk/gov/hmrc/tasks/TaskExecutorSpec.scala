@@ -41,9 +41,10 @@ class TaskExecutorSpec extends TestKit(ActorSystem("test"))
   val phaseCommit: Phase.Value = Phase.Commit
   val phaseRollback: Phase.Value = Phase.Rollback
 
-  override def afterAll {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
+
   override def beforeAll(): Unit = {
     when(MockMetricsCache.mockMetrics.startTimer(any()))
       .thenReturn(null)

@@ -32,7 +32,7 @@ import scala.util.{Success, Try}
 class TaskControllerSpec extends TestKit(ActorSystem("test"))
   with AnyWordSpecLike with BeforeAndAfterAll with DefaultTimeout with ImplicitSender with MockitoSugar {
 
-  override def afterAll {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 

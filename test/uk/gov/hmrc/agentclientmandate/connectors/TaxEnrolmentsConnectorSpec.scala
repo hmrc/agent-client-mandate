@@ -42,7 +42,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
   val newEnrolment: String = newEnrolmentGen.sample.get
   val userType = "client"
 
-  override def beforeEach: Unit = {
+  override def beforeEach(): Unit = {
     reset(mockWSHttp, mockMetrics, mockAuditConnector)
 
     when(mockMetrics.startTimer(any()))
