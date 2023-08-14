@@ -17,18 +17,19 @@
 package uk.gov.hmrc.agentclientmandate.utils
 
 import java.util.concurrent.ConcurrentLinkedQueue
-
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.Audit._
 import uk.gov.hmrc.play.audit.model.{Audit, AuditAsMagnet, DataEvent}
+
+import scala.concurrent.ExecutionContext
 
 class TestAudit(val auditConnector: AuditConnector) extends Audit("test", auditConnector) {
   var capturedTxName: String = ""
   var capturedInputs: Map[String, String] = Map.empty
   private val dataEvents = new ConcurrentLinkedQueue[DataEvent]
 
-  override def as[A](auditMagnet: AuditAsMagnet[A])(body: Body[A])(implicit hc: HeaderCarrier): A = {
+  override def as[A](auditMagnet: AuditAsMagnet[A])(body: Body[A])(implicit hc: HeaderCarrier, ec: ExecutionContext): A = {
     this.capturedTxName = auditMagnet.txName
     this.capturedInputs = auditMagnet.inputs
     super.as(auditMagnet)(body)
@@ -41,5 +42,5 @@ class TestAudit(val auditConnector: AuditConnector) extends Audit("test", auditC
     ()
   }
 
-  override def sendDataEvent: DataEvent => Unit = captureDataEvent
+  def sendDataEvent: DataEvent => Unit = captureDataEvent
 }

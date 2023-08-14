@@ -14,7 +14,7 @@ object AppDependencies {
 //    "com.typesafe.akka" %% "akka-actor-typed"           % "2.6.21",
 //    "com.typesafe.akka" %% "akka-serialization-jackson" % "2.6.21",
 //    ws,
-    "uk.gov.hmrc"       %% "bootstrap-backend-play-28"  % "5.25.0",
+    "uk.gov.hmrc"       %% "bootstrap-backend-play-28"  % "7.21.0",
     "uk.gov.hmrc"       %% "domain"                     % "8.3.0-play-28",
     "com.typesafe.play" %% "play-json-joda"             % "2.9.4"
   )
@@ -27,7 +27,7 @@ object AppDependencies {
   object Test {
     def apply(): Seq[ModuleID] = new TestDependencies {
       override lazy val test: Seq[ModuleID] = Seq(
-        "uk.gov.hmrc"                  %% "bootstrap-test-play-28"    % "5.25.0"            % scope,
+        "uk.gov.hmrc"                  %% "bootstrap-test-play-28"    % "7.21.0"            % scope,
         "com.typesafe.play"            %% "play-test"                 % PlayVersion.current % scope,
         "uk.gov.hmrc.mongo"            %% "hmrc-mongo-test-play-28"   % "0.70.0"            % scope,
         "com.typesafe.akka"            %% "akka-testkit"              % "2.6.21"            % scope,
