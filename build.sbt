@@ -6,7 +6,6 @@ import sbt._
 import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings}
 import uk.gov.hmrc.SbtAutoBuildPlugin
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
@@ -36,7 +35,6 @@ lazy val microservice = Project(appName, file("."))
   .settings(majorVersion := 1)
   .configs(IntegrationTest)
   .settings(scalaSettings: _*)
-  .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(RoutesKeys.routesImport ++= Seq("uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._"))
   .settings(playSettings ++ scoverageSettings: _*)
@@ -47,11 +45,11 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= appDependencies,
     retrieveManaged := true,
     routesGenerator := InjectedRoutesGenerator,
-    parallelExecution in Test := true,
-    fork in Test := true,
-    Keys.fork in IntegrationTest := false,
-    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it")).value,
-    parallelExecution in IntegrationTest := false,
+    Test / parallelExecution := true,
+    Test / fork := true,
+    IntegrationTest / Keys.fork := false,
+    IntegrationTest / unmanagedSourceDirectories := (IntegrationTest / baseDirectory) (base => Seq(base / "it")).value,
+    IntegrationTest / parallelExecution := false,
     scalacOptions += "-P:silencer:pathFilters=views;routes",
     scalacOptions ++= Seq("-feature"),
     libraryDependencies ++= Seq(

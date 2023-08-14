@@ -7,12 +7,12 @@ object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"         % "0.70.0",
-    "com.typesafe.akka" %% "akka-actor"                 % "2.6.19",
-    "com.typesafe.akka" %% "akka-protobuf"              % "2.6.19",
-    "com.typesafe.akka" %% "akka-stream"                % "2.6.19",
-    "com.typesafe.akka" %% "akka-slf4j"                 % "2.6.19",
-    "com.typesafe.akka" %% "akka-actor-typed"           % "2.6.19",
-    "com.typesafe.akka" %% "akka-serialization-jackson" % "2.6.19",
+    "com.typesafe.akka" %% "akka-actor"                 % "2.6.21",
+    "com.typesafe.akka" %% "akka-protobuf"              % "2.6.21",
+    "com.typesafe.akka" %% "akka-stream"                % "2.6.21",
+    "com.typesafe.akka" %% "akka-slf4j"                 % "2.6.21",
+    "com.typesafe.akka" %% "akka-actor-typed"           % "2.6.21",
+    "com.typesafe.akka" %% "akka-serialization-jackson" % "2.6.21",
     ws,
     "uk.gov.hmrc"       %% "bootstrap-backend-play-28"  % "5.25.0",
     "uk.gov.hmrc"       %% "domain"                     % "8.1.0-play-28",
@@ -28,10 +28,9 @@ object AppDependencies {
     def apply(): Seq[ModuleID] = new TestDependencies {
       override lazy val test: Seq[ModuleID] = Seq(
         "uk.gov.hmrc"                  %% "bootstrap-test-play-28"    % "5.25.0"            % scope,
-        "org.pegdown"                  %  "pegdown"                   % "1.6.0"             % scope,
         "com.typesafe.play"            %% "play-test"                 % PlayVersion.current % scope,
         "uk.gov.hmrc.mongo"            %% "hmrc-mongo-test-play-28"   % "0.70.0"            % scope,
-        "com.typesafe.akka"            %% "akka-testkit"              % "2.6.19"            % scope,
+        "com.typesafe.akka"            %% "akka-testkit"              % "2.6.21"            % scope,
         "org.mockito"                  %  "mockito-core"              % "4.7.0"             % scope,
         "org.mockito"                  %% "mockito-scala"             % "1.17.12"            % scope,
         "org.mockito"                  %% "mockito-scala-scalatest"   % "1.17.12"            % scope,
