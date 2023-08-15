@@ -86,18 +86,18 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     mongoComponent = mongo,
     domainFormat = Mandate.formats,
     indexes = Seq(
-                IndexModel(ascending("id"), IndexOptions().name("idIndex").unique(true).sparse(true)),
-                IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
-                IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
-                IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
-                IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
-              ),
+      IndexModel(ascending("id"), IndexOptions().name("idIndex").unique(true).sparse(true)),
+      IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
+      IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
+      IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
+      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
+    ),
     extraCodecs = Seq(Codecs.playFormatCodec(User.formats),
-                      Codecs.playFormatCodec(Party.formats),
-                      Codecs.playFormatCodec(Service.formats),
-                      Codecs.playFormatCodec(Status.enumFormat),
-                      Codecs.playFormatCodec(MandateStatus.formats),
-                      Codecs.playFormatCodec(Subscription.formats)),
+      Codecs.playFormatCodec(Party.formats),
+      Codecs.playFormatCodec(Service.formats),
+      Codecs.playFormatCodec(Status.enumFormat),
+      Codecs.playFormatCodec(MandateStatus.formats),
+      Codecs.playFormatCodec(Subscription.formats)),
     replaceIndexes = true)
     with MandateRepository {
 
@@ -110,15 +110,13 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       collection
         .insertOne(mandate)
         .toFutureOption()
-    }.map { result =>
-      (result: @unchecked) match {
-        case Some(res: InsertOneResult) if res.wasAcknowledged =>
-          timerContext.stop()
-          MandateCreated(mandate)
-        case None =>
-          timerContext.stop()
-          MandateCreateError
-      }
+    }.map {
+      case Some(res: InsertOneResult) if res.wasAcknowledged =>
+        timerContext.stop()
+        MandateCreated(mandate)
+      case _ =>
+        timerContext.stop()
+        MandateCreateError
     }.recover {
       case e => logger.warn("Failed to insert mandate", e)
         timerContext.stop()
@@ -160,7 +158,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
           case _ =>
             timerContext.stop()
             MandateNotFound
-      }
+        }
     }
   }
 
@@ -169,9 +167,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       equal("clientParty.id", clientId),
       equal("subscription.service.id", service.toUpperCase),
       or(equal("currentStatus.status", Status.Active.toString),
-         equal("currentStatus.status", Status.Approved.toString),
-         equal("currentStatus.status", Status.Rejected.toString),
-         equal("currentStatus.status", Status.Cancelled.toString))
+        equal("currentStatus.status", Status.Approved.toString),
+        equal("currentStatus.status", Status.Rejected.toString),
+        equal("currentStatus.status", Status.Cancelled.toString))
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
@@ -187,7 +185,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
           case _ =>
             timerContext.stop()
             MandateNotFound
-       }
+        }
     }
   }
 
@@ -221,10 +219,10 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
           case Some(mandates) if displayName.isDefined =>
             mandates.filter(mandate =>
               mandate.currentStatus.status != Status.Active ||
-             (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase))
+                (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase))
             )
           case Some(mandates) => mandates
-      }
+        }
     }
 
     result onComplete {
@@ -346,9 +344,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val query = and(
       lt("currentStatus.timestamp", dateFrom.getMillis),
       or(equal("currentStatus.status", Status.New.toString),
-         equal("currentStatus.status", Status.Approved.toString),
-         equal("currentStatus.status", Status.PendingCancellation.toString),
-         equal("currentStatus.status", Status.PendingActivation.toString))
+        equal("currentStatus.status", Status.Approved.toString),
+        equal("currentStatus.status", Status.PendingCancellation.toString),
+        equal("currentStatus.status", Status.PendingActivation.toString))
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindOldMandates)
 
@@ -409,8 +407,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val query = equal("id", mandateId)
     Mdc.preservingMdc {
       collection
-      .deleteOne(query)
-      .toFutureOption()
+        .deleteOne(query)
+        .toFutureOption()
     }.map {
       case Some(result: DeleteResult) if result.getDeletedCount > 0 => MandateRemoved
       case _ => MandateRemoveError
