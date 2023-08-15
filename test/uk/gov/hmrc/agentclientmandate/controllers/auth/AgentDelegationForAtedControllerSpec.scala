@@ -37,33 +37,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AgentDelegationForAtedControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  "AgentDelegationForAtedController" must {
-
-    "return OK" when {
-      "agent is authorised to act on behalf of ated customers" in {
-        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.successful(true))
-        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
-        status(result) must be(OK)
-      }
-    }
-
-    "return UnAuthorised" when {
-      "agent is not authorised to act on behalf of ated customers" in {
-        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.successful(false))
-        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
-        status(result) must be(UNAUTHORIZED)
-      }
-    }
-
-    "return not found" when {
-      "Runtime Exception is thrown" in {
-        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any())).thenReturn(Future.failed(new RuntimeException("some error")))
-        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
-        status(result) must be(NOT_FOUND)
-      }
-    }
-  }
-
   val agentCode: AgentCode = AgentCode("XYZ")
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -87,6 +60,33 @@ class AgentDelegationForAtedControllerSpec extends PlaySpec with MockitoSugar wi
     override val authConnector: DefaultAuthConnector = mockAuthConnector
     override val agentDetailsService: AgentDetailsService = mockRelationshipService
     override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
+  }
+
+  "AgentDelegationForAtedController" must {
+
+    "return OK" when {
+      "agent is authorised to act on behalf of ated customers" in {
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any(), any())).thenReturn(Future.successful(true))
+        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
+        status(result) must be(OK)
+      }
+    }
+
+    "return UnAuthorised" when {
+      "agent is not authorised to act on behalf of ated customers" in {
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any(), any())).thenReturn(Future.successful(false))
+        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
+        status(result) must be(UNAUTHORIZED)
+      }
+    }
+
+    "return not found" when {
+      "Runtime Exception is thrown" in {
+        when(mockRelationshipService.isAuthorisedForAted(ArgumentMatchers.eq(atedUtr))(any(), any())).thenReturn(Future.failed(new RuntimeException("some error")))
+        val result = TestAgentDelegationForAtedController.isAuthorisedForAted(agentCode, atedUtr).apply(FakeRequest())
+        status(result) must be(NOT_FOUND)
+      }
+    }
   }
 
 }

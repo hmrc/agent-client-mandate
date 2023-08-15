@@ -57,25 +57,6 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     }
   }
 
-  "RelationshipService" should {
-
-    "throw an exception" when {
-      "trying to create a relationship but service name is not ATED" in new Setup {
-        val caught: BadRequestException = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
-          service.createAgentClientRelationship(mandate1, agentCode)
-        }
-        caught.getMessage should endWith("This is only defined for ATED")
-      }
-      "trying to break a relationship but service name is not ATED" in new Setup {
-        val caught: BadRequestException = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
-          service.breakAgentClientRelationship(mandate1, agentCode, "client")
-        }
-        caught.getMessage should endWith("This is only defined for ATED")
-      }
-
-    }
-
-  }
   val authoriseAction = "Authorise"
   val deAuthoriseAction = "De-Authorise"
   val atedUtr: AtedUtr = new Generator().nextAtedUtr
@@ -128,6 +109,24 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
   override def beforeEach(): Unit = {
     reset(mockAuthConnector)
     reset(tc1mock)
+  }
+
+  "RelationshipService" should {
+
+    "throw an exception" when {
+      "trying to create a relationship but service name is not ATED" in new Setup {
+        val caught: BadRequestException = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
+          service.createAgentClientRelationship(mandate1, agentCode)
+        }
+        caught.getMessage should endWith("This is only defined for ATED")
+      }
+      "trying to break a relationship but service name is not ATED" in new Setup {
+        val caught: BadRequestException = intercept[_root_.uk.gov.hmrc.http.BadRequestException] {
+          service.breakAgentClientRelationship(mandate1, agentCode, "client")
+        }
+        caught.getMessage should endWith("This is only defined for ATED")
+      }
+    }
   }
 
 }

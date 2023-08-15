@@ -41,6 +41,126 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
+  val ar: AuthRetrieval = AuthRetrieval(
+    enrolments = Set(
+      Enrolment(
+        key = "HMRC-AGENT-AGENT",
+        identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
+        state = "active"
+      ),
+      Enrolment(
+        key = "HMRC-ATED-ORG",
+        identifiers = Seq(EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")),
+        state = "active"
+      )
+    ),
+    agentInformation = AgentInformation(None, None, None),
+    Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
+  )
+
+  val fetchServiceMock: MandateFetchService = mock[MandateFetchService]
+  val createServiceMock: MandateCreateService = mock[MandateCreateService]
+  val updateServiceMock: MandateUpdateService = mock[MandateUpdateService]
+  val relationshipServiceMock: RelationshipService = mock[RelationshipService]
+  val agentDetailsServiceMock: AgentDetailsService = mock[AgentDetailsService]
+  val notificationServiceMock: NotificationEmailService = mock[NotificationEmailService]
+  val authConnectorMock: DefaultAuthConnector = mock[DefaultAuthConnector]
+  val auditConnectorMock: AuditConnector = mock[AuditConnector]
+  lazy val cc: ControllerComponents = Helpers.stubControllerComponents()
+
+  class Setup {
+    val TestMandateController: MandateController = new MandateController(
+      createServiceMock,
+      updateServiceMock,
+      relationshipServiceMock,
+      agentDetailsServiceMock,
+      auditConnectorMock,
+      notificationServiceMock,
+      fetchServiceMock,
+      authConnectorMock,
+      cc
+    ){
+      override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
+    }
+  }
+
+  override def beforeEach(): Unit = {
+    reset(fetchServiceMock)
+    reset(createServiceMock)
+    reset(updateServiceMock)
+    reset(relationshipServiceMock)
+    reset(authConnectorMock)
+    reset(agentDetailsServiceMock)
+    reset(notificationServiceMock)
+  }
+
+  val mandateId = "123"
+  val agentCode = "ABC"
+  val clientId = "XYZ"
+  val orgId = "ORG"
+  val arn = "JARN123456"
+  val service = "ated"
+
+  val newMandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val approvedMandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", Some("agent-code")),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Approved, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val activeMandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", Some("agent-code")),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val activeMandate1: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val cancelledMandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
   "MandateController" should {
     "remove the mandate" when {
 
@@ -134,123 +254,4 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
     }
   }
 
-  val ar: AuthRetrieval = AuthRetrieval(
-    enrolments = Set(
-      Enrolment(
-        key = "HMRC-AGENT-AGENT",
-        identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
-        state = "active"
-      ),
-      Enrolment(
-        key = "HMRC-ATED-ORG",
-        identifiers = Seq(EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")),
-        state = "active"
-      )
-    ),
-    agentInformation = AgentInformation(None, None, None),
-    Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
-  )
-
-  val fetchServiceMock: MandateFetchService = mock[MandateFetchService]
-  val createServiceMock: MandateCreateService = mock[MandateCreateService]
-  val updateServiceMock: MandateUpdateService = mock[MandateUpdateService]
-  val relationshipServiceMock: RelationshipService = mock[RelationshipService]
-  val agentDetailsServiceMock: AgentDetailsService = mock[AgentDetailsService]
-  val notificationServiceMock: NotificationEmailService = mock[NotificationEmailService]
-  val authConnectorMock: DefaultAuthConnector = mock[DefaultAuthConnector]
-  val auditConnectorMock: AuditConnector = mock[AuditConnector]
-  lazy val cc: ControllerComponents = Helpers.stubControllerComponents()
-
-  class Setup {
-    val TestMandateController: MandateController = new MandateController(
-      createServiceMock,
-      updateServiceMock,
-      relationshipServiceMock,
-      agentDetailsServiceMock,
-      auditConnectorMock,
-      notificationServiceMock,
-      fetchServiceMock,
-      authConnectorMock,
-      cc
-    ){
-      override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
-    }
- }
-
-  override def beforeEach(): Unit = {
-    reset(fetchServiceMock)
-    reset(createServiceMock)
-    reset(updateServiceMock)
-    reset(relationshipServiceMock)
-    reset(authConnectorMock)
-    reset(agentDetailsServiceMock)
-    reset(notificationServiceMock)
-  }
-
-  val mandateId = "123"
-  val agentCode = "ABC"
-  val clientId = "XYZ"
-  val orgId = "ORG"
-  val arn = "JARN123456"
-  val service = "ated"
-
-  val newMandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
-
-  val approvedMandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", Some("agent-code")),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.Approved, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
-
-  val activeMandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", Some("agent-code")),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
-
-  val activeMandate1: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
-
-  val cancelledMandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
 }

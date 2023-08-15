@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.repositories
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.Logger
 import org.mongodb.scala._
@@ -79,6 +79,7 @@ trait MandateRepository extends PlayMongoRepository[Mandate] with MandateRepo {
   def metrics: ServiceMetrics
 }
 
+@Singleton
 class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: ServiceMetrics)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[Mandate](
     collectionName = "mandates",
