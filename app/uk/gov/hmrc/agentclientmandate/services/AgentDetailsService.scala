@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,13 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import java.time.LocalDate
-
 import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.domain.AtedUtr
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultAgentDetailsService @Inject()(val etmpConnector: EtmpConnector,
                                            val mandateFetchService: MandateFetchService) extends AgentDetailsService
@@ -35,7 +33,7 @@ trait AgentDetailsService {
   def etmpConnector: EtmpConnector
   def mandateFetchService: MandateFetchService
 
-  def getAgentDetails(implicit authRetrieval: AuthRetrieval): Future[AgentDetails] = {
+  def getAgentDetails(implicit authRetrieval: AuthRetrieval, ec: ExecutionContext): Future[AgentDetails] = {
 
     val agentPartyId = authRetrieval.agentBusinessUtr.value
 
@@ -86,7 +84,7 @@ trait AgentDetailsService {
       }
   }
 
-  def isAuthorisedForAted(ated: AtedUtr)(implicit ar: AuthRetrieval): Future[Boolean] = {
+  def isAuthorisedForAted(ated: AtedUtr)(implicit ar: AuthRetrieval, ec: ExecutionContext): Future[Boolean] = {
       val agentRefNumberOpt = ar.agentBusinessEnrolment.identifiers.find(_.key.toLowerCase == "agentrefnumber")
       agentRefNumberOpt match {
         case Some(arn) =>

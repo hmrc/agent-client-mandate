@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,12 @@ class GsoAdminDeallocateAgentXmlInputSpec extends PlaySpec {
 
       val identsXml = idents.toXml
 
-      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "ServiceName").text.toString must be("ATED")
-      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "AgentCode").text.toString must be("ABCDEFGHIJKL")
+      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "ServiceName").text must be("ATED")
+      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "AgentCode").text must be("ABCDEFGHIJKL")
       (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.size must be(2)
-      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.head.text.toString must be("value1")
-      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.tail.text.toString must be("value2")
+      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.head.text must be("value1")
+      (identsXml \\ "GsoAdminDeallocateAgentXmlInput" \ "Identifiers" \ "Identifier").toList.tail.text must be("value2")
     }
-
   }
 
 }

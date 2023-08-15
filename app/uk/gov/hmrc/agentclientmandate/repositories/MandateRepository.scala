@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.repositories
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.Logger
 import org.mongodb.scala._
@@ -79,24 +79,25 @@ trait MandateRepository extends PlayMongoRepository[Mandate] with MandateRepo {
   def metrics: ServiceMetrics
 }
 
+@Singleton
 class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: ServiceMetrics)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[Mandate](
     collectionName = "mandates",
     mongoComponent = mongo,
     domainFormat = Mandate.formats,
     indexes = Seq(
-                IndexModel(ascending("id"), IndexOptions().name("idIndex").unique(true).sparse(true)),
-                IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
-                IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
-                IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
-                IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
-              ),
+      IndexModel(ascending("id"), IndexOptions().name("idIndex").unique(true).sparse(true)),
+      IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
+      IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
+      IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
+      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
+    ),
     extraCodecs = Seq(Codecs.playFormatCodec(User.formats),
-                      Codecs.playFormatCodec(Party.formats),
-                      Codecs.playFormatCodec(Service.formats),
-                      Codecs.playFormatCodec(Status.enumFormat),
-                      Codecs.playFormatCodec(MandateStatus.formats),
-                      Codecs.playFormatCodec(Subscription.formats)),
+      Codecs.playFormatCodec(Party.formats),
+      Codecs.playFormatCodec(Service.formats),
+      Codecs.playFormatCodec(Status.enumFormat),
+      Codecs.playFormatCodec(MandateStatus.formats),
+      Codecs.playFormatCodec(Subscription.formats)),
     replaceIndexes = true)
     with MandateRepository {
 
@@ -108,12 +109,12 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .insertOne(mandate)
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(res: InsertOneResult) if res.wasAcknowledged =>
         timerContext.stop()
         MandateCreated(mandate)
-      case None =>
+      case _ =>
         timerContext.stop()
         MandateCreateError
     }.recover {
@@ -128,7 +129,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .replaceOne(equal("id", mandate.id), mandate, ReplaceOptions().upsert(false))
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(res: UpdateResult) if res.wasAcknowledged =>
         timerContext.stop()
@@ -157,7 +158,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
           case _ =>
             timerContext.stop()
             MandateNotFound
-      }
+        }
     }
   }
 
@@ -166,9 +167,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       equal("clientParty.id", clientId),
       equal("subscription.service.id", service.toUpperCase),
       or(equal("currentStatus.status", Status.Active.toString),
-         equal("currentStatus.status", Status.Approved.toString),
-         equal("currentStatus.status", Status.Rejected.toString),
-         equal("currentStatus.status", Status.Cancelled.toString))
+        equal("currentStatus.status", Status.Approved.toString),
+        equal("currentStatus.status", Status.Rejected.toString),
+        equal("currentStatus.status", Status.Cancelled.toString))
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
@@ -176,7 +177,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       collection
         .find(query)
         .sort(orderBy(descending("_id")))
-        .headOption
+        .headOption()
         .map {
           case Some(mandate) =>
             timerContext.stop()
@@ -184,7 +185,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
           case _ =>
             timerContext.stop()
             MandateNotFound
-       }
+        }
     }
   }
 
@@ -211,17 +212,17 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       collection
         .find(query)
         .sort(orderBy(ascending("clientDisplayName")))
-        .collect
-        .toFutureOption
+        .collect()
+        .toFutureOption()
         .map {
           case None => Nil
           case Some(mandates) if displayName.isDefined =>
             mandates.filter(mandate =>
               mandate.currentStatus.status != Status.Active ||
-             (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase))
+                (mandate.currentStatus.status == Status.Active && mandate.clientDisplayName.toLowerCase.contains(displayName.get.toLowerCase))
             )
           case Some(mandates) => mandates
-      }
+        }
     }
 
     result onComplete {
@@ -242,7 +243,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       val queryResult = Mdc.preservingMdc {
         collection
           .find(query)
-          .collect
+          .collect()
           .toFutureOption()
           .map{
             case None => Nil
@@ -278,7 +279,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .updateMany(query, modifier)
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(result) if result.wasAcknowledged =>
         timerContext.stop()
@@ -301,7 +302,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .findOneAndUpdate(query, modifier, FindOneAndUpdateOptions().upsert(false))
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(_) =>
         timerContext.stop()
@@ -324,7 +325,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     Mdc.preservingMdc {
       collection
         .updateMany(query, modifier)
-        .toFutureOption
+        .toFutureOption()
     }.map {
       case Some(result) if result.wasAcknowledged =>
         timerContext.stop()
@@ -343,17 +344,17 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val query = and(
       lt("currentStatus.timestamp", dateFrom.getMillis),
       or(equal("currentStatus.status", Status.New.toString),
-         equal("currentStatus.status", Status.Approved.toString),
-         equal("currentStatus.status", Status.PendingCancellation.toString),
-         equal("currentStatus.status", Status.PendingActivation.toString))
+        equal("currentStatus.status", Status.Approved.toString),
+        equal("currentStatus.status", Status.PendingCancellation.toString),
+        equal("currentStatus.status", Status.PendingActivation.toString))
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindOldMandates)
 
     val result = Mdc.preservingMdc {
       collection
         .find(query)
-        .collect
-        .toFutureOption
+        .collect()
+        .toFutureOption()
         .map{
           case None => Seq.empty
           case Some(res) => res
@@ -379,8 +380,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val result = Try(Mdc.preservingMdc {
       collection
         .find(query)
-        .collect
-        .toFutureOption
+        .collect()
+        .toFutureOption()
         .map{
           case None => Seq.empty
           case Some(res) => res
@@ -406,8 +407,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val query = equal("id", mandateId)
     Mdc.preservingMdc {
       collection
-      .deleteOne(query)
-      .toFutureOption
+        .deleteOne(query)
+        .toFutureOption()
     }.map {
       case Some(result: DeleteResult) if result.getDeletedCount > 0 => MandateRemoved
       case _ => MandateRemoveError

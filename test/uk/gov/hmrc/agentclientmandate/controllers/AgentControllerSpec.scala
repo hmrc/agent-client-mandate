@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,7 +152,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
 
       "an exception is thrown by getAgentDetails in 'getAgentDetails'" in new Setup {
-        when(agentDetailsServiceMock.getAgentDetails(any()))
+        when(agentDetailsServiceMock.getAgentDetails(any(), any()))
           .thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for AgentRefNumber.")))
         val result: Future[Result] = TestMandateController.getAgentDetails().apply(FakeRequest())
         status(result) mustBe NOT_FOUND
@@ -333,7 +333,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
 
   "get agent details" when {
     "agent requests details" in new Setup {
-      when(agentDetailsServiceMock.getAgentDetails(any())).thenReturn(Future.successful(agentDetails))
+      when(agentDetailsServiceMock.getAgentDetails(any(), any())).thenReturn(Future.successful(agentDetails))
       val result: Future[Result] = TestMandateController.getAgentDetails().apply(FakeRequest())
       status(result) must be(OK)
     }

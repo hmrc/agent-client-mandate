@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,20 +54,23 @@ trait MandateUpdateService extends Auditable {
       case "ated" =>
         mandateRepository.fetchMandate(approvedMandate.id) flatMap {
           case MandateFetched(m) if m.currentStatus.status == Status.New =>
-              etmpConnector.getAtedSubscriptionDetails(ar.atedUtr.value) flatMap { subscriptionJson =>
-                val clientPartyId = (subscriptionJson \ "safeId").as[String]
-                val clientPartyName = (subscriptionJson \ "organisationName").as[String]
-                val approvedBy = User(ar.govGatewayId, clientPartyName)
-                val clientParty = approvedMandate.clientParty.getOrElse(throw new RuntimeException("Client party not found"))
-                val clientPartyUpdated = clientParty.copy(id = clientPartyId, name = clientPartyName)
-                val subscription = approvedMandate.subscription.copy(referenceNumber = Some(ar.atedUtr.value))
-                val updatedMandate = approvedMandate.copy(
-                  approvedBy = Some(approvedBy),
-                  clientParty = Some(clientPartyUpdated),
-                  subscription = subscription
-                )
-                updateMandate(updatedMandate, Some(Status.Approved))
-              }
+            etmpConnector.getAtedSubscriptionDetails(ar.atedUtr.value) flatMap { subscriptionJson =>
+              val clientPartyId = (subscriptionJson \ "safeId").as[String]
+              val clientPartyName = (subscriptionJson \ "organisationName").as[String]
+              val approvedBy = User(ar.govGatewayId, clientPartyName)
+              val clientParty = approvedMandate.clientParty.getOrElse(throw new RuntimeException("Client party not found"))
+              val clientPartyUpdated = clientParty.copy(id = clientPartyId, name = clientPartyName)
+              val subscription = approvedMandate.subscription.copy(referenceNumber = Some(ar.atedUtr.value))
+              val updatedMandate = approvedMandate.copy(
+                approvedBy = Some(approvedBy),
+                clientParty = Some(clientPartyUpdated),
+                subscription = subscription
+              )
+              updateMandate(updatedMandate, Some(Status.Approved))
+            }
+          case MandateFetched(_) =>
+            logWarn(s"[MandateUpdateService][approveMandate] - mandate not new")
+            throw new RuntimeException(s"mandate with id::${approvedMandate.id} found but not new")
           case MandateNotFound =>
             logWarn(s"[MandateUpdateService][approveMandate] - mandate not found")
             throw new RuntimeException(s"mandate not found for mandate id::${approvedMandate.id}")
@@ -79,11 +82,11 @@ trait MandateUpdateService extends Auditable {
   }
 
   def updateMandate(mandate: Mandate, setStatus: Option[Status] = None)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
-      val updatedMandate = setStatus match {
-        case Some(x) => mandate.updateStatus(MandateStatus(x, DateTime.now, ar.govGatewayId))
-        case None => mandate
-      }
-      mandateRepository.updateMandate(updatedMandate)
+    val updatedMandate = setStatus match {
+      case Some(x) => mandate.updateStatus(MandateStatus(x, DateTime.now, ar.govGatewayId))
+      case None => mandate
+    }
+    mandateRepository.updateMandate(updatedMandate)
   }
 
   def updateAgentEmail(arn: String, email: String, service: String): Future[MandateUpdate] = {
@@ -97,7 +100,7 @@ trait MandateUpdateService extends Auditable {
   }
 
   def updateAgentCredId(oldCredId: String)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
-      mandateRepository.updateAgentCredId(oldCredId, ar.govGatewayId)
+    mandateRepository.updateAgentCredId(oldCredId, ar.govGatewayId)
   }
 
   def checkStaleDocuments(): Future[_] = {

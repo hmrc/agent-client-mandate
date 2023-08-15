@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,6 +58,18 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     credentials = Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
   )
 
+  val clientMandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", nameGen.sample.get, None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = None,
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(None, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
   "FetchClientMandateService" should {
 
     "return a success response" when {
@@ -68,9 +80,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
         val response: Future[MandateFetchStatus] = service.fetchClientMandate(mandateId)
         await(response) must be(MandateFetched(clientMandate))
-
       }
-
     }
 
     "list of client mandate is found for a valid arn and service name in MongoDB" in new Setup {
@@ -79,7 +89,6 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
       val response: Future[Seq[Mandate]] = service.getAllMandates(agentReferenceNumberGen.sample.get, "ATED", None, None)
       await(response) must be(List(clientMandate))
-
     }
 
     "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in new Setup {
@@ -97,7 +106,6 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
       val response: Future[MandateFetchStatus] = service.fetchClientMandate("clientId", "service")
       await(response) must be(MandateFetched(clientMandate))
-
     }
 
     "a list of mandates is found for an agent id" in new Setup {
@@ -112,18 +120,6 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       val response: Future[Seq[String]] = service.fetchClientCancelledMandates("arn", "service")
       await(response) must be(List("AAA", "BBB"))
     }
-
   }
 
-  val clientMandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", nameGen.sample.get, None),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = None,
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(None, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
 }

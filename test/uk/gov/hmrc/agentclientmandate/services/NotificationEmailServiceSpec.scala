@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,35 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
     }
 
     val service = new TestNotificationEmailService
+  }
+
+  implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  val validResponse: JsValue = Json.parse( """{"valid":"true"}""")
+  val invalidResponse: JsValue = Json.parse( """{"valid":"false"}""")
+
+  val clientMandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid",nameGen.sample.get , None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = Some(Party(
+        partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val invalidMandateId = "123456"
+  val validMandateId = "123"
+
+  val invalidEmail = "aa bb cc"
+
+  val mockEmailConnector: EmailConnector = mock[EmailConnector]
+
+  override def beforeEach(): Unit = {
+    reset(mockEmailConnector)
   }
 
   "NotificationEmailService" should {
@@ -130,36 +159,6 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
         await(response) must be(EmailSent)
       }
     }
-
-  }
-
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-
-  val validResponse: JsValue = Json.parse( """{"valid":"true"}""")
-  val invalidResponse: JsValue = Json.parse( """{"valid":"false"}""")
-
-  val clientMandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid",nameGen.sample.get , None),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = Some(Party(
-        partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
-
-  val invalidMandateId = "123456"
-  val validMandateId = "123"
-
-  val invalidEmail = "aa bb cc"
-
-  val mockEmailConnector: EmailConnector = mock[EmailConnector]
-
-  override def beforeEach(): Unit = {
-    reset(mockEmailConnector)
   }
 
 }

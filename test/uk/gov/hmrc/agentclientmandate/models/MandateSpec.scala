@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
 class MandateSpec extends PlaySpec {
 
-  val mandate = Mandate(id = mandateReferenceGen.sample.get, createdBy = User("credId", nameGen.sample.get, None),
+  val mandate: Mandate = Mandate(id = mandateReferenceGen.sample.get, createdBy = User("credId", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
     clientParty = None,
     currentStatus = MandateStatus(Status.New, DateTime.now, "credId"),

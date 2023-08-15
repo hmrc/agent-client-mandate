@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,15 @@ import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.{Audit, DataEvent}
 
+import scala.concurrent.ExecutionContext
+
 trait Auditable {
 
   val auditConnector: AuditConnector
 
   private def audit: Audit = new Audit("agent-client-mandate", auditConnector)
 
-  def doAudit(auditType: String, ac: String, m: Mandate)(implicit hc:HeaderCarrier): Unit = {
+  def doAudit(auditType: String, ac: String, m: Mandate)(implicit hc:HeaderCarrier, ec: ExecutionContext): Unit = {
 
     val auditDetails = Map("serviceName" -> m.subscription.service.name,
       "mandateId" -> m.id,
@@ -46,7 +48,7 @@ trait Auditable {
     sendDataEvent(auditType, auditDetails ++ clientAuditDetails)
   }
 
-  def doResponseAudit(auditType: String, resp: HttpResponse)(implicit hc:HeaderCarrier): Unit = {
+  def doResponseAudit(auditType: String, resp: HttpResponse)(implicit hc:HeaderCarrier, ec: ExecutionContext): Unit = {
     val auditDetails = Map("serviceName" -> "ated",
       "response.status" -> s"${resp.status}",
       "response.body" -> s"${resp.body}")
@@ -54,7 +56,7 @@ trait Auditable {
     sendDataEvent(auditType, auditDetails)
   }
 
-  def doFailedAudit(auditType: String, request: String, response: String)(implicit hc:HeaderCarrier): Unit = {
+  def doFailedAudit(auditType: String, request: String, response: String)(implicit hc:HeaderCarrier, ec: ExecutionContext): Unit = {
     val auditDetails = Map("request" -> request,
                            "response" -> response)
 
@@ -62,7 +64,7 @@ trait Auditable {
   }
 
   private def sendDataEvent(auditType: String, detail: Map[String, String])
-                   (implicit hc: HeaderCarrier): Unit =
+                   (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
     audit.sendDataEvent(DataEvent("agent-client-mandate", auditType,
       tags = hc.toAuditTags("", "N/A"),
       detail = hc.toAuditDetails(detail.toSeq: _*)))

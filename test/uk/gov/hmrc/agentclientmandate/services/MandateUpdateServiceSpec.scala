@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
   val mockEtmpConnector: EtmpConnector = mock[EtmpConnector]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-  override def beforeEach: Unit = {
+  override def beforeEach(): Unit = {
     reset(mockMandateRepository)
     reset(mockEtmpConnector)
 
@@ -81,6 +81,46 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
     agentInformation = AgentInformation(None, None, None),
     Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
   )
+
+  val timeToUse: DateTime = DateTime.now()
+  val currentMillis: Long = timeToUse.getMillis
+
+  val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
+    subscription = Subscription(None, Service("ated", "ATED")),
+    clientDisplayName = "client display name"
+  )
+
+  val clientApprovedMandate: Mandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
+    currentStatus = MandateStatus(Status.Approved, timeToUse, ""),
+    subscription = Subscription(None, Service("ated", "ATED")),
+    clientDisplayName = "client display name"
+  )
+
+  val updatedMandate: Mandate = Mandate(mandateReferenceGen.sample.get,
+    User("credid", nameGen.sample.get, None),
+    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
+    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
+    currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
+    subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
+    clientDisplayName = "client display name"
+  )
+
+  val etmpSubscriptionJson: JsValue = Json.parse(
+    """
+      |{
+      |  "safeId": "cred-id-1234567890",
+      |  "organisationName": "client-name"
+      |}
+    """.stripMargin
+  )
+
+  val mandateIds: Seq[String] = Seq(mandate.id, clientApprovedMandate.id, updatedMandate.id)
 
   "MandateUpdateService" should {
 
@@ -183,45 +223,5 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
       }
     }
   }
-
-  val timeToUse: DateTime = DateTime.now()
-  val currentMillis: Long = timeToUse.getMillis
-
-  val mandate = Mandate(mandateReferenceGen.sample.get,
-    User("credid", nameGen.sample.get, None),
-    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
-    currentStatus = MandateStatus(Status.New, timeToUse, "credid"),
-    subscription = Subscription(None, Service("ated", "ATED")),
-    clientDisplayName = "client display name"
-  )
-
-  val clientApprovedMandate = Mandate(mandateReferenceGen.sample.get,
-    User("credid", nameGen.sample.get, None),
-    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("", "", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
-    currentStatus = MandateStatus(Status.Approved, timeToUse, ""),
-    subscription = Subscription(None, Service("ated", "ATED")),
-    clientDisplayName = "client display name"
-  )
-
-  val updatedMandate = Mandate(mandateReferenceGen.sample.get,
-    User("credid", nameGen.sample.get, None),
-    agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
-    clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
-    currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
-    subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
-    clientDisplayName = "client display name"
-  )
-
-  val etmpSubscriptionJson: JsValue = Json.parse(
-    """
-      |{
-      |  "safeId": "cred-id-1234567890",
-      |  "organisationName": "client-name"
-      |}
-    """.stripMargin
-  )
-
-  val mandateIds: Seq[String] = Seq(mandate.id, clientApprovedMandate.id, updatedMandate.id)
 
 }

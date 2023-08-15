@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,11 +32,12 @@ import uk.gov.hmrc.auth.core.retrieve.AgentInformation
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
+  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
   implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
     enrolments = Set(Enrolment(
@@ -60,6 +61,30 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     override val etmpConnector: EtmpConnector = etmpConnectorMock
     override val mandateFetchService: MandateFetchService = mockMandateFetchService
   }
+
+  val mandate: Mandate =
+    Mandate(
+      id = "123",
+      createdBy = User("credid", "name", None),
+      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
+      clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
+      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      statusHistory = Nil,
+      subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
+      clientDisplayName = "client display name"
+    )
+
+  val notRegisteredAgentJsonAuth: JsValue = Json.parse(
+    s"""
+      {
+        "accounts": {
+          "agent": {
+            "agentCode":"${agentCodeGen.sample.get}"
+          }
+        }
+      }
+    """
+  )
 
   "AgentDetailsService" must {
 
@@ -152,7 +177,7 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
           credentials = None
         )
 
-        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(testAuthRetrievalNoAgentRef)) must be(false)
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(testAuthRetrievalNoAgentRef, ec)) must be(false)
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
@@ -169,27 +194,4 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     }
   }
 
-  val mandate: Mandate =
-    Mandate(
-      id = "123",
-      createdBy = User("credid", "name", None),
-      agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
-      clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
-      statusHistory = Nil,
-      subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
-      clientDisplayName = "client display name"
-    )
-
-  val notRegisteredAgentJsonAuth: JsValue = Json.parse(
-    s"""
-      {
-        "accounts": {
-          "agent": {
-            "agentCode":"${agentCodeGen.sample.get}"
-          }
-        }
-      }
-    """
-  )
 }
