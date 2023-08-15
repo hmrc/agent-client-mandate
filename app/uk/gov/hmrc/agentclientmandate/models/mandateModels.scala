@@ -69,32 +69,28 @@ object Status extends Enumeration {
 case class MandateStatus(status: Status, timestamp: DateTime, updatedBy: String)
 
 object MandateStatus {
-  val statusWrites: Writes[MandateStatus] = new Writes[MandateStatus] {
-    override def writes(o: MandateStatus): JsValue = {
-      val status: JsValue = Json.toJson(o.status)
-      val updatedBy: JsValue = Json.toJson(o.updatedBy)
-      val timestamp: Long = o.timestamp.getMillis
+  val statusWrites: Writes[MandateStatus] = (o: MandateStatus) => {
+    val status: JsValue = Json.toJson(o.status)
+    val updatedBy: JsValue = Json.toJson(o.updatedBy)
+    val timestamp: Long = o.timestamp.getMillis
 
-      Json.obj(
-        "status" -> status,
-        "timestamp" -> timestamp,
-        "updatedBy" -> updatedBy
-      )
-    }
+    Json.obj(
+      "status" -> status,
+      "timestamp" -> timestamp,
+      "updatedBy" -> updatedBy
+    )
   }
 
-  val reads: Reads[MandateStatus] = new Reads[MandateStatus] {
-    override def reads(json: JsValue): JsResult[MandateStatus] = {
-      val status = (json \ "status").asOpt[Status]
-      val updatedBy = (json \ "updatedBy").asOpt[String]
-      val timestamp = (json \ "timestamp").asOpt[Long] map { number =>
-        new DateTime(number.longValue())
-      }
+  val reads: Reads[MandateStatus] = (json: JsValue) => {
+    val status = (json \ "status").asOpt[Status]
+    val updatedBy = (json \ "updatedBy").asOpt[String]
+    val timestamp = (json \ "timestamp").asOpt[Long] map { number =>
+      new DateTime(number.longValue())
+    }
 
-      (status, updatedBy, timestamp) match {
-        case (Some(st), Some(ub), Some(ts)) => JsSuccess(MandateStatus(st, ts, ub))
-        case _                              => JsError("Could not parse MandateStatus")
-      }
+    (status, updatedBy, timestamp) match {
+      case (Some(st), Some(ub), Some(ts)) => JsSuccess(MandateStatus(st, ts, ub))
+      case _ => JsError("Could not parse MandateStatus")
     }
   }
 
