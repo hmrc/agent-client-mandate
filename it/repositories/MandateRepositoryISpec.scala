@@ -1,7 +1,7 @@
 package repositories
 
 import helpers.IntegrationSpec
-import org.joda.time.DateTime
+import java.time.{LocalDateTime, ZoneOffset, Instant}
 import org.scalatest.Assertion
 import org.mongodb.scala._
 import org.mongodb.scala.model.Filters._
@@ -17,8 +17,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class MandateRepositoryISpec extends IntegrationSpec {
 
   val repo = mandateRepo.repository
-  val when = new DateTime(2023, 8, 24, 10, 55)
-  val laterThanWhen = new DateTime(2023, 8, 24, 19, 55)
+  val when = LocalDateTime.of(2023, 8, 24, 10, 55).toInstant(ZoneOffset.UTC)
+  val laterThanWhen = LocalDateTime.of(2023, 8, 24, 19, 55).toInstant(ZoneOffset.UTC)
   val serviceName: String = "ated"
   val serviceId: String = "ATED"
   val subscription = Subscription(None, Service(serviceId, serviceName))
@@ -29,8 +29,8 @@ class MandateRepositoryISpec extends IntegrationSpec {
   val mandateIds: List[String] = Range(0,20).map(id => s"Mandate_id$id").toList
   
   override protected def afterAll(): Unit = {
-    // super.afterAll()
-    // await(mandateRepo.repository.collection.drop().toFuture())
+    super.afterAll()
+    await(mandateRepo.repository.collection.drop().toFuture())
     stopWmServer()    
   }
 
@@ -39,7 +39,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
                     servName: String, 
                     agentId: String, 
                     clientId: String,
-                    ts: DateTime, 
+                    ts: Instant, 
                     status: Status.Status, 
                     agentEmail: String = "agent@notrealemail.fake",
                     clientEmail: String = "client@notrealemail.fake"): Mandate =
@@ -90,10 +90,10 @@ class MandateRepositoryISpec extends IntegrationSpec {
       val mandate = createMandate(mandateIds(0), "cred-id-113244018119", serviceName, agentIds(1), clientIds(0), when, New)
       await(mandateRepo.repository.insertMandate(mandate)) match {
         case mandateCreate: MandateCreated =>
-          val updatedMandate = mandate.copy(currentStatus = mandate.currentStatus.copy(timestamp = DateTime.now()))
+          val updatedMandate = mandate.copy(currentStatus = mandate.currentStatus.copy(timestamp = laterThanWhen))
           await(mandateRepo.repository.updateMandate(updatedMandate)) match {
             case MandateUpdated(update) => await(mandateRepo.repository.fetchMandate(update.id)) match {
-              case MandateFetched(fetched) if fetched ==update => succeed
+              case MandateFetched(fetched) if fetched == update => succeed
               case _ => fail()
             }
             case _ => fail()

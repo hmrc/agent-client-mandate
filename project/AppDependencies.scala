@@ -23,7 +23,7 @@ object AppDependencies {
         "com.typesafe.play"            %% "play-test"                 % PlayVersion.current % scope,
         "uk.gov.hmrc.mongo"            %% "hmrc-mongo-test-play-28"   % "1.3.0"            % scope,
         "com.typesafe.akka"            %% "akka-testkit"              % "2.6.21"            % scope,
-        "org.mockito"                  %  "mockito-core"              % "5.4.0"             % scope,
+        "org.mockito"                  %  "mockito-core"              % "5.5.0"             % scope,
         "org.mockito"                  %% "mockito-scala"             % "1.17.14"           % scope,
         "org.mockito"                  %% "mockito-scala-scalatest"   % "1.17.14"           % scope,
         "org.scalatestplus"            %% "scalacheck-1-17"           % "3.2.16.0"          % scope,
