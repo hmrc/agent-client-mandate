@@ -272,10 +272,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
   }
 
   def updateAgentEmail(mandateIds: Seq[String], email: String)(implicit ec: ExecutionContext): Future[MandateUpdate] = {
-    val query = in("id", mandateIds)
+    val query = in("id", mandateIds:_*)
     val modifier = set("agentParty.contactDetails.email", email)
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentEmail)
-
     Mdc.preservingMdc {
       collection
         .updateMany(query, modifier)
