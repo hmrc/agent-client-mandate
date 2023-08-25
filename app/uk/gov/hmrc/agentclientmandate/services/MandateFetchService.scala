@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
-import org.joda.time.DateTime
+import java.time.{Duration, Instant}
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.models.Mandate
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateRepo, MandateRepository}
@@ -60,7 +60,7 @@ trait MandateFetchService {
   }
 
   def fetchClientCancelledMandates(arn: String, serviceName: String)(implicit ec: ExecutionContext): Future[Seq[String]] = {
-    val dateFrom = DateTime.now().minusDays(clientCancelledMandateNotification)
+    val dateFrom = Instant.now().minus(Duration.ofDays(clientCancelledMandateNotification))
     mandateRepository.getClientCancelledMandates(dateFrom, arn, serviceName)
   }
 }

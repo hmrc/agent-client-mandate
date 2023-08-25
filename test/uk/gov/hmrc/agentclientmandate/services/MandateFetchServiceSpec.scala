@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
@@ -64,7 +64,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       createdBy = User("credid", nameGen.sample.get, None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.New, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"

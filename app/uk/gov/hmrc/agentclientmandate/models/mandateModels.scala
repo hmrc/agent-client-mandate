@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import org.joda.time.DateTime
+import java.time.Instant
 import play.api.libs.json._
 import uk.gov.hmrc.agentclientmandate.models
 import uk.gov.hmrc.agentclientmandate.models.PartyType.PartyType
@@ -66,13 +66,13 @@ object Status extends Enumeration {
   }
 }
 
-case class MandateStatus(status: Status, timestamp: DateTime, updatedBy: String)
+case class MandateStatus(status: Status, timestamp: Instant, updatedBy: String)
 
 object MandateStatus {
   val statusWrites: Writes[MandateStatus] = (o: MandateStatus) => {
     val status: JsValue = Json.toJson(o.status)
     val updatedBy: JsValue = Json.toJson(o.updatedBy)
-    val timestamp: Long = o.timestamp.getMillis
+    val timestamp: Long = o.timestamp.toEpochMilli()
 
     Json.obj(
       "status" -> status,
@@ -85,7 +85,7 @@ object MandateStatus {
     val status = (json \ "status").asOpt[Status]
     val updatedBy = (json \ "updatedBy").asOpt[String]
     val timestamp = (json \ "timestamp").asOpt[Long] map { number =>
-      new DateTime(number.longValue())
+      Instant.ofEpochMilli(number.longValue())
     }
 
     (status, updatedBy, timestamp) match {

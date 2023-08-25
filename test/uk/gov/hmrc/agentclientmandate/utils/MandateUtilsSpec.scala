@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.scalatestplus.play.PlaySpec
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.models._
@@ -34,8 +34,8 @@ class MandateUtilsSpec extends PlaySpec {
           User("credid", nameGen.sample.get, None),
           agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
           clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
-          currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
-          statusHistory = Seq(MandateStatus(Status.PendingActivation, new DateTime(), "credid")),
+          currentStatus = MandateStatus(Status.Active, Instant.now(), "credid"),
+          statusHistory = Seq(MandateStatus(Status.PendingActivation, Instant.now(), "credid")),
           subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
           clientDisplayName = "client display name"
         )
@@ -51,8 +51,8 @@ class MandateUtilsSpec extends PlaySpec {
             createdBy = User("credid", "name", None),
             agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
             clientParty = Some(Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
-            currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "credid"),
-            statusHistory = Seq(MandateStatus(Status.Approved, new DateTime(), "credid"), MandateStatus(Status.New, new DateTime(), "credid2")),
+            currentStatus = MandateStatus(Status.PendingActivation, Instant.now(), "credid"),
+            statusHistory = Seq(MandateStatus(Status.Approved, Instant.now(), "credid"), MandateStatus(Status.New, Instant.now(), "credid2")),
             subscription = Subscription(Some(subscriptionReferenceGen.sample.get), Service("ebc", "ABC")),
             clientDisplayName = "client display name"
           )

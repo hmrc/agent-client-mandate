@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import org.joda.time.{DateTime, DateTimeUtils}
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
@@ -82,8 +82,8 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
     Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
   )
 
-  val timeToUse: DateTime = DateTime.now()
-  val currentMillis: Long = timeToUse.getMillis
+  val timeToUse: Instant = Instant.now()
+  val currentMillis: Long = timeToUse.toEpochMilli()
 
   val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
     User("credid", nameGen.sample.get, None),
@@ -135,7 +135,6 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
 
     "approveMandate" must {
       "change status of mandate to approve, if all calls are successful and service name is ated" in new Setup {
-        DateTimeUtils.setCurrentMillisFixed(currentMillis)
         when(mockMandateRepository.fetchMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
@@ -144,7 +143,6 @@ class MandateUpdateServiceSpec extends PlaySpec with BeforeAndAfterEach with Moc
       }
 
       "throw exception, if post was made without client party in it" in new Setup {
-        DateTimeUtils.setCurrentMillisFixed(currentMillis)
         when(mockMandateRepository.fetchMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
         when(mockEtmpConnector.getAtedSubscriptionDetails(ArgumentMatchers.eq("ated-ref-num"))).thenReturn(Future.successful(etmpSubscriptionJson))
         when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))

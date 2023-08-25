@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.tasks
 
 import javax.inject.Inject
-import org.joda.time.DateTime
+import java.time.Instant
 import play.api.http.Status._
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
@@ -104,7 +104,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     fetchResult match {
       case MandateFetched(mandate) =>
         val previousStatus: Option[Status.Status] = mandate.statusHistory.lastOption.fold[Option[Status]](None)(mandateStatus => Some(mandateStatus.status))
-        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, DateTime.now, args("credId")))
+        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Active, Instant.now, args("credId")))
         val updateResult = Await.result(mandateRepository.updateMandate(updatedMandate), 5 seconds)
         updateResult match {
           case MandateUpdated(m) =>
@@ -139,7 +139,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 3 seconds)
         fetchResult match {
           case MandateFetched(mandate) =>
-            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Approved, DateTime.now, args("credId")))
+            val updatedMandate = mandate.updateStatus(MandateStatus(Status.Approved, Instant.now, args("credId")))
             Await.result(mandateRepository.updateMandate(updatedMandate), 1 second)
             Success(Finish)
           case _ => throw new Exception("Unknown fetch result")

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.scalatestplus.play.PlaySpec
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 
@@ -25,7 +25,7 @@ class MandateSpec extends PlaySpec {
   val mandate: Mandate = Mandate(id = mandateReferenceGen.sample.get, createdBy = User("credId", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
     clientParty = None,
-    currentStatus = MandateStatus(Status.New, DateTime.now, "credId"),
+    currentStatus = MandateStatus(Status.New, Instant.now(), "credId"),
     statusHistory = Nil,
     subscription = Subscription(None, Service("ated", "ATED")),
     clientDisplayName = "client display name"
@@ -33,7 +33,7 @@ class MandateSpec extends PlaySpec {
 
   "MandateSpec" must {
     "add new status to history" in {
-      val newStatus = MandateStatus(Status.PendingCancellation, DateTime.now, "credId")
+      val newStatus = MandateStatus(Status.PendingCancellation, Instant.now(), "credId")
       val updatedMandate = mandate.updateStatus(newStatus)
       updatedMandate.statusHistory.size must be(1)
       updatedMandate.statusHistory.head.status must be(Status.New)

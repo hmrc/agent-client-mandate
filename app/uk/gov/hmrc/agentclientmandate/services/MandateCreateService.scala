@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.services
 
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.inject.Inject
-import org.joda.time.DateTime
+import java.time.Instant
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
@@ -54,7 +54,7 @@ trait MandateCreateService extends Auditable {
   }
 
   def createNewStatus(credId: String): MandateStatus = {
-    MandateStatus(Status.New, DateTime.now(), credId)
+    MandateStatus(Status.New, Instant.now(), credId)
   }
 
   def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[String] = {
@@ -135,7 +135,7 @@ trait MandateCreateService extends Auditable {
         assignedTo = None,
         agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
         clientParty = Some(Party(dto.safeId, clientPartyName, clientPartyType, ContactDetails(dto.clientEmail))),
-        currentStatus = MandateStatus(Status.PendingActivation, DateTime.now(), updatedBy = agentCredId),
+        currentStatus = MandateStatus(Status.PendingActivation, Instant.now(), updatedBy = agentCredId),
         statusHistory = Nil,
         subscription = Subscription(referenceNumber = Some(dto.subscriptionReference), service = Service(dto.service, dto.service)),
         clientDisplayName = dto.clientDisplayName
@@ -168,7 +168,7 @@ trait MandateCreateService extends Auditable {
       mandate.copy(approvedBy = Some(User(agentCredId, agentPartyName, groupId = Some(ac))),
         agentParty = Party(dto.arn, agentPartyName, agentPartyType, ContactDetails(dto.agentEmail)),
         statusHistory = mandate.statusHistory :+ mandate.currentStatus,
-        currentStatus = MandateStatus(Status.PendingActivation, DateTime.now(), updatedBy = agentCredId),
+        currentStatus = MandateStatus(Status.PendingActivation, Instant.now(), updatedBy = agentCredId),
         clientDisplayName = dto.clientDisplayName)
     }
 

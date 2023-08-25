@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.Json
@@ -37,7 +37,7 @@ class MandateStatusSpec extends AnyWordSpecLike {
             |}
           """.stripMargin
 
-        Json.parse(json).as[MandateStatus] shouldBe MandateStatus(status, new DateTime(timestamp), updatedBy)
+        Json.parse(json).as[MandateStatus] shouldBe MandateStatus(status, Instant.ofEpochMilli(timestamp), updatedBy)
       }
     }
 
@@ -65,7 +65,7 @@ class MandateStatusSpec extends AnyWordSpecLike {
         val timestamp = 1560854220091L
         val updatedBy = "Person"
 
-        val caseClass = MandateStatus(status, new DateTime(timestamp), updatedBy)
+        val caseClass = MandateStatus(status, Instant.ofEpochMilli(timestamp), updatedBy)
 
         Json.toJson(caseClass) shouldBe Json.parse(
           s"""{

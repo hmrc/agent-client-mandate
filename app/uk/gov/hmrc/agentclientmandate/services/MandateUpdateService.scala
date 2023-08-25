@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import javax.inject.Inject
-import org.joda.time.DateTime
+import java.time.{Duration, Instant}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
@@ -83,7 +83,7 @@ trait MandateUpdateService extends Auditable {
 
   def updateMandate(mandate: Mandate, setStatus: Option[Status] = None)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
     val updatedMandate = setStatus match {
-      case Some(x) => mandate.updateStatus(MandateStatus(x, DateTime.now, ar.govGatewayId))
+      case Some(x) => mandate.updateStatus(MandateStatus(x, Instant.now, ar.govGatewayId))
       case None => mandate
     }
     mandateRepository.updateMandate(updatedMandate)
@@ -104,12 +104,12 @@ trait MandateUpdateService extends Auditable {
   }
 
   def checkStaleDocuments(): Future[_] = {
-    val dateFrom = DateTime.now().minusDays(expiryAfterDays)
+    val dateFrom = Instant.now().minus(Duration.ofDays(expiryAfterDays))
     for {
       mandates <- mandateRepository.findOldMandates(dateFrom)
     } yield {
       mandates.map { mandate =>
-        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, DateTime.now, "SYSTEM"))
+        val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, Instant.now, "SYSTEM"))
         mandateRepository.updateMandate(updatedMandate).map {
           case MandateUpdated(m) =>
             implicit val hc: HeaderCarrier = HeaderCarrier()

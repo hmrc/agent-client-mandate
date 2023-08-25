@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.MockitoSugar
 import org.scalatest._
 import org.scalatest.matchers.should.Matchers._
@@ -66,7 +66,7 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       createdBy = User("credid", nameGen.sample.get, None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.New, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(Some(atedUtr.utr), Service("ated", "ATED")),
       clientDisplayName = "client display name"
@@ -85,7 +85,7 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
       createdBy = User("credid", "name", None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = Some(Party(partyIDGen.sample.get, "Client Name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.New, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(Some(atedUtr.utr), Service("ebc", "ABC")),
       clientDisplayName = "client display name"

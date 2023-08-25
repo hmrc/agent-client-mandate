@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
@@ -111,7 +111,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
       createdBy = User("credid", "name", None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(status, new DateTime(), "credid"),
+      currentStatus = MandateStatus(status, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
