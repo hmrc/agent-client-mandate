@@ -7,8 +7,7 @@ object AppDependencies {
   val compile: Seq[ModuleID] = Seq(
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"         % "1.3.0",
     "uk.gov.hmrc"       %% "bootstrap-backend-play-28"  % "7.21.0",
-    "uk.gov.hmrc"       %% "domain"                     % "8.3.0-play-28",
-    "com.typesafe.play" %% "play-json-joda"             % "2.9.4"
+    "uk.gov.hmrc"       %% "domain"                     % "8.3.0-play-28"
   )
 
   trait TestDependencies {
