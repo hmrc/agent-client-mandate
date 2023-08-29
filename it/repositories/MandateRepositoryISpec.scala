@@ -116,16 +116,17 @@ class MandateRepositoryISpec extends IntegrationSpec {
 
     "Multiple Inserts and getAllMandatesByServiceName" in {
       val mandates = 
-        createMandate(mandateIds(0), "cred-id-113244018120", "ated", agentIds(1), clientIds(0), when, Active) ::
-       (createMandate(mandateIds(1), "cred-id-113244018121", "ated", agentIds(1), clientIds(1), when, Active) ::
-       (createMandate(mandateIds(2), "cred-id-113244018122", "ated", agentIds(1), clientIds(2), when, Active) :: 
-        Range(3,5).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", "ated", agentIds(1), clientIds(idx), when, Active)).toList)) ++
+        createMandate(mandateIds(0), "cred-id-113244018120", "other", agentIds(1), clientIds(0), when, Active) ::
+       (createMandate(mandateIds(1), "cred-id-113244018121", "other", agentIds(1), clientIds(1), when, Active) ::
+       (createMandate(mandateIds(2), "cred-id-113244018122", "other", agentIds(1), clientIds(2), when, Active) :: 
+        Range(3,5).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", "other", agentIds(1), clientIds(idx), when, Active)).toList)) ++
+        // mandates 5 to 9 will have a Subscription to the "ated" service"
         Range(5,10).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", serviceName, agentIds(1), clientIds(idx), when, Active)).toList
                      
       createMandatesAndWait(mandates){
-        await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "ated", None, None, None)) match {
+        await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "other", None, None, None)) match {
           case fetched if fetched.length == 5  => 
-            await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "ated", Some("cred-id-113244018120"), Some("cred-id-113244018121"), None)) match {
+            await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "other", Some("cred-id-113244018120"), Some("cred-id-113244018121"), None)) match {
               case fetched if fetched.length == 2  => succeed            
               case fetched  => fail(s"ERROR: returned ${fetched.length} mandates")
             }
