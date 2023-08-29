@@ -90,7 +90,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
       IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
       IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
-      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
+      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId"))
     ),
     extraCodecs = Seq(Codecs.playFormatCodec(User.formats),
       Codecs.playFormatCodec(Party.formats),
