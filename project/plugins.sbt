@@ -11,4 +11,6 @@ addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.20")
 
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.9.3")
 
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
+
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.2")
