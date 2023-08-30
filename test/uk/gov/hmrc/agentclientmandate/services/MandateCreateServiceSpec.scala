@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
@@ -72,7 +72,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
       agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
       clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
-      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
+      currentStatus = MandateStatus(Status.PendingActivation, Instant.now(), "cred-id-113244018119"),
       statusHistory = Nil,
       subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ated")),
       clientDisplayName = "client display name")
@@ -83,9 +83,9 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       createdBy = User("cred-id-113244018119", companyNameGen.sample.get, Some("agentCode")),
       agentParty = Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None)),
       clientParty = Some(Party(partyIDGen.sample.get, companyNameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, None))),
-      currentStatus = MandateStatus(Status.PendingActivation, new DateTime(), "cred-id-113244018119"),
-      statusHistory = Seq(MandateStatus(Status.Cancelled, new DateTime(), "cred-id-113244018119"),
-        MandateStatus(Status.PendingCancellation, new DateTime(), "cred-id-113244018119")),
+      currentStatus = MandateStatus(Status.PendingActivation, Instant.now(), "cred-id-113244018119"),
+      statusHistory = Seq(MandateStatus(Status.Cancelled, Instant.now(), "cred-id-113244018119"),
+      MandateStatus(Status.PendingCancellation, Instant.now(), "cred-id-113244018119")),
       subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
       clientDisplayName = "client display name")
 
@@ -130,7 +130,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         )
 
         when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
-          Future.successful(MandateCreated(mandate(mandateId, DateTime.now())))
+          Future.successful(MandateCreated(mandate(mandateId, Instant.now())))
         }
 
         when(etmpConnectorMock.getRegistrationDetails(any(), ArgumentMatchers.eq("arn"))) thenReturn {
@@ -260,7 +260,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         }
 
         when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
-          Future.successful(MandateCreated(mandateWithClient(mandateId, DateTime.now())))
+          Future.successful(MandateCreated(mandateWithClient(mandateId, Instant.now())))
         }
 
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, "arn", emailGen.sample.get, "client display name")
@@ -333,7 +333,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           Future.successful(MandateFetched(mandate))
         }
         when(mandateRepositoryMock.updateMandate(any())(any())) thenReturn {
-          Future.successful(MandateUpdated(mandateWithClient(mandateId, DateTime.now())))
+          Future.successful(MandateUpdated(mandateWithClient(mandateId, Instant.now())))
         }
 
         val dto = NonUKClientDto(safeId = safeIDGen.sample.get,
@@ -464,7 +464,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
     }
   }
 
-  def mandate(id: String, statusTime: DateTime): Mandate =
+  def mandate(id: String, statusTime: Instant): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), nameGen.sample.get, Some(agentCode)),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
@@ -474,7 +474,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       clientDisplayName = "client display name"
     )
 
-  def mandateWithClient(id: String, statusTime: DateTime): Mandate =
+  def mandateWithClient(id: String, statusTime: Instant): Mandate =
     Mandate(id = id, createdBy = User(hc.gaUserId.getOrElse("credid"), nameGen.sample.get, Some(agentCode)),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = Some(Party("clientId", "client name", PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),

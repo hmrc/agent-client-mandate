@@ -1,7 +1,7 @@
 package controllers
 
 import helpers.IntegrationSpec
-import org.joda.time.DateTime
+import java.time.Instant
 import org.scalatest
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.libs.ws.WSResponse
@@ -56,7 +56,7 @@ class MandateControllerISpec extends IntegrationSpec {
         val mandateForApproval = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
                 Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake")),
                 Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake", Some("No")))),
-                MandateStatus(New, DateTime.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+                MandateStatus(New, Instant.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
         await(hitApplicationEndpoint("/org/mandate/approve")
           .post(Json.toJson(mandateForApproval)))
 
@@ -116,7 +116,7 @@ class MandateControllerISpec extends IntegrationSpec {
       val MandateMissingAgentEmail = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
         Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("")),
         Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake", Some("No")))),
-        MandateStatus(New, DateTime.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+        MandateStatus(New, Instant.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
       await(hitApplicationEndpoint("/org/mandate/approve").post(Json.toJson(MandateMissingAgentEmail)))
       val missingEmailResult = await(hitApplicationEndpoint("/agent/mandate/isAgentMissingEmail/FAKE-UTR/ated")
         .get())
@@ -137,7 +137,7 @@ class MandateControllerISpec extends IntegrationSpec {
       val MandateMissingAgentEmail = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
         Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("")),
         Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake", Some("No")))),
-        MandateStatus(New, DateTime.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+        MandateStatus(New, Instant.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
       await(hitApplicationEndpoint("/org/mandate/approve").post(Json.toJson(MandateMissingAgentEmail)))
       val missingEmailResult = await(hitApplicationEndpoint("/agent/mandate/isAgentMissingEmail/FAKE-UTR/ated")
         .get())
@@ -166,7 +166,7 @@ class MandateControllerISpec extends IntegrationSpec {
   val MandateMissingAgentEmail = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
     Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake")),
     Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("", Some("No")))),
-    MandateStatus(New, DateTime.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+    MandateStatus(New, Instant.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
   await(hitApplicationEndpoint("/org/approvedstatus/mandate/approve").post(Json.toJson(MandateMissingAgentEmail)))
 
   val clientsNewEmail: String = "not-real-email@notrealemail.fake"
@@ -213,13 +213,13 @@ class MandateControllerISpec extends IntegrationSpec {
       val mandateForApproval = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
         Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake")),
         Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake", Some("No")))),
-        MandateStatus(New, DateTime.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+        MandateStatus(New, Instant.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
       await(hitApplicationEndpoint("/org/mandate/approve")
         .post(Json.toJson(mandateForApproval)))
       val mandateForCancellation = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
         Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake")),
         Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake", Some("No")))),
-        MandateStatus(Cancelled, DateTime.now(), "cred-id-113244018118"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+        MandateStatus(Cancelled, Instant.now(), "cred-id-113244018118"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
       await(hitApplicationEndpoint("/agent/FAKE-AB123456/mandate/edit")
         .post(Json.toJson(mandateForCancellation)))
 
@@ -251,7 +251,7 @@ class MandateControllerISpec extends IntegrationSpec {
       val mandateForRemoval = Mandate(mandateID, models.User("cred-id-113244018119", "First Last", Some("FAKE-AB123456")), None, None,
         Party("FAKE-UTR", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake")),
         Some(Party("Fake-ID", "First Last", PartyType.Individual, ContactDetails("not-real-email@notrealemail.fake", Some("No")))),
-        MandateStatus(New, DateTime.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
+        MandateStatus(New, Instant.now(), "cred-id-113244018119"), Nil, Subscription(None, Service("ATED", "ated")), "display-name")
       val removeMandate = await(hitApplicationEndpoint(s"/mandate/remove/$mandateID ")
         .post(Json.toJson(mandateForRemoval)))
 

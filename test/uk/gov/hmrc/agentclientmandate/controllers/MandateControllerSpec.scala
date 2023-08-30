@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.controllers
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
@@ -107,7 +107,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       createdBy = User("credid", "name", None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.New, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
@@ -119,7 +119,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       createdBy = User("credid", "name", Some("agent-code")),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Approved, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.Approved, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
@@ -131,7 +131,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       createdBy = User("credid", "name", Some("agent-code")),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.Active, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
@@ -143,7 +143,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       createdBy = User("credid", "name", None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Active, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.Active, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"
@@ -155,7 +155,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       createdBy = User("credid", "name", None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = None,
-      currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.Cancelled, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(None, Service("ated", "ATED")),
       clientDisplayName = "client display name"

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.repositories
 
 import javax.inject.{Inject, Singleton}
-import org.joda.time.DateTime
+import java.time.Instant
 import play.api.Logger
 import org.mongodb.scala._
 import org.mongodb.scala.model.Filters._
@@ -73,8 +73,8 @@ trait MandateRepository extends PlayMongoRepository[Mandate] with MandateRepo {
   def updateAgentEmail(mandateIds: Seq[String], email: String)(implicit ec: ExecutionContext): Future[MandateUpdate]
   def updateClientEmail(mandateId: String, email: String)(implicit ec: ExecutionContext): Future[MandateUpdate]
   def updateAgentCredId(oldCredId: String, newCredId: String)(implicit ec: ExecutionContext): Future[MandateUpdate]
-  def findOldMandates(dateFrom: DateTime)(implicit ec: ExecutionContext): Future[Seq[Mandate]]
-  def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String)(implicit ec: ExecutionContext): Future[Seq[String]]
+  def findOldMandates(dateFrom: Instant)(implicit ec: ExecutionContext): Future[Seq[Mandate]]
+  def getClientCancelledMandates(dateFrom: Instant, arn: String, serviceName: String)(implicit ec: ExecutionContext): Future[Seq[String]]
   def removeMandate(mandateId: String)(implicit ec: ExecutionContext): Future[MandateRemove]
   def metrics: ServiceMetrics
 }
@@ -90,7 +90,7 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
       IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
       IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
-      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
+      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId"))
     ),
     extraCodecs = Seq(Codecs.playFormatCodec(User.formats),
       Codecs.playFormatCodec(Party.formats),
@@ -272,10 +272,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
   }
 
   def updateAgentEmail(mandateIds: Seq[String], email: String)(implicit ec: ExecutionContext): Future[MandateUpdate] = {
-    val query = in("id", mandateIds)
+    val query = in("id", mandateIds:_*)
     val modifier = set("agentParty.contactDetails.email", email)
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryUpdateAgentEmail)
-
     Mdc.preservingMdc {
       collection
         .updateMany(query, modifier)
@@ -340,9 +339,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     }
   }
 
-  def findOldMandates(dateFrom: DateTime)(implicit ec: ExecutionContext): Future[Seq[Mandate]] = {
+  def findOldMandates(dateFrom: Instant)(implicit ec: ExecutionContext): Future[Seq[Mandate]] = {
     val query = and(
-      lt("currentStatus.timestamp", dateFrom.getMillis),
+      lt("currentStatus.timestamp", dateFrom.toEpochMilli()),
       or(equal("currentStatus.status", Status.New.toString),
         equal("currentStatus.status", Status.Approved.toString),
         equal("currentStatus.status", Status.PendingCancellation.toString),
@@ -367,11 +366,11 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     result
   }
 
-  def getClientCancelledMandates(dateFrom: DateTime, arn: String, serviceName: String)(implicit ec: ExecutionContext): Future[Seq[String]] = {
+  def getClientCancelledMandates(dateFrom: Instant, arn: String, serviceName: String)(implicit ec: ExecutionContext): Future[Seq[String]] = {
     val query = and(
       equal("agentParty.id", arn),
       equal("subscription.service.name", serviceName.toLowerCase),
-      gt("currentStatus.timestamp", dateFrom.getMillis),
+      gt("currentStatus.timestamp", dateFrom.toEpochMilli()),
       equal("currentStatus.status", Status.Cancelled.toString),
       where("this.createdBy.credId != this.currentStatus.updatedBy")
     )

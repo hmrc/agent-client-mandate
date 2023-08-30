@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
@@ -52,7 +52,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = Some(Party(
         partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
-      currentStatus = MandateStatus(Status.New, new DateTime(), "credid"),
+      currentStatus = MandateStatus(Status.New, Instant.now(), "credid"),
       statusHistory = Nil,
       subscription = Subscription(subscriptionReferenceGen.sample, Service("ated", "ATED")),
       clientDisplayName = "client display name"

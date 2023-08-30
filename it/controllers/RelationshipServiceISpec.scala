@@ -2,7 +2,7 @@ package controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import helpers.IntegrationSpec
-import org.joda.time.DateTime
+import java.time.{LocalDateTime, ZoneOffset}
 import org.scalatest
 import play.api.libs.json.Json
 import play.api.libs.ws.WSResponse
@@ -32,7 +32,7 @@ class RelationshipServiceISpec extends IntegrationSpec {
           ContactDetails(email, None)
         )
         val mandateStatus = MandateStatus(
-          Status.Approved, DateTime.parse("2010-06-30T01:20"), "credID"
+          Status.Approved, LocalDateTime.of(2010, 6,30,1,20).toInstant(ZoneOffset.UTC), "credID"
         )
         val mandate = Mandate(
           mandateID, user, None, None, agentParty, None, mandateStatus, Nil, subscription, displayName

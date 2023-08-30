@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.tasks
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
-import org.joda.time.DateTime
+import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -86,7 +86,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockMandateRepo: MandateRepo = mock[MandateRepo]
 
-  val timeToUse: DateTime = DateTime.now()
+  val timeToUse: Instant = Instant.now()
   val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
     User("credid", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails("", Some(""))),
@@ -99,7 +99,7 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
     currentStatus = MandateStatus(Status.Approved, timeToUse, "credid"),
-    statusHistory = Seq(MandateStatus(Status.New, new DateTime(), "credid")),
+    statusHistory = Seq(MandateStatus(Status.New, Instant.now(), "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
@@ -107,8 +107,8 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     User("credid", nameGen.sample.get, None),
     agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, Some(""))),
     clientParty = Some(Party("safe-id", "client-name", PartyType.Organisation, ContactDetails(emailGen.sample.get))),
-    currentStatus = MandateStatus(Status.Cancelled, new DateTime(), "credid"),
-    statusHistory = Seq(MandateStatus(Status.PendingCancellation, new DateTime(), "credid"), MandateStatus(Status.Approved, timeToUse, "credid")),
+    currentStatus = MandateStatus(Status.Cancelled, Instant.now(), "credid"),
+    statusHistory = Seq(MandateStatus(Status.PendingCancellation, Instant.now(), "credid"), MandateStatus(Status.Approved, timeToUse, "credid")),
     subscription = Subscription(Some("ated-ref-no"), Service("ated", "ATED")),
     clientDisplayName = "client display name"
   )
