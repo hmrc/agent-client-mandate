@@ -23,13 +23,13 @@ import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 import uk.gov.hmrc.auth.core.{AuthorisedFunctions, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logError
-
+import play.api.Logging
 import scala.concurrent.{ExecutionContext, Future}
 
 case class AuthRetrieval(enrolments: Set[Enrolment],
                          agentInformation: AgentInformation,
                          credentials: Option[Credentials]
-                        ) {
+                        ) extends Logging {
   def govGatewayId: String = {
     val optionalId = credentials.find(_.providerType == "GovernmentGateway") map { _.providerId }
     optionalId.getOrElse(throw new RuntimeException(s"[AuthRetrieval] No GGCredId found."))
@@ -38,13 +38,19 @@ case class AuthRetrieval(enrolments: Set[Enrolment],
 
   def atedUtr: EnrolmentIdentifier = getEnrolmentId(enrolments.find(_.key == "HMRC-ATED-ORG"), enrolmentId = "ATEDRefNumber")
 
-  def agentBusinessUtr: EnrolmentIdentifier = getEnrolmentId(enrolments.find(_.key == "HMRC-AGENT-AGENT"), enrolmentId = "AgentRefNumber")
+  def agentBusinessUtr: EnrolmentIdentifier = {
+    val enrolment: Option[Enrolment] = enrolments.find(_.key == "HMRC-AGENT-AGENT")
+    logger.warn(s"agentBusinessUtr found enrolment $enrolment")
+    getEnrolmentId(enrolments.find(_.key == "HMRC-AGENT-AGENT"), enrolmentId = "AgentRefNumber")
+  }
 
   def agentBusinessEnrolment: Enrolment =
     enrolments.find(_.key == "HMRC-AGENT-AGENT").getOrElse(throw new RuntimeException("[AuthRetrieval] No Agent enrolment found"))
 
   def getEnrolmentId(enrolment: Option[Enrolment], enrolmentId: String): EnrolmentIdentifier = {
     val enrolID = enrolment flatMap (_.identifiers.find(_.key.toLowerCase == enrolmentId.toLowerCase))
+    if (enrolmentId == "AgentRefNumber") logger.warn(s" getEnrolmentId: Search for $enrolmentId found $enrolID")
+
     enrolID.getOrElse(throw new RuntimeException(s"[AuthRetrieval] No enrolment id found for $enrolmentId"))
   }
 }
