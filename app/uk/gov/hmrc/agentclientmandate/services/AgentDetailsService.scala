@@ -71,12 +71,11 @@ trait AgentDetailsService {
         } else {
           val orgName = (etmpDetails \ "organisation" \ "organisationName").as[String]
           val isAGroup = (etmpDetails \ "organisation" \ "isAGroup").asOpt[Boolean]
-          val orgType = (etmpDetails \ "organisation" \ "organisationName").asOpt[String]
 
           AgentDetails(safeId,
             isAnIndividual = false,
             None,
-            organisation = Some(Organisation(orgName, isAGroup, orgType)),
+            organisation = Some(Organisation(orgName, isAGroup)),
             addressDetails = RegisteredAddressDetails(addressLine1, addressLine2, addressLine3, addressLine4, postalCode, countryCode),
             contactDetails = EtmpContactDetails(phoneNumber, mobileNumber, faxNumber, emailAddress),
             identification = nonUKId)
