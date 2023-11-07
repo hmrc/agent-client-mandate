@@ -24,7 +24,7 @@ object AgentBuilder {
     val registeredAddressDetails = RegisteredAddressDetails("address1", "address2", None, None, None, "FR")
     val contactDetails = EtmpContactDetails()
     AgentDetails("safeId", false, None,
-      Some(Organisation("Org Name", Some(true), Some("org_type"))),
+      Some(Organisation("Org Name", Some(true))),
       registeredAddressDetails, contactDetails, None)
   }
 
