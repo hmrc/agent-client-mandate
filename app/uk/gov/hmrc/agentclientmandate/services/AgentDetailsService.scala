@@ -35,9 +35,7 @@ trait AgentDetailsService {
 
   def getAgentDetails(implicit authRetrieval: AuthRetrieval, ec: ExecutionContext): Future[AgentDetails] = {
 
-    val agentPartyId = authRetrieval.agentBusinessUtr.value
-
-      etmpConnector.getRegistrationDetails(agentPartyId, "arn").map { etmpDetails =>
+      etmpConnector.getRegistrationDetails(authRetrieval.agentBusinessUtr.value, "arn").map { etmpDetails =>
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
         val safeId = (etmpDetails \ "safeId").as[String]
         val addressLine1 = (etmpDetails \ "addressDetails" \ "addressLine1").as[String]
