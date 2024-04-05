@@ -56,7 +56,7 @@
     <logger name="org.asynchttpclient.netty" level="INFO" />
     <logger name="play.core.netty.utils.ServerCookieDecoder" level="INFO" />
     <logger name="io.netty.util.internal" level="INFO" />
-    <logger name="akka.stream" level="INFO" />
+    <logger name="org.apache.pekko.stream" level="INFO" />
     <logger name="reactivemongo" level="OFF"/>
 
     <root level="INFO">

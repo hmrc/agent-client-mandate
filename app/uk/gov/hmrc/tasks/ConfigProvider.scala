@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, ActorSystem, Props}
 
 trait ConfigProvider[A <: Actor] {
   def taskType: String

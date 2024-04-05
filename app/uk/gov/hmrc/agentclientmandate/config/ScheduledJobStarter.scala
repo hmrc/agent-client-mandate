@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.config
 
-import akka.actor.{Cancellable, Scheduler}
+import org.apache.pekko.actor.{Cancellable, Scheduler}
 import org.apache.commons.lang3.time.StopWatch
 import play.api.Application
 import play.api.inject.ApplicationLifecycle
