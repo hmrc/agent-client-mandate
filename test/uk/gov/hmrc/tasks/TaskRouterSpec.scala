@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.tasks
 
-import org.apache.pekko.actor.{Actor, ActorSystem, Props}
+import  akka.actor.{Actor, ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll

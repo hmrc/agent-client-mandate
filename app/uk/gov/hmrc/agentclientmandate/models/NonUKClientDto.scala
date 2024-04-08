@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class NonUKClientDto(
                            safeId: String,
@@ -30,5 +30,5 @@ case class NonUKClientDto(
                          )
 
 object NonUKClientDto {
-  implicit val formats = Json.format[NonUKClientDto]
+  implicit val formats: OFormat[NonUKClientDto] = Json.format[NonUKClientDto]
 }

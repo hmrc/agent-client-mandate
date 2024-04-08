@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.tasks
 
-import org.apache.pekko.actor.{ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import java.time.Instant
 import org.mockito.ArgumentMatchers._

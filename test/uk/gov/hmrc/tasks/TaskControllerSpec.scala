@@ -16,9 +16,13 @@
 
 package uk.gov.hmrc.tasks
 
+import org.apache.pekko.actor.Actor
+import org.apache.pekko.actor.ActorRef
+import org.apache.pekko.actor.Props
+
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
-import org.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers.{contain, convertToAnyShouldWrapper}
 import org.scalatest.wordspec.AnyWordSpecLike

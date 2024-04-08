@@ -46,7 +46,6 @@ lazy val microservice = Project(appName, file("."))
     scalacOptions += "-Wconf:src=routes/.*:s",
     scalacOptions ++= Seq("-feature")
   )
-  .configs(IntegrationTest)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
     resolvers += Resolver.jcenterRepo

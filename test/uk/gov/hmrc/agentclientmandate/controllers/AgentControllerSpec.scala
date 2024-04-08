@@ -470,5 +470,4 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
     }
   }
 
-
 }

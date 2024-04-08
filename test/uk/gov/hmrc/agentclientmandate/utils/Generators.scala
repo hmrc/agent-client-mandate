@@ -16,12 +16,13 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.agentclientmandate.models.Status
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
+
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 object Generators {
 
