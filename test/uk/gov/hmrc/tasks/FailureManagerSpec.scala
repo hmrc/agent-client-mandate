@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import akka.actor.{Actor, ActorSystem, Props}
-import org.mockito.MockitoSugar
+import org.apache.pekko.actor.{Actor, ActorSystem, Props}
+import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers.{be, convertToAnyShouldWrapper}
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 
@@ -35,6 +35,7 @@ class FailureManagerSpec extends TestKit(ActorSystem("test"))
   val retryState1: RetryState = RetryState(1000L,1,1000L)
   val phaseCommit: Phase.Value = Phase.Commit
   val phaseRollback: Phase.Value = Phase.Rollback
+
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)

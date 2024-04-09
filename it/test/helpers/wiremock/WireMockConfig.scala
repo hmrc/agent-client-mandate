@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.agentclientmandate.utils
+package helpers.wiremock
 
-import org.scalatestplus.mockito.MockitoSugar
-import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
-
-object MockMetricsCache extends MockitoSugar {
-  lazy val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
+trait WireMockConfig {
+  val wireMockPort: Int    = 11111
+  val wireMockHost: String = "localhost"
+  val wireMockUrl: String  = s"http://$wireMockPort:$wireMockPort"
 }

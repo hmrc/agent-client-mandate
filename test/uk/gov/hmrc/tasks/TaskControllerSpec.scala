@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,8 @@ package uk.gov.hmrc.tasks
 
 import org.apache.pekko.actor.Actor
 import org.apache.pekko.actor.ActorRef
-import org.apache.pekko.actor.Props
-
-import akka.actor.{Actor, ActorRef, ActorSystem}
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers.{contain, convertToAnyShouldWrapper}
