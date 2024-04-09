@@ -33,9 +33,9 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
   val retryPolicy = new TestRetry
   retryPolicy.setExpectedResult(RetryNow)
   val config: TestRouterConfig_TaskRouter[TestExecutor_TaskRouter] = TestRouterConfig_TaskRouter("test", classOf[TestExecutor_TaskRouter], 1, retryPolicy)
-  val routerRef = TestActorRef[TaskRouter[TestExecutor_TaskRouter]](Props(new TaskRouter(config)))
+  val routerRef: TestActorRef[TaskRouter[TestExecutor_TaskRouter]] = TestActorRef[TaskRouter[TestExecutor_TaskRouter]](Props(new TaskRouter(config)))
   val routerActor: TaskRouter[TestExecutor_TaskRouter] = routerRef.underlyingActor
-  val args1 = Map("a" -> "1", "b" -> "2")
+  val args1: Map[String, String] = Map("a" -> "1", "b" -> "2")
 
   val phaseCommit: Phase.Value = Phase.Commit
 
