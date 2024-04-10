@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.utils
 
 import play.api.Configuration
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 import scala.util.Try
 
@@ -50,6 +50,6 @@ object FeatureSwitch {
   def confPropertyName(name: String): String = s"features.$name"
   def systemPropertyName(name: String): String = s"features.$name"
 
-  implicit val format = Json.format[FeatureSwitch]
+  implicit val formats: OFormat[FeatureSwitch] = Json.format[FeatureSwitch]
 }
 

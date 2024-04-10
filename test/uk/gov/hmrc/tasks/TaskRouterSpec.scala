@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.actor.{Actor, ActorSystem, Props}
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
-import org.mockito.MockitoSugar
+import org.apache.pekko.actor.{Actor, ActorSystem, Props}
+import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, TestKit}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.tasks.ActivationTaskService
 import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import utils.ScheduledService
@@ -35,7 +35,7 @@ class TaskRouterSpec extends TestKit(ActorSystem("test"))
   val config: TestRouterConfig_TaskRouter[TestExecutor_TaskRouter] = TestRouterConfig_TaskRouter("test", classOf[TestExecutor_TaskRouter], 1, retryPolicy)
   val routerRef: TestActorRef[TaskRouter[TestExecutor_TaskRouter]] = TestActorRef[TaskRouter[TestExecutor_TaskRouter]](Props(new TaskRouter(config)))
   val routerActor: TaskRouter[TestExecutor_TaskRouter] = routerRef.underlyingActor
-  val args1 = Map("a" -> "1", "b" -> "2")
+  val args1: Map[String, String] = Map("a" -> "1", "b" -> "2")
 
   val phaseCommit: Phase.Value = Phase.Commit
 

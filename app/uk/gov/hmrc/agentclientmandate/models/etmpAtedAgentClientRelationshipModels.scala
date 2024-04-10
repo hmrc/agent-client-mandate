@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class EtmpRelationship(action: String, isExclusiveAgent: Option[Boolean])
 
 object EtmpRelationship {
-  implicit val formats = Json.format[EtmpRelationship]
+  implicit val formats: OFormat[EtmpRelationship] = Json.format[EtmpRelationship]
 }
 
 case class EtmpAtedAgentClientRelationship(
@@ -32,5 +32,5 @@ case class EtmpAtedAgentClientRelationship(
                                           )
 
 object EtmpAtedAgentClientRelationship {
-  implicit val formats = Json.format[EtmpAtedAgentClientRelationship]
+  implicit val formats: OFormat[EtmpAtedAgentClientRelationship] = Json.format[EtmpAtedAgentClientRelationship]
 }

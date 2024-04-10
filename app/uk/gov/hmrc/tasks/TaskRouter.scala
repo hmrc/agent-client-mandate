@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.actor.{Actor, Terminated}
-import akka.routing.{ActorRefRoutee, RoundRobinRoutingLogic, Router}
+import org.apache.pekko.actor.{Actor, Terminated}
+import org.apache.pekko.routing.{ActorRefRoutee, RoundRobinRoutingLogic, Router}
 
 /**
   * This is a simple round robin load balancing router that distributes
@@ -39,7 +39,6 @@ protected class TaskRouter[A <: Actor] (config:ConfigProvider[A]) extends Actor 
 
     Router(RoundRobinRoutingLogic(), routees)
   }
-
   def receive: Receive = {
     case cmd: TaskCommand =>
       router.route(cmd, sender())

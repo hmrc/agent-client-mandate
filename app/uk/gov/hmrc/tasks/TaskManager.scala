@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 
 
 /**

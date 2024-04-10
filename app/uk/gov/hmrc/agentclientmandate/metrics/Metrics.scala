@@ -18,20 +18,18 @@ package uk.gov.hmrc.agentclientmandate.metrics
 
 import com.codahale.metrics.MetricRegistry
 import com.codahale.metrics.Timer.Context
-import com.kenshoo.play.metrics.Metrics
 import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum.MetricsEnum
 
-class DefaultServiceMetrics @Inject()(val metrics: Metrics) extends ServiceMetrics
+class DefaultServiceMetrics @Inject()(val registry: MetricRegistry) extends ServiceMetrics
 trait ServiceMetrics {
-  val metrics: Metrics
 
   def startTimer(api: MetricsEnum): Context = timers(api).time()
   def incrementSuccessCounter(api: MetricsEnum): Unit = successCounters(api).inc()
   def incrementFailedCounter(api: MetricsEnum): Unit = failedCounters(api).inc()
   def incrementFailedCounter(stage: String): Unit = registry.counter(s"stage-$stage-signal-failure-retry-counter").inc()
 
-  val registry: MetricRegistry = metrics.defaultRegistry
+  val registry: MetricRegistry
 
   val timers = Map(
     MetricsEnum.GGAdminAddKnownFacts -> registry.timer("gga-add-known-facts-agent-response-timer"),

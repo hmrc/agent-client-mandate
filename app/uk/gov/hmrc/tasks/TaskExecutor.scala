@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.tasks
 
-import akka.actor.Actor
+import org.apache.pekko.actor.Actor
 import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum
 import uk.gov.hmrc.tasks.Phase._

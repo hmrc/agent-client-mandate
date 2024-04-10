@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 case class CreateMandateDto(email: String, serviceName: String, displayName: String)
 
 object CreateMandateDto {
-  implicit val formats = Json.format[CreateMandateDto]
+  implicit val formats: OFormat[CreateMandateDto] = Json.format[CreateMandateDto]
 }

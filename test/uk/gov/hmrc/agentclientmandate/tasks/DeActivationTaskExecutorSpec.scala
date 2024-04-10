@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,15 @@
 
 package uk.gov.hmrc.agentclientmandate.tasks
 
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
+import org.apache.pekko.actor.{ActorSystem, Props}
+import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import java.time.Instant
 import org.mockito.ArgumentMatchers._
-import org.mockito.{ArgumentMatchers, MockitoSugar}
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.models._
@@ -384,5 +386,3 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     }
   }
 }
-
-

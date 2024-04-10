@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 
 import scala.xml.Elem
 
@@ -24,12 +24,12 @@ import scala.xml.Elem
 case class Identifier(`type`: String, value: String)
 
 object Identifier {
-  implicit val format = Json.format[Identifier]
+  implicit val formats: OFormat[Identifier] = Json.format[Identifier]
 }
 
 case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String)  {
 
-  val toXml = {
+  val toXml: Elem = {
     <GsoAdminAllocateAgentXmlInput xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                                    xmlns="urn:GSO-System-Services:external:1.65:GsoAdminAllocateAgentXmlInput">
@@ -50,7 +50,7 @@ case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCod
 
 case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String) {
 
-  val toXml = {
+  val toXml: Elem = {
     <GsoAdminDeallocateAgentXmlInput xmlns="urn:GSO-System-Services:external:1.65:GsoAdminDeallocateAgentXmlInput">
       <ServiceName>{serviceName}</ServiceName>
       <Identifiers>
@@ -70,5 +70,5 @@ case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentC
 case class NewEnrolment(userId: String, `type`: String = "delegated")
 
 object NewEnrolment {
-  implicit val format = Json.format[NewEnrolment]
+  implicit val formats: OFormat[NewEnrolment] = Json.format[NewEnrolment]
 }
