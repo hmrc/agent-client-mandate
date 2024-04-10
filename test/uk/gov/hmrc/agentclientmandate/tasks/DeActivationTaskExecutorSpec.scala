@@ -386,5 +386,3 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
     }
   }
 }
-
-

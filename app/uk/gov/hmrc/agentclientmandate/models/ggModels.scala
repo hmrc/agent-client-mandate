@@ -29,7 +29,7 @@ object Identifier {
 
 case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String)  {
 
-  val toXml = {
+  val toXml: Elem = {
     <GsoAdminAllocateAgentXmlInput xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                                    xmlns="urn:GSO-System-Services:external:1.65:GsoAdminAllocateAgentXmlInput">
@@ -50,7 +50,7 @@ case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCod
 
 case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String) {
 
-  val toXml = {
+  val toXml: Elem = {
     <GsoAdminDeallocateAgentXmlInput xmlns="urn:GSO-System-Services:external:1.65:GsoAdminDeallocateAgentXmlInput">
       <ServiceName>{serviceName}</ServiceName>
       <Identifiers>

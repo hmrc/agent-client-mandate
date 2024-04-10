@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
-import javax.xml.parsers.SAXParserFactory
+import javax.xml.parsers.{SAXParser, SAXParserFactory}
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship, Mandate, Status}
 import uk.gov.hmrc.http.HttpResponse
 
 object MandateUtils {
 
-  def createRelationship(clientId: String, agentId: String) = {
+  def createRelationship(clientId: String, agentId: String): EtmpAtedAgentClientRelationship = {
     EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, EtmpRelationship(action = "Authorise", isExclusiveAgent = Some(true)))
   }
 
-  def breakRelationship(clientId: String, agentId: String) = {
+  def breakRelationship(clientId: String, agentId: String): EtmpAtedAgentClientRelationship = {
     EtmpAtedAgentClientRelationship(SessionUtils.getUniqueAckNo, clientId, agentId, EtmpRelationship(action = "De-Authorise", isExclusiveAgent = None))
   }
 
@@ -37,12 +37,12 @@ object MandateUtils {
     (msgToXml \\ "ErrorNumber").text
   }
 
-  def validateGroupId(str: String) = if(str.trim.length != 36) {
+  def validateGroupId(str: String): String = if(str.trim.length != 36) {
     if(str.contains("testGroupId-")) str.replace("testGroupId-", "")
     else throw new RuntimeException("Invalid groupId from auth")
   } else str.trim
 
-def secureSAXParser = {
+def secureSAXParser: SAXParser = {
     val saxParserFactory = SAXParserFactory.newInstance()
     saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false)
     saxParserFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
