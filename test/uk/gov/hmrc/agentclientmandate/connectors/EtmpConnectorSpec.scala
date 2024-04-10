@@ -40,7 +40,9 @@ class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEa
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   override def beforeEach(): Unit = {
-    reset(mockWSHttp, mockMetrics, mockAuditConnector)
+    reset(mockWSHttp)
+    reset(mockMetrics)
+    reset(mockAuditConnector)
 
     when(mockMetrics.startTimer(any()))
       .thenReturn(new Timer().time)

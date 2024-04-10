@@ -19,20 +19,9 @@ lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 lazy val plugins: Seq[Plugins] = Seq.empty
 lazy val playSettings: Seq[Setting[_]] = Seq.empty
 
-lazy val scoverageSettings = {
-  import scoverage.ScoverageKeys
-  Seq(
-    ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*;app.Routes.*;prod.*;.*testOnly.*;" +
-      "uk.gov.hmrc.BuildInfo*;.*binders.*;.*MicroserviceAuditConnector*;.*MicroserviceAuthConnector*;" +
-      ".*WSHttp*;uk.gov.hmrc.agentclientmandate.config.*;",
-    ScoverageKeys.coverageMinimumStmtTotal := 80,
-    ScoverageKeys.coverageFailOnMinimum := true,
-    ScoverageKeys.coverageHighlighting := true
-  )
-}
-
 lazy val microservice = Project(appName, file("."))
   .enablePlugins((Seq( play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin ) ++ plugins) *)
+  .settings(CodeCoverageSettings.settings: _*)
   .settings(playSettings *)
   .settings(scalaSettings *)
   .settings(defaultSettings *)
