@@ -27,7 +27,7 @@ import org.apache.pekko.routing.{ActorRefRoutee, RoundRobinRoutingLogic, Router}
   */
 protected class TaskRouter[A <: Actor] (config:ConfigProvider[A]) extends Actor {
 
-  //Create an akka router with N instances of the
+  //Create an pekko router with N instances of the
   // Executor as routees and a round robbin
   // load balancing policy
   var router: Router = {

@@ -30,7 +30,7 @@ case class ActivationTaskMessage(service: ActivationTaskService,
 case class DeActivationTaskMessage(service: DeActivationTaskService,
                                    metrics: ServiceMetrics) extends ScheduledMessage
 
-// Akka message. Represents a command to execute a task. Contains
+// pekko message. Represents a command to execute a task. Contains
 // the task to be executed as provided by the client as well as
 // an ExecutionStatus (see below)
 case class TaskCommand(status: ExecutionStatus,
@@ -81,7 +81,6 @@ case class RollbackFailureHandled(args: Map[String, String]) extends ExecutionSt
 //Captures the state of retry for a task at the end of each retry. Used
 // by failure manager to work out if and when to retry the task
 case class RetryState(firstTryAt:Long, retryCount:Int, lastTryAt:Long)
-
 
 object Phase extends Enumeration {
   type Phase = Value
