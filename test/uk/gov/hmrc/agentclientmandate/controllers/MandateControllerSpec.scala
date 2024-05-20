@@ -56,7 +56,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
         state = "active"
       )
     ),
-    agentInformation = AgentInformation(None, None, None),
+    agentInformation = AgentInformation(None, Some("ABC"), None),
     Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
   )
 
