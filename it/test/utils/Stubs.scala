@@ -21,24 +21,54 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 
 object Stubs {
 
-    def stubGetArn: StubMapping = {
-
-      stubFor(get(urlMatching(s"/registration/details\\?arn=FAKE-UTR"))
-        .willReturn(
-          aResponse()
-            .withStatus(200)
-            .withBody(
-              s"""{
-                 |"isAnIndividual" : true,
-                 |"individual": {
-                 |  "firstName": "First",
-                 |  "lastName" : "Last"
-                 |}
-                 |}""".stripMargin
-            )
-        )
+  def stubES1ATED(status: Int, body: String): StubMapping = {
+    stubFor(get(urlMatching(s"/enrolment-store-proxy/enrolment-store/enrolments/HMRC-ATED-ORG~ATEDRefNumber~atedRef/groups"))
+      .willReturn(
+        aResponse()
+          .withStatus(status)
+          .withBody(body)
       )
-    }
+    )
+  }
+
+  def stubES1Agent(status: Int, body: String): StubMapping = {
+    stubFor(get(urlMatching(s"/enrolment-store-proxy/enrolment-store/enrolments/HMRC-AGENT-AGENT~AGENTRefNumber~agentRef/groups"))
+      .willReturn(
+        aResponse()
+          .withStatus(status)
+          .withBody(body)
+      )
+    )
+  }
+
+  def stubUGS(status: Int, body: String): StubMapping = {
+    stubFor(get(urlMatching("/groups/groupId"))
+      .willReturn(
+        aResponse()
+          .withStatus(status)
+          .withBody(body)
+      )
+    )
+  }
+
+  def stubGetArn: StubMapping = {
+
+    stubFor(get(urlMatching(s"/registration/details\\?arn=FAKE-UTR"))
+      .willReturn(
+        aResponse()
+          .withStatus(200)
+          .withBody(
+            s"""{
+               |"isAnIndividual" : true,
+               |"individual": {
+               |  "firstName": "First",
+               |  "lastName" : "Last"
+               |}
+               |}""".stripMargin
+          )
+      )
+    )
+  }
 
   def stubGetAuth: StubMapping = {
 
@@ -195,6 +225,6 @@ object Stubs {
     )
   }
 
-  }
+}
 
 

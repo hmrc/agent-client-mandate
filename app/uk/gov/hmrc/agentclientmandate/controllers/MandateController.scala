@@ -56,9 +56,12 @@ class MandateController @Inject()(val createService: MandateCreateService,
     authRetrieval { implicit ar =>
       fetchService.fetchClientMandate(mandateId).flatMap {
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
+
           val agentCode: String = {
             if(ar.userType == "agent") ar.agentInformation.agentCode else mandate.createdBy.groupId
           }.fold(throw new RuntimeException("agent code not found!"))(code => code)
+
+
           updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
             case MandateUpdated(x) =>
               relationshipService.breakAgentClientRelationship(x, agentCode, ar.userType)

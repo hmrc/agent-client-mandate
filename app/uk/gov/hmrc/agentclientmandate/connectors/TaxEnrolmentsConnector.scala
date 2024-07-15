@@ -109,9 +109,29 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
         case OK =>
           logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].principalGroupIds.headOption
-        case NOT_FOUND =>
+        case NO_CONTENT =>
           logWarn("[getGroupsWithEnrolments]: group ID not found")
-          UserGroupIDs(List(),List()).principalGroupIds.headOption
+          None
+        case _ =>
+          logError(s"[getGroupsWithEnrolments]: error retrieving group ID")
+          throw new RuntimeException("Error retrieving agent group ID")
+      }
+    }
+  }
+
+  def getGroupsWithEnrolmentDelegatedAted(atedRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
+    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$atedRefNumber"
+    val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
+
+    http.GET[HttpResponse](s"$getUrl") map { response =>
+      response.status match {
+
+        case OK =>
+          logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
+          response.json.as[UserGroupIDs].delegatedGroupIds.headOption
+        case NO_CONTENT =>
+          logWarn("[getGroupsWithEnrolments]: group ID not found")
+          None
         case _ =>
           logError(s"[getGroupsWithEnrolments]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")
