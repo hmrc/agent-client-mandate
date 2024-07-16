@@ -220,12 +220,21 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "cant remove the mandate" when {
 
-      "mandate with no agent code is fetched" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate1))
-
+      "ES1 call returns no delegated groupId for the client" in new Setup(arClient) {
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(any())) thenReturn Future.successful(None)
         val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
       }
+
+      "No agent code retrieved from userGroupSearch" in new Setup(arClient) {
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(any())) thenReturn Future.successful(Some("groupId"))
+        when(usersGroupSearchConnectorMock.fetchAgentCode(any())(any())) thenReturn Future.successful(None)
+        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
+        status(result) mustBe NOT_FOUND
+      }
+
 
       "mongo update error occurs while changing the status to PENDING_CANCELLATION" in new Setup {
         when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))

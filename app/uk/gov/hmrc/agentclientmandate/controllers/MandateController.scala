@@ -64,10 +64,10 @@ class MandateController @Inject()(val createService: MandateCreateService,
           val agentCode = {
             if(ar.userType == "agent") Future.successful(ar.agentInformation.agentCode)
             else {
-              for {
-                groupId <- taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value)
-                code <- userGroupSearchConnector.fetchAgentCode(groupId.get)
-              } yield code
+              taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value).flatMap {
+                case Some(groupid) => userGroupSearchConnector.fetchAgentCode(groupid)
+                case _ => Future.successful(None)
+              }
             }
           }
           agentCode.flatMap {
