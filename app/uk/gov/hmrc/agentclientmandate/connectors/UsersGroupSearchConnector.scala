@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-import play.api.http.Status.{NON_AUTHORITATIVE_INFORMATION, OK}
+import play.api.http.Status.NON_AUTHORITATIVE_INFORMATION
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
@@ -25,7 +25,6 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.libs.json._
 
 class UsersGroupSearchConnector @Inject()(val auditConnector: AuditConnector,
                                           metrics: ServiceMetrics,

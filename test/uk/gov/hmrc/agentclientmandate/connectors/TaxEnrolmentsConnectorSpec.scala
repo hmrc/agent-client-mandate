@@ -235,26 +235,8 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       }
 
       "return None when group ID is not found" in new Setup {
-        val successResponse: JsValue = Json.parse(
-          s"""
-             |{
-             |
-             |    "principalGroupIds":[
-             |
-             |        "FF5E2869-C291-446C-826F-8A8CF6B8D631"
-             |
-             |    ]
-             |    ,
-             |
-             |    "delegatedGroupIds":[
-             |
-             |    ]
-             |
-             |}
-             """.stripMargin
-        )
         when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(NOT_FOUND, successResponse.toString) ))
+          .thenReturn(Future.successful(HttpResponse(NO_CONTENT, "") ))
         val response: Option[String] = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (None)
       }
