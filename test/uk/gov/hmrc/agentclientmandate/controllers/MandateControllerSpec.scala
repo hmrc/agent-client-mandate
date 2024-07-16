@@ -28,7 +28,7 @@ import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
-import uk.gov.hmrc.agentclientmandate.connectors.EmailSent
+import uk.gov.hmrc.agentclientmandate.connectors.{DefaultTaxEnrolmentConnector, EmailSent, UsersGroupSearchConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
@@ -43,7 +43,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  val ar: AuthRetrieval = AuthRetrieval(
+  val arAgent: AuthRetrieval = AuthRetrieval(
     enrolments = Set(
       Enrolment(
         key = "HMRC-AGENT-AGENT",
@@ -60,6 +60,19 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
     Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
   )
 
+  val arClient: AuthRetrieval = AuthRetrieval(
+    enrolments = Set(
+      Enrolment(
+        key = "HMRC-ATED-ORG",
+        identifiers = Seq(EnrolmentIdentifier(key = "ATEDRefNumber", value = "ated-ref-num")),
+        state = "active"
+      )
+    ),
+    agentInformation = AgentInformation(None, None, None),
+    Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
+  )
+
+
   val fetchServiceMock: MandateFetchService = mock[MandateFetchService]
   val createServiceMock: MandateCreateService = mock[MandateCreateService]
   val updateServiceMock: MandateUpdateService = mock[MandateUpdateService]
@@ -68,9 +81,11 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
   val notificationServiceMock: NotificationEmailService = mock[NotificationEmailService]
   val authConnectorMock: DefaultAuthConnector = mock[DefaultAuthConnector]
   val auditConnectorMock: AuditConnector = mock[AuditConnector]
+  val taxEnrolmentConnectorMock: DefaultTaxEnrolmentConnector = mock[DefaultTaxEnrolmentConnector]
+  val usersGroupSearchConnectorMock: UsersGroupSearchConnector = mock[UsersGroupSearchConnector]
   lazy val cc: ControllerComponents = Helpers.stubControllerComponents()
 
-  class Setup {
+  class Setup(ar: AuthRetrieval = arAgent) {
     val TestMandateController: MandateController = new MandateController(
       createServiceMock,
       updateServiceMock,
@@ -80,6 +95,8 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       notificationServiceMock,
       fetchServiceMock,
       authConnectorMock,
+      taxEnrolmentConnectorMock,
+      usersGroupSearchConnectorMock,
       cc
     ){
       override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
@@ -165,27 +182,39 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
   "MandateController" should {
     "remove the mandate" when {
+      "logged in as agent " when {
+        "request is valid and client mandate found and status is active" in new Setup {
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
+          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
+          status(result) must be(OK)
+        }
 
-      "request is valid and client mandate found and status is active" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
-        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
-        status(result) must be(OK)
+        "request is valid and client mandate found and status is approved" in new Setup {
+          when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
+          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
+          status(result) must be(OK)
+        }
+
+        "request is valid and client mandate found and status is New" in new Setup {
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
+          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
+          status(result) must be(OK)
+        }
       }
+      "logged in as client " when {
+        "request is valid and client mandate found and status is active" in new Setup(arClient) {
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
+          when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(any())) thenReturn Future.successful(Some("groupId"))
+          when(usersGroupSearchConnectorMock.fetchAgentCode(any())(any())) thenReturn Future.successful(Some("agentCode"))
+          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
+          status(result) must be(OK)
+        }
 
-      "request is valid and client mandate found and status is approved" in new Setup {
-        when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
-        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
-        status(result) must be(OK)
-      }
-
-      "request is valid and client mandate found and status is New" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
-        val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
-        status(result) must be(OK)
       }
     }
 

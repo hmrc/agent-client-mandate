@@ -61,27 +61,31 @@ class MandateController @Inject()(val createService: MandateCreateService,
       fetchService.fetchClientMandate(mandateId).flatMap {
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
 
-          val agentCode: String = {
-            if(ar.userType == "agent") ar.agentInformation.agentCode
+          val agentCode = {
+            if(ar.userType == "agent") Future.successful(ar.agentInformation.agentCode)
             else {
               for {
                 groupId <- taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value)
                 code <- userGroupSearchConnector.fetchAgentCode(groupId.get)
               } yield code
             }
-          }.fold(throw new RuntimeException("agent code not found!"))(code => code)
-
-
-          updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
-            case MandateUpdated(x) =>
-              relationshipService.breakAgentClientRelationship(x, agentCode, ar.userType)
-              Future.successful(Ok)
-            case MandateUpdateError => {
-              logWarn("Could not find mandate to remove after fetching: " + mandate.id)
-              Future.successful(NotFound)
-            }
-            case _ => throw new Exception("Unknown mandate status")
           }
+          agentCode.flatMap {
+            case Some(code) =>
+              updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
+                case MandateUpdated(x) =>
+                  relationshipService.breakAgentClientRelationship(x, code, ar.userType)
+                  Future.successful(Ok)
+                case MandateUpdateError => {
+                  logWarn("Could not find mandate to remove after fetching: " + mandate.id)
+                  Future.successful(NotFound)
+                }
+                case _ => throw new Exception("Unknown mandate status")
+              }
+            case _ =>
+              throw new RuntimeException("agent code not found!")
+          }
+
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
           updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
             case MandateUpdated(x) =>
