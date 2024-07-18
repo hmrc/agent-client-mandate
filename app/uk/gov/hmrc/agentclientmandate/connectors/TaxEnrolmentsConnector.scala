@@ -125,7 +125,6 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
 
     http.GET[HttpResponse](s"$getUrl") map { response =>
       response.status match {
-
         case OK =>
           logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].delegatedGroupIds.headOption
