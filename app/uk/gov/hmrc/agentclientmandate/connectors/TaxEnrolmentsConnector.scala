@@ -126,13 +126,13 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
     http.GET[HttpResponse](s"$getUrl") map { response =>
       response.status match {
         case OK =>
-          logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
+          logInfo(s"[getGroupsWithEnrolmentDelegatedAted]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].delegatedGroupIds.headOption
         case NO_CONTENT =>
-          logWarn("[getGroupsWithEnrolments]: group ID not found")
+          logWarn("[getGroupsWithEnrolmentDelegatedAted]: group ID not found")
           None
         case _ =>
-          logError(s"[getGroupsWithEnrolments]: error retrieving group ID")
+          logError(s"[getGroupsWithEnrolmentDelegatedAted]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")
       }
     }

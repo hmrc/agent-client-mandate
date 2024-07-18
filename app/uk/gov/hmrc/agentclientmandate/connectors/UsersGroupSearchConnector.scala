@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.http.Status.NON_AUTHORITATIVE_INFORMATION
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -39,7 +40,9 @@ class UsersGroupSearchConnector @Inject()(val auditConnector: AuditConnector,
       response =>
         response.status match {
           case NON_AUTHORITATIVE_INFORMATION => (response.json \ "agentCode").asOpt[String]
-          case _ => None
+          case _ =>
+            logWarn("[UsersGroupSearchConnector][fetchAgentCode]: No record found for provided groupId : " + groupId)
+            None
         }
     }
   }
