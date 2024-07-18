@@ -34,10 +34,6 @@ trait IntegrationApplication extends GuiceOneServerPerSuite with WireMockConfig 
   override lazy val app: Application = new GuiceApplicationBuilder()
     .configure("play.http.router"                    -> "testOnlyDoNotUseInAppConf.Routes",
       "mongo.uri"                                           -> "mongodb://localhost:27017/test-agent-client-mandate",
-      "microservice.metrics.graphite.host"                  -> "localhost",
-      "microservice.metrics.graphite.port"                  -> 2003,
-      "microservice.metrics.graphite.prefix"                -> "play.agent-client-mandate.",
-      "microservice.metrics.graphite.enabled"               -> true,
       "microservice.services.auth.host"                     -> wireMockHost,
       "microservice.services.auth.port"                     -> wireMockPort,
       "microservice.services.etmp-hod.host"                 -> wireMockHost,
@@ -49,13 +45,7 @@ trait IntegrationApplication extends GuiceOneServerPerSuite with WireMockConfig 
       "microservice.services.tax-enrolments.host"           -> wireMockHost,
       "microservice.services.tax-enrolments.port"           -> wireMockPort,
       "microservice.services.enrolment-store-proxy.host"    -> wireMockHost,
-      "microservice.services.enrolment-store-proxy.port"    -> wireMockPort,
-      "metrics.name"                                        -> "agent-client-mandate",
-      "metrics.rateUnit"                                    -> "SECONDS",
-      "metrics.durationUnit"                                -> "SECONDS",
-      "metrics.showSamples"                                 -> true,
-      "metrics.jvm"                                         -> true,
-      "metrics.enabled"                                     -> true
+      "microservice.services.enrolment-store-proxy.port"    -> wireMockPort
     )
     .build()
 
