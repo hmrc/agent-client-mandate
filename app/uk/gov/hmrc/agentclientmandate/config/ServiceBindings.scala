@@ -22,12 +22,13 @@ import uk.gov.hmrc.agentclientmandate.connectors._
 import uk.gov.hmrc.agentclientmandate.controllers.auth.{AgentDelegationForAtedController, DefaultAgentDelegationForAtedController}
 import uk.gov.hmrc.agentclientmandate.controllers.testOnly.{DefaultPerformanceTestSupportController, PerformanceTestSupportController}
 import uk.gov.hmrc.agentclientmandate.metrics.{DefaultServiceMetrics, ServiceMetrics}
-import uk.gov.hmrc.agentclientmandate.repositories.{MandateRepo, MandateMongoRepository}
+import uk.gov.hmrc.agentclientmandate.repositories.{MandateMongoRepository, MandateRepo}
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
-import uk.gov.hmrc.http.HttpClient
+//import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+//import uk.gov.hmrc.http.HttpClient
+//import uk.gov.hmrc.http.client.HttpClientV2
 
 class ServiceBindings extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
@@ -47,6 +48,6 @@ class ServiceBindings extends Module {
       playBind(classOf[PerformanceTestSupportController]).to(classOf[DefaultPerformanceTestSupportController]),
       playBind(classOf[MandateRepo]).to(classOf[MandateMongoRepository]),
       playBind(classOf[PlayAuthConnector]).to(classOf[DefaultAuthConnector]),
-      playBind(classOf[HttpClient]).to(classOf[DefaultHttpClient])
+      //playBind(classOf[HttpClientV2]).to(classOf[DefaultHttpClient])
     )
 }

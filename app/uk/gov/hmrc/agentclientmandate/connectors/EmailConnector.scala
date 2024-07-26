@@ -21,10 +21,14 @@ import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.http._
+//import uk.gov.hmrc.http.HeaderCarrier
+//import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
+import uk.gov.hmrc.http.client.HttpClientV2
+//import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,7 +39,7 @@ case object EmailNotSent extends EmailStatus
 class DefaultEmailConnector @Inject()(val auditConnector: AuditConnector,
                                       val servicesConfig: ServicesConfig,
                                       val ec: ExecutionContext,
-                                      val http: HttpClient) extends EmailConnector {
+                                      val http: HttpClientV2) extends EmailConnector {
   val sendEmailUri: String = "hmrc/email"
   val serviceUrl: String = servicesConfig.baseUrl("email")
 }
@@ -45,7 +49,7 @@ trait EmailConnector extends RawResponseReads with Auditable {
 
   def sendEmailUri: String
   def serviceUrl: String
-  def http: CorePost
+  def http: HttpClientV2
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String,
                          uniqueAuthNo: Option[String], recipientName: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
@@ -61,7 +65,8 @@ trait EmailConnector extends RawResponseReads with Auditable {
     val postUrl = s"$serviceUrl/$sendEmailUri"
     val jsonData = Json.toJson(sendEmailReq)
 
-    http.POST(postUrl, jsonData).map { response =>
+    //http.POST(postUrl, jsonData).map { response =>
+    http.post(url"$postUrl").withBody(jsonData).execute[HttpResponse].map{ response =>
       response.status match {
         case ACCEPTED => EmailSent
         case _        =>
