@@ -28,7 +28,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.client.HttpClientV2
-//import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -44,7 +44,7 @@ class DefaultEmailConnector @Inject()(val auditConnector: AuditConnector,
   val serviceUrl: String = servicesConfig.baseUrl("email")
 }
 
-trait EmailConnector extends RawResponseReads with Auditable {
+trait EmailConnector extends Auditable {
   implicit val ec: ExecutionContext
 
   def sendEmailUri: String

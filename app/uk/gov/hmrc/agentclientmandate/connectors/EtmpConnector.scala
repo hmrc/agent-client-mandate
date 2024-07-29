@@ -27,6 +27,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -41,7 +42,8 @@ val http: HttpClientV2) extends EtmpConnector {
   val etmpUrl: String = servicesConfig.baseUrl("etmp-hod")
 }
 
-trait EtmpConnector extends RawResponseReads with Auditable {
+//trait EtmpConnector extends RawResponseReads with Auditable {
+trait EtmpConnector extends Auditable {
 
   implicit val ec: ExecutionContext
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()

@@ -28,6 +28,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,7 +43,8 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
-trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
+//trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
+trait TaxEnrolmentConnector extends Auditable {
 
   implicit val ec: ExecutionContext
 
