@@ -26,9 +26,6 @@ import uk.gov.hmrc.agentclientmandate.repositories.{MandateMongoRepository, Mand
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
-//import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
-//import uk.gov.hmrc.http.HttpClient
-//import uk.gov.hmrc.http.client.HttpClientV2
 
 class ServiceBindings extends Module {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
@@ -47,7 +44,6 @@ class ServiceBindings extends Module {
       playBind(classOf[AgentDelegationForAtedController]).to(classOf[DefaultAgentDelegationForAtedController]),
       playBind(classOf[PerformanceTestSupportController]).to(classOf[DefaultPerformanceTestSupportController]),
       playBind(classOf[MandateRepo]).to(classOf[MandateMongoRepository]),
-      playBind(classOf[PlayAuthConnector]).to(classOf[DefaultAuthConnector]),
-      //playBind(classOf[HttpClientV2]).to(classOf[DefaultHttpClient])
+      playBind(classOf[PlayAuthConnector]).to(classOf[DefaultAuthConnector])
     )
 }

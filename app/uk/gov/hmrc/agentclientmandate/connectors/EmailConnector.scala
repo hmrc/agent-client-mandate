@@ -22,8 +22,6 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
 import uk.gov.hmrc.http._
-//import uk.gov.hmrc.http.HeaderCarrier
-//import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
@@ -65,7 +63,6 @@ trait EmailConnector extends Auditable {
     val postUrl = s"$serviceUrl/$sendEmailUri"
     val jsonData = Json.toJson(sendEmailReq)
 
-    //http.POST(postUrl, jsonData).map { response =>
     http.post(url"$postUrl").withBody(jsonData).execute[HttpResponse].map{ response =>
       response.status match {
         case ACCEPTED => EmailSent

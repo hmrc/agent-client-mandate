@@ -30,6 +30,9 @@ import scala.concurrent.ExecutionContext
 trait ConnectorTest extends FutureAwaits with DefaultAwaitTimeout with MockitoSugar {
   val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
   val requestBuilder: RequestBuilder = mock[RequestBuilder]
+  val mockGetRequestBuilder: RequestBuilder = mock[RequestBuilder]
+  val mockDeleteRequestBuilder: RequestBuilder = mock[RequestBuilder]
+
   when(mockHttpClient.get(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(mockHttpClient.post(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
   when(mockHttpClient.delete(any[URL])(any[HeaderCarrier])).thenReturn(requestBuilder)
@@ -37,5 +40,16 @@ trait ConnectorTest extends FutureAwaits with DefaultAwaitTimeout with MockitoSu
   when(requestBuilder.withBody(any[JsValue])(any(), any(), any())).thenReturn(requestBuilder)
   when(requestBuilder.setHeader(any[(String, String)])).thenReturn(requestBuilder)
   def requestBuilderExecute[A] = requestBuilder.execute[A](any[HttpReads[A]], any[ExecutionContext])
+
+  def executeGet[A] = {
+    when(mockHttpClient.get(any[URL])(any[HeaderCarrier])).thenReturn(mockGetRequestBuilder)
+    mockGetRequestBuilder.execute[A](any[HttpReads[A]], any[ExecutionContext])
+  }
+
+  def executeDelete[A] = {
+    when(mockHttpClient.delete(any[URL])(any[HeaderCarrier])).thenReturn(mockDeleteRequestBuilder)
+    mockDeleteRequestBuilder.execute[A](any[HttpReads[A]], any[ExecutionContext])
+  }
+
 }
 

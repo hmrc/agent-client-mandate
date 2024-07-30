@@ -17,7 +17,6 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.http.Status._
-//import play.api.libs.json.{JsValue, Json}
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
@@ -42,7 +41,6 @@ val http: HttpClientV2) extends EtmpConnector {
   val etmpUrl: String = servicesConfig.baseUrl("etmp-hod")
 }
 
-//trait EtmpConnector extends RawResponseReads with Auditable {
 trait EtmpConnector extends Auditable {
 
   implicit val ec: ExecutionContext
@@ -54,7 +52,6 @@ trait EtmpConnector extends Auditable {
 
   def urlHeaderAuthorization: String
 
-  //def http: CoreGet with CorePost
   def http: HttpClientV2
 
   def metrics: ServiceMetrics
@@ -64,7 +61,7 @@ trait EtmpConnector extends Auditable {
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
-    //http.POST(postUrl, jsonData, headers = additionalHeaders) map { response =>
+
     http.post(url"$postUrl").withBody(jsonData).setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
       timerContext.stop()
       response.status match {
@@ -83,7 +80,7 @@ trait EtmpConnector extends Auditable {
   def getRegistrationDetails(identifier: String, identifierType: String): Future[JsValue] = {
     def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
       val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)
-      //http.GET[HttpResponse](url = getUrl, headers = additionalHeaders).map { response =>
+
       http.get(url"$getUrl").setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
         timerContext.stop()
         response.status match {
@@ -111,7 +108,7 @@ trait EtmpConnector extends Auditable {
   def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
     val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
     val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
-    //http.GET[HttpResponse](s"$getUrl", headers = additionalHeaders) map { response =>
+
     http.get(url"$getUrl").setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
       timerContext.stop()
       response.status match {

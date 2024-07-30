@@ -16,15 +16,10 @@
 
 package uk.gov.hmrc.agentclientmandate.connectors
 
-//import org.mockito.ArgumentMatchers
-//import org.mockito.ArgumentMatchers._
-//import org.mockito.Mockito.{reset, when}
+
 import org.mockito.Mockito.when
-//import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-//import play.api.libs.json.{JsValue, Json}
-//import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http._
@@ -35,16 +30,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class EmailConnectorSpec extends PlaySpec with MockitoSugar {
 
-  //val mockWSHttp: HttpClientV2 = mock[HttpClientV2]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
   trait Setup extends ConnectorTest {
     class TestEmailConnector extends EmailConnector {
       val sendEmailUri: String = "http://localhost:9020/etmp-hod"
-        //"send-templated-email"
       val http: HttpClientV2 = mockHttpClient
       val serviceUrl: String = "http://localhost:9020/etmp-hod"
-        //"email"
       val ec: ExecutionContext = ExecutionContext.global
 
       override val auditConnector: AuditConnector = mockAuditConnector
@@ -63,8 +55,6 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
         val emailString: String = emailGen.sample.get
         val templateId = "client_approves_mandate"
 
-        //when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).thenReturn(Future.successful(HttpResponse(202,"")))
-
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(202, "")))
 
         val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", None, "Recipient")
@@ -76,21 +66,6 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val emailString: String = emailGen.sample.get
         val templateId = "agent_removes_mandate"
-
-      /*  val expectedRequestBody: JsValue = Json.obj(
-            "to" -> Json.arr(emailString),
-            "templateId" -> "agent_removes_mandate",
-            "parameters" -> Json.obj(
-               "emailAddress" -> emailString,
-               "service" -> "ATED",
-               "recipient" -> "Recipient",
-               "uniqueAuthNo" -> "123456"
-            ),
-            "force" -> true
-        )*/
-
-        //when(mockWSHttp.POST[JsValue, HttpResponse](any(), ArgumentMatchers.eq[JsValue]
-        // (expectedRequestBody),any())(any(), any(), any(), any())).thenReturn(Future.successful(HttpResponse(202,"")))
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(202, "")))
 
@@ -107,7 +82,6 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val invalidEmailString: String = emailGen.sample.get
 
-        //when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).thenReturn(Future.successful(HttpResponse(404,"")))
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(404, "")))
         val response: Future[EmailStatus] = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None, "Recipient")
         await(response) must be(EmailNotSent)
@@ -118,7 +92,4 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
 
   }
 
-/*  override def beforeEach(): Unit = {
-    reset(mockWSHttp)
-  }*/
 }

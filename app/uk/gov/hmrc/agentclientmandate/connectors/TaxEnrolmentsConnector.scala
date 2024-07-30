@@ -43,7 +43,7 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
-//trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
+
 trait TaxEnrolmentConnector extends Auditable {
 
   implicit val ec: ExecutionContext
@@ -51,7 +51,6 @@ trait TaxEnrolmentConnector extends Auditable {
   def serviceUrl: String
   def enrolmentStoreProxyURL: String
   def taxEnrolmentsUrl: String
-  //def http: CoreDelete with CorePost with CoreGet
   def http: HttpClientV2
   def metrics: ServiceMetrics
 
@@ -61,7 +60,7 @@ trait TaxEnrolmentConnector extends Auditable {
     val jsonData = Json.toJson(input)
 
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentAllocate)
-    //http.POST[JsValue, HttpResponse](postUrl, jsonData) map { response =>
+
     http.post(url"$postUrl").withBody(jsonData).execute[HttpResponse].map{ response =>
       timerContext.stop()
       response.status match {
@@ -85,7 +84,7 @@ trait TaxEnrolmentConnector extends Auditable {
         case Some(groupId) =>
           val deleteUrl = s"""$taxEnrolmentsUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
           val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
-          //http.DELETE[HttpResponse](deleteUrl).map { response =>
+
           http.delete(url"$deleteUrl").execute[HttpResponse].map { response =>
             timerContext.stop()
             response.status match {
@@ -109,7 +108,6 @@ trait TaxEnrolmentConnector extends Auditable {
     val enrolmentKey = s"${MandateConstants.AgentServiceContractName}~${MandateConstants.AgentIdentifier}~$agentRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
 
-    //http.GET[HttpResponse](s"$getUrl") map { response =>
     http.get(url"$getUrl").execute[HttpResponse].map { response =>
       response.status match {
 

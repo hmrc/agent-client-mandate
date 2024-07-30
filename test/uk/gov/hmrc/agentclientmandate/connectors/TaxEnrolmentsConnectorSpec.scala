@@ -35,7 +35,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  //val mockWSHttp: HttpClientV2 = mock[HttpClient]
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val agentCode: String = agentCodeGen.sample.get
@@ -45,7 +44,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
   val userType = "client"
 
   override def beforeEach(): Unit = {
-    //reset(mockWSHttp)
     reset(mockMetrics)
     reset(mockAuditConnector)
 
@@ -77,9 +75,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
     "create allocation" in new Setup {
       val enrolment: NewEnrolment = NewEnrolment(newEnrolment)
-     /* when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(CREATED, "")))*/
-
       when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(CREATED, "")))
       val result: HttpResponse = await(connector.allocateAgent(enrolment, groupID, clientID, agentCode))
       result.status mustBe CREATED
@@ -87,8 +82,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
     "create allocation error code" in new Setup {
       val enrolment: NewEnrolment = NewEnrolment(newEnrolment)
-     /* when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))*/
       when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
       val result: HttpResponse = await(connector.allocateAgent(enrolment, groupID, clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
@@ -115,12 +108,8 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
       )
 
-      /*when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(NO_CONTENT, "")))*/
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(NO_CONTENT, "")))
-      /*when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))*/
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+      when(executeDelete[HttpResponse]).thenReturn(Future.successful(HttpResponse(NO_CONTENT, "")))
+      when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result: HttpResponse = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe NO_CONTENT
@@ -146,12 +135,8 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
       )
 
-      /*when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))*/
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
-      /*when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))*/
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+      when(executeDelete[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
+      when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result: HttpResponse = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe INTERNAL_SERVER_ERROR
@@ -177,14 +162,8 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
       )
 
-      /*when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
-        thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
-      when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))*/
-
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
-
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+      when(executeDelete[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
+      when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
       val result: HttpResponse = await(connector.deAllocateAgent(groupID, clientID, agentCode, userType))
       result.status mustBe NOT_FOUND
@@ -210,14 +189,9 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
       )
       intercept[RuntimeException] {
-      /*  when(mockWSHttp.DELETE[HttpResponse](any(), any())(any(), any(), any())).
-          thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
-        when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))*/
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
-
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+        when(executeDelete[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, "")))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
         val result = await(connector.deAllocateAgent("", clientID, agentCode, userType))
         val response = the[RuntimeException] thrownBy result
@@ -246,8 +220,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
             |}
              """.stripMargin
         )
-        /*when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString) ))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
@@ -274,8 +246,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              |}
              """.stripMargin
         )
-        /*when(mockWSHttp.GET[HttpResponse](any(),any(),any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(NOT_FOUND, successResponse.toString) ))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, successResponse.toString)))
 
@@ -285,8 +255,6 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
       "return an exception when unable to return the agent groupID" in new Setup {
         intercept[RuntimeException] {
-        /*  when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-            .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))*/
 
           when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
 

@@ -36,12 +36,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach{
 
-  //val mockWSHttp: HttpClientV2 = mock[HttpClient]
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
 override def beforeEach(): Unit = {
-    //reset(mockWSHttp)
     reset(mockMetrics)
     reset(mockAuditConnector)
 
@@ -49,7 +47,6 @@ override def beforeEach(): Unit = {
       .thenReturn(new Timer().time)
   }
 
-  //val mockUrl = "test"
 
   trait Setup extends ConnectorTest {
 
@@ -59,7 +56,6 @@ override def beforeEach(): Unit = {
       override val http: HttpClientV2 = mockHttpClient
       override val metrics: ServiceMetrics = mockMetrics
       override val etmpUrl: String = "http://localhost:9020/etmp-hod"
-        //mockUrl
       override val auditConnector: AuditConnector = mockAuditConnector
       val ec: ExecutionContext = ExecutionContext.global
     }
@@ -70,8 +66,7 @@ override def beforeEach(): Unit = {
   "EtmpConnector" must {
     "getDetails" must {
       "return valid response, for ARN as identifier type" in new Setup {
-       /* when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))*/
+
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result: JsValue = await(connector.getRegistrationDetails("ABC", "arn"))
@@ -79,8 +74,6 @@ override def beforeEach(): Unit = {
       }
 
       "return valid response, for SafeId as identifier type" in new Setup {
-      /*  when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
@@ -89,8 +82,6 @@ override def beforeEach(): Unit = {
       }
 
       "return valid response, for UTR as identifier type" in new Setup {
-      /*  when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
@@ -104,8 +95,7 @@ override def beforeEach(): Unit = {
       }
 
       "throw exception when response is not OK" in new Setup {
-      /*  when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "")))*/
+
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "")))
 
         val thrown: RuntimeException = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "arn"))
@@ -116,8 +106,6 @@ override def beforeEach(): Unit = {
     "maintainAtedRelationship" must {
       "return valid response, if create/update relationship is successful in ETMP" in new Setup {
         val successResponse: JsValue = Json.parse("""{"processingDate" :  "2014-12-17T09:30:47Z"}""")
-      /*  when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
@@ -131,8 +119,6 @@ override def beforeEach(): Unit = {
 
       "Check for a failure response when we try to create/update ATED relation in ETMP" in new Setup {
         val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
-       /* when(mockWSHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))
 
@@ -147,8 +133,6 @@ override def beforeEach(): Unit = {
     "getAtedSubscriptionDetails" must {
       "return valid response, if success response received from ETMP" in new Setup {
         val successResponse: JsValue = Json.parse("""{"safeId" :  "safe-id"}""")
-      /*  when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
@@ -158,8 +142,6 @@ override def beforeEach(): Unit = {
 
       "throws error, if response status is not OK from ETMP" in new Setup {
         val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
-        /*when(mockWSHttp.GET[HttpResponse](any(), any(), any())(any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))*/
 
         when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
 
