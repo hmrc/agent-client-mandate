@@ -56,7 +56,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
         val emailString: String = emailGen.sample.get
         val templateId = "client_approves_mandate"
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(202, "")))
+        when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(202, "")))
 
         val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", None, "Recipient")
         await(response) must be(EmailSent)
@@ -96,7 +96,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
         implicit val hc: HeaderCarrier = HeaderCarrier()
         val invalidEmailString: String = emailGen.sample.get
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(404, "")))
+        when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(404, "")))
         val response: Future[EmailStatus] = connector.sendTemplatedEmail(invalidEmailString, "test-template-name", "ATED", None, "Recipient")
         await(response) must be(EmailNotSent)
 

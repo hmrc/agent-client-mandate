@@ -75,14 +75,14 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
 
     "create allocation" in new Setup {
       val enrolment: NewEnrolment = NewEnrolment(newEnrolment)
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(CREATED, "")))
+      when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(CREATED, "")))
       val result: HttpResponse = await(connector.allocateAgent(enrolment, groupID, clientID, agentCode))
       result.status mustBe CREATED
     }
 
     "create allocation error code" in new Setup {
       val enrolment: NewEnrolment = NewEnrolment(newEnrolment)
-      when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
+      when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
       val result: HttpResponse = await(connector.allocateAgent(enrolment, groupID, clientID, agentCode))
       result.status mustBe INTERNAL_SERVER_ERROR
     }

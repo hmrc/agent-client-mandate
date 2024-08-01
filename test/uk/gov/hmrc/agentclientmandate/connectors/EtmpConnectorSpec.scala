@@ -107,7 +107,7 @@ override def beforeEach(): Unit = {
       "return valid response, if create/update relationship is successful in ETMP" in new Setup {
         val successResponse: JsValue = Json.parse("""{"processingDate" :  "2014-12-17T09:30:47Z"}""")
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+        when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
         val etmpRelationship: EtmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship: EtmpAtedAgentClientRelationship = EtmpAtedAgentClientRelationship(
@@ -120,7 +120,7 @@ override def beforeEach(): Unit = {
       "Check for a failure response when we try to create/update ATED relation in ETMP" in new Setup {
         val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))
+        when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))
 
         val etmpRelationship: EtmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
         val agentClientRelationship: EtmpAtedAgentClientRelationship = EtmpAtedAgentClientRelationship(
