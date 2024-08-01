@@ -221,7 +221,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
         )
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
         val response: Option[String] = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (agentGroupID)
@@ -247,7 +247,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
              """.stripMargin
         )
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, successResponse.toString)))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(NOT_FOUND, successResponse.toString)))
 
         val response: Option[String] = await(connector.getGroupsWithEnrolment("agentRefNum"))
         response must be (None)
@@ -256,7 +256,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
       "return an exception when unable to return the agent groupID" in new Setup {
         intercept[RuntimeException] {
 
-          when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
+          when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, "")))
 
           val result = await(connector.getGroupsWithEnrolment("agentRefNum"))
           val response = the[RuntimeException] thrownBy result

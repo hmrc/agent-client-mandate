@@ -20,6 +20,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.utils.Generators._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http._
@@ -67,7 +68,20 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
         val emailString: String = emailGen.sample.get
         val templateId = "agent_removes_mandate"
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(202, "")))
+        val expectedRequestBody: JsValue = Json.obj(
+          "to" -> Json.arr(emailString),
+          "templateId" -> "agent_removes_mandate",
+          "parameters" -> Json.obj(
+            "emailAddress" -> emailString,
+            "service" -> "ATED",
+            "recipient" -> "Recipient",
+            "uniqueAuthNo" -> "123456"
+          ),
+          "force" -> true
+        )
+
+
+        when(executePost[HttpResponse](expectedRequestBody)).thenReturn(Future.successful(HttpResponse(202, "")))
 
         val response: Future[EmailStatus] = connector.sendTemplatedEmail(emailString, templateId, "ATED", Some("123456"), "Recipient")
         await(response) must be(EmailSent)

@@ -67,7 +67,7 @@ override def beforeEach(): Unit = {
     "getDetails" must {
       "return valid response, for ARN as identifier type" in new Setup {
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result: JsValue = await(connector.getRegistrationDetails("ABC", "arn"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
@@ -75,7 +75,7 @@ override def beforeEach(): Unit = {
 
       "return valid response, for SafeId as identifier type" in new Setup {
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result: JsValue = await(connector.getRegistrationDetails("ABC", "safeid"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
@@ -83,7 +83,7 @@ override def beforeEach(): Unit = {
 
       "return valid response, for UTR as identifier type" in new Setup {
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, """{"isAnIndividual":false}""")))
 
         val result: JsValue = await(connector.getRegistrationDetails("ABC", "utr"))
         (result \ "isAnIndividual").as[Boolean] must be(false)
@@ -96,7 +96,7 @@ override def beforeEach(): Unit = {
 
       "throw exception when response is not OK" in new Setup {
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "")))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(BAD_REQUEST, "")))
 
         val thrown: RuntimeException = the[RuntimeException] thrownBy await(connector.getRegistrationDetails("ABC", "arn"))
         thrown.getMessage must include("No ETMP details found")
@@ -134,7 +134,7 @@ override def beforeEach(): Unit = {
       "return valid response, if success response received from ETMP" in new Setup {
         val successResponse: JsValue = Json.parse("""{"safeId" :  "safe-id"}""")
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
 
         val response: JsValue = await(connector.getAtedSubscriptionDetails("ated-ref-num"))
         response must be(successResponse)
@@ -143,7 +143,7 @@ override def beforeEach(): Unit = {
       "throws error, if response status is not OK from ETMP" in new Setup {
         val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
 
-        when(requestBuilderExecute[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
 
         val result: Future[JsValue] = connector.getAtedSubscriptionDetails("ated-ref-num")
         val response: RuntimeException = the[RuntimeException] thrownBy await(result)
