@@ -6,21 +6,20 @@ import sbt.*
 import sbt.Keys.*
 import uk.gov.hmrc.DefaultBuildSettings.scalaSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
-import uk.gov.hmrc.{DefaultBuildSettings, SbtAutoBuildPlugin}
+import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "agent-client-mandate"
 
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.14"
 
 lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 lazy val plugins: Seq[Plugins] = Seq.empty
 lazy val playSettings: Seq[Setting[?]] = Seq.empty
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins((Seq( play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin ) ++ plugins) *)
+  .enablePlugins((Seq( play.sbt.PlayScala, SbtDistributablesPlugin ) ++ plugins) *)
   .settings(CodeCoverageSettings.settings *)
   .settings(playSettings *)
   .settings(scalaSettings *)
