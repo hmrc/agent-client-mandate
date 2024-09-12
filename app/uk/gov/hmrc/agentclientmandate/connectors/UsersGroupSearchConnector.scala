@@ -31,7 +31,7 @@ class UsersGroupSearchConnector @Inject()(val auditConnector: AuditConnector,
                                           metrics: ServiceMetrics,
                                           servicesConfig: ServicesConfig,
                                           http: HttpClient
-                                         )(implicit ec: ExecutionContext) extends RawResponseReads with Auditable {
+                                         )(implicit ec: ExecutionContext) extends Auditable {
   val serviceUrl: String = servicesConfig.baseUrl("users-groups-search")
 
   def fetchAgentCode(groupId: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {

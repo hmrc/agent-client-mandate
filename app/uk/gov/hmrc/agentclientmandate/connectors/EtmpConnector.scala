@@ -23,8 +23,10 @@ import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,13 +35,13 @@ class DefaultEtmpConnector @Inject()(val metrics: ServiceMetrics,
                                      val auditConnector: AuditConnector,
                                      val ec: ExecutionContext,
                                      val servicesConfig: ServicesConfig,
-val http: HttpClient) extends EtmpConnector {
+val http: HttpClientV2) extends EtmpConnector {
   val urlHeaderEnvironment: String = servicesConfig.getConfString("etmp-hod.environment", "")
   val urlHeaderAuthorization: String = s"Bearer ${servicesConfig.getConfString("etmp-hod.authorization-token", "")}"
   val etmpUrl: String = servicesConfig.baseUrl("etmp-hod")
 }
 
-trait EtmpConnector extends RawResponseReads with Auditable {
+trait EtmpConnector extends Auditable {
 
   implicit val ec: ExecutionContext
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
@@ -50,7 +52,7 @@ trait EtmpConnector extends RawResponseReads with Auditable {
 
   def urlHeaderAuthorization: String
 
-  def http: CoreGet with CorePost
+  def http: HttpClientV2
 
   def metrics: ServiceMetrics
   def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
@@ -59,7 +61,8 @@ trait EtmpConnector extends RawResponseReads with Auditable {
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
-    http.POST(postUrl, jsonData, headers = additionalHeaders) map { response =>
+
+    http.post(url"$postUrl").withBody(jsonData).setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
       timerContext.stop()
       response.status match {
         case OK | NO_CONTENT =>
@@ -77,7 +80,8 @@ trait EtmpConnector extends RawResponseReads with Auditable {
   def getRegistrationDetails(identifier: String, identifierType: String): Future[JsValue] = {
     def getDetailsFromEtmp(getUrl: String): Future[JsValue] = {
       val timerContext = metrics.startTimer(MetricsEnum.EtmpGetDetails)
-      http.GET[HttpResponse](url = getUrl, headers = additionalHeaders).map { response =>
+
+      http.get(url"$getUrl").setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
         timerContext.stop()
         response.status match {
           case OK =>
@@ -104,7 +108,8 @@ trait EtmpConnector extends RawResponseReads with Auditable {
   def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
     val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
     val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
-    http.GET[HttpResponse](s"$getUrl", headers = additionalHeaders) map { response =>
+
+    http.get(url"$getUrl").setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
       timerContext.stop()
       response.status match {
         case OK =>

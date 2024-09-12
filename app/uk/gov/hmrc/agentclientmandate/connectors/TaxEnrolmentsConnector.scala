@@ -18,15 +18,17 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import javax.inject.Inject
 import play.api.http.Status._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.{NewEnrolment, UserGroupIDs}
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logInfo, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -35,20 +37,21 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val auditConnector: AuditConnector,
                                              val servicesConfig: ServicesConfig,
                                              val ec: ExecutionContext,
-                                             val http: HttpClient) extends TaxEnrolmentConnector {
+                                             val http: HttpClientV2) extends TaxEnrolmentConnector {
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
   val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}/enrolment-store-proxy"
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
-trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
+
+trait TaxEnrolmentConnector extends Auditable {
 
   implicit val ec: ExecutionContext
 
   def serviceUrl: String
   def enrolmentStoreProxyURL: String
   def taxEnrolmentsUrl: String
-  def http: CoreDelete with CorePost with CoreGet
+  def http: HttpClientV2
   def metrics: ServiceMetrics
 
   def allocateAgent(input: NewEnrolment, agentGroupId: String, clientAgentRef: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
@@ -57,7 +60,8 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
     val jsonData = Json.toJson(input)
 
     val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentAllocate)
-    http.POST[JsValue, HttpResponse](postUrl, jsonData) map { response =>
+
+    http.post(url"$postUrl").withBody(jsonData).execute[HttpResponse].map{ response =>
       timerContext.stop()
       response.status match {
         case CREATED =>
@@ -80,7 +84,8 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
         case Some(groupId) =>
           val deleteUrl = s"""$taxEnrolmentsUrl/groups/$groupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
           val timerContext = metrics.startTimer(MetricsEnum.TaxEnrolmentDeallocate)
-          http.DELETE[HttpResponse](deleteUrl).map { response =>
+
+          http.delete(url"$deleteUrl").execute[HttpResponse].map { response =>
             timerContext.stop()
             response.status match {
               case NO_CONTENT =>
@@ -103,15 +108,15 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
     val enrolmentKey = s"${MandateConstants.AgentServiceContractName}~${MandateConstants.AgentIdentifier}~$agentRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
 
-    http.GET[HttpResponse](s"$getUrl") map { response =>
+    http.get(url"$getUrl").execute[HttpResponse].map { response =>
       response.status match {
 
         case OK =>
           logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].principalGroupIds.headOption
-        case NO_CONTENT =>
+        case NOT_FOUND =>
           logWarn("[getGroupsWithEnrolments]: group ID not found")
-          None
+          UserGroupIDs(List(),List()).principalGroupIds.headOption
         case _ =>
           logError(s"[getGroupsWithEnrolments]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")
@@ -123,7 +128,7 @@ trait TaxEnrolmentConnector extends RawResponseReads with Auditable {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$atedRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
 
-    http.GET[HttpResponse](s"$getUrl") map { response =>
+    http.get(url"$getUrl").execute[HttpResponse].map { response =>
       response.status match {
         case OK =>
           logInfo(s"[getGroupsWithEnrolmentDelegatedAted]: successfully retrieved group ID")
