@@ -114,9 +114,9 @@ trait TaxEnrolmentConnector extends Auditable {
         case OK =>
           logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].principalGroupIds.headOption
-        case NOT_FOUND =>
+        case NO_CONTENT =>
           logWarn("[getGroupsWithEnrolments]: group ID not found")
-          UserGroupIDs(List(),List()).principalGroupIds.headOption
+          None
         case _ =>
           logError(s"[getGroupsWithEnrolments]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")

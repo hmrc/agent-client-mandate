@@ -20,9 +20,11 @@ import play.api.http.Status.NON_AUTHORITATIVE_INFORMATION
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,14 +32,13 @@ import scala.concurrent.{ExecutionContext, Future}
 class UsersGroupSearchConnector @Inject()(val auditConnector: AuditConnector,
                                           metrics: ServiceMetrics,
                                           servicesConfig: ServicesConfig,
-                                          http: HttpClient
+                                          http: HttpClientV2
                                          )(implicit ec: ExecutionContext) extends Auditable {
   val serviceUrl: String = servicesConfig.baseUrl("users-groups-search")
 
   def fetchAgentCode(groupId: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
-    val getUrl: String = s"$serviceUrl/groups/$groupId"
-    http.GET[HttpResponse](getUrl) map {
-      response =>
+    val getUrl = s"$serviceUrl/groups/$groupId"
+    http.get(url"$getUrl").execute[HttpResponse].map { response =>
         response.status match {
           case NON_AUTHORITATIVE_INFORMATION => (response.json \ "agentCode").asOpt[String]
           case _ =>
