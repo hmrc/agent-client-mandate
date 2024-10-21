@@ -39,7 +39,7 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val ec: ExecutionContext,
                                              val http: HttpClientV2) extends TaxEnrolmentConnector {
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
-  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}/enrolment-store-proxy"
+  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}"
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
@@ -127,7 +127,6 @@ trait TaxEnrolmentConnector extends Auditable {
   def getGroupsWithEnrolmentDelegatedAted(atedRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$atedRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
-
     http.get(url"$getUrl").execute[HttpResponse].map { response =>
       response.status match {
         case OK =>

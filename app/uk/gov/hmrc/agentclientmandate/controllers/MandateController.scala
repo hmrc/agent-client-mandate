@@ -60,12 +60,14 @@ class MandateController @Inject()(val createService: MandateCreateService,
     authRetrieval { implicit ar =>
       fetchService.fetchClientMandate(mandateId).flatMap {
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
-
           val agentCode = {
-            if(ar.userType == "agent") Future.successful(ar.agentInformation.agentCode)
+            if(ar.userType == "agent") {
+              Future.successful(ar.agentInformation.agentCode)
+            }
             else {
               taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value).flatMap {
-                case Some(groupid) => userGroupSearchConnector.fetchAgentCode(groupid)
+                case Some(groupid) =>
+                  userGroupSearchConnector.fetchAgentCode(groupid)
                 case _ => Future.successful(None)
               }
             }
