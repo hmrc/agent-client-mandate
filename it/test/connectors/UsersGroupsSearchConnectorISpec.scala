@@ -17,7 +17,6 @@
 package connectors
 
 import helpers.IntegrationSpec
-import play.api.libs.json.Json
 import uk.gov.hmrc.agentclientmandate.connectors.UsersGroupSearchConnector
 import utils.Stubs
 

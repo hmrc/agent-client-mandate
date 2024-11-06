@@ -17,7 +17,7 @@
 package connectors
 
 import helpers.IntegrationSpec
-import uk.gov.hmrc.agentclientmandate.connectors.{DefaultTaxEnrolmentConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.DefaultTaxEnrolmentConnector
 import utils.Stubs
 
 class TaxEnrolmentsConnectorISpec extends IntegrationSpec {

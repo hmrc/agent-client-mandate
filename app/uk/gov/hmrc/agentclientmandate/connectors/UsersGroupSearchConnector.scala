@@ -18,19 +18,17 @@ package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.http.Status.NON_AUTHORITATIVE_INFORMATION
 import uk.gov.hmrc.agentclientmandate.Auditable
-import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class UsersGroupSearchConnector @Inject()(val auditConnector: AuditConnector,
-                                          metrics: ServiceMetrics,
                                           servicesConfig: ServicesConfig,
                                           http: HttpClientV2
                                          )(implicit ec: ExecutionContext) extends Auditable {
