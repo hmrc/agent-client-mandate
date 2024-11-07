@@ -21,12 +21,14 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate._
 import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
+import uk.gov.hmrc.agentclientmandate.connectors.{DefaultTaxEnrolmentConnector, UsersGroupSearchConnector}
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class MandateController @Inject()(val createService: MandateCreateService,
@@ -37,6 +39,8 @@ class MandateController @Inject()(val createService: MandateCreateService,
                                   val emailNotificationService: NotificationEmailService,
                                   val fetchService: MandateFetchService,
                                   val authConnector: DefaultAuthConnector,
+                                  val taxEnrolmentConnector: DefaultTaxEnrolmentConnector,
+                                  val userGroupSearchConnector: UsersGroupSearchConnector,
                                   val cc: ControllerComponents) extends BackendController(cc) with Auditable with AuthFunctionality {
 
 
@@ -56,19 +60,34 @@ class MandateController @Inject()(val createService: MandateCreateService,
     authRetrieval { implicit ar =>
       fetchService.fetchClientMandate(mandateId).flatMap {
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
-          val agentCode: String = {
-            if(ar.userType == "agent") ar.agentInformation.agentCode else mandate.createdBy.groupId
-          }.fold(throw new RuntimeException("agent code not found!"))(code => code)
-          updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
-            case MandateUpdated(x) =>
-              relationshipService.breakAgentClientRelationship(x, agentCode, ar.userType)
-              Future.successful(Ok)
-            case MandateUpdateError => {
-              logWarn("Could not find mandate to remove after fetching: " + mandate.id)
-              Future.successful(NotFound)
+          val agentCode = {
+            if(ar.userType == "agent") {
+              Future.successful(ar.agentInformation.agentCode)
             }
-            case _ => throw new Exception("Unknown mandate status")
+            else {
+              taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value).flatMap {
+                case Some(groupid) =>
+                  userGroupSearchConnector.fetchAgentCode(groupid)
+                case _ => Future.successful(None)
+              }
+            }
           }
+          agentCode.flatMap {
+            case Some(code) =>
+              updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
+                case MandateUpdated(x) =>
+                  relationshipService.breakAgentClientRelationship(x, code, ar.userType)
+                  Future.successful(Ok)
+                case MandateUpdateError => {
+                  logWarn("Could not find mandate to remove after fetching: " + mandate.id)
+                  Future.successful(NotFound)
+                }
+                case _ => throw new Exception("Unknown mandate status")
+              }
+            case _ =>
+              throw new RuntimeException("agent code not found!")
+          }
+
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
           updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
             case MandateUpdated(x) =>

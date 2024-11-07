@@ -28,7 +28,8 @@ import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateF
 import utils.Stubs._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class MandateControllerISpec extends IntegrationSpec {
+class
+MandateControllerISpec extends IntegrationSpec {
 
   val mandateDto: CreateMandateDto = CreateMandateDto(
     email = "not-real-email@notrealemail.fake", serviceName = "ated", displayName = "display-name"

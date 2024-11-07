@@ -39,7 +39,7 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val ec: ExecutionContext,
                                              val http: HttpClientV2) extends TaxEnrolmentConnector {
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
-  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}/enrolment-store-proxy"
+  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}"
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
@@ -114,11 +114,29 @@ trait TaxEnrolmentConnector extends Auditable {
         case OK =>
           logInfo(s"[getGroupsWithEnrolments]: successfully retrieved group ID")
           response.json.as[UserGroupIDs].principalGroupIds.headOption
-        case NOT_FOUND =>
+        case NO_CONTENT =>
           logWarn("[getGroupsWithEnrolments]: group ID not found")
-          UserGroupIDs(List(),List()).principalGroupIds.headOption
+          None
         case _ =>
           logError(s"[getGroupsWithEnrolments]: error retrieving group ID")
+          throw new RuntimeException("Error retrieving agent group ID")
+      }
+    }
+  }
+
+  def getGroupsWithEnrolmentDelegatedAted(atedRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
+    val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$atedRefNumber"
+    val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
+    http.get(url"$getUrl").execute[HttpResponse].map { response =>
+      response.status match {
+        case OK =>
+          logInfo(s"[getGroupsWithEnrolmentDelegatedAted]: successfully retrieved group ID")
+          response.json.as[UserGroupIDs].delegatedGroupIds.headOption
+        case NO_CONTENT =>
+          logWarn("[getGroupsWithEnrolmentDelegatedAted]: group ID not found")
+          None
+        case _ =>
+          logError(s"[getGroupsWithEnrolmentDelegatedAted]: error retrieving group ID")
           throw new RuntimeException("Error retrieving agent group ID")
       }
     }
