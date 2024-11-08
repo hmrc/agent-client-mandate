@@ -39,7 +39,7 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
                                              val ec: ExecutionContext,
                                              val http: HttpClientV2) extends TaxEnrolmentConnector {
   val serviceUrl: String = servicesConfig.baseUrl("tax-enrolments")
-  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}"
+  val enrolmentStoreProxyURL = s"${servicesConfig.baseUrl("enrolment-store-proxy")}/enrolment-store-proxy"
   val taxEnrolmentsUrl = s"$serviceUrl/tax-enrolments"
 }
 
