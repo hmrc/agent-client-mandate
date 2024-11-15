@@ -42,7 +42,7 @@ object Stubs {
   }
 
   def stubUGS(status: Int, body: String): StubMapping = {
-    stubFor(get(urlMatching("/groups/groupId"))
+    stubFor(get(urlMatching("/users-groups-search/groups/groupId"))
       .willReturn(
         aResponse()
           .withStatus(status)
