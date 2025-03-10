@@ -12,7 +12,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 val appName = "agent-client-mandate"
 
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.14"
+ThisBuild / scalaVersion := "2.13.16"
 
 lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 lazy val plugins: Seq[Plugins] = Seq.empty
