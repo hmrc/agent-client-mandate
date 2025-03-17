@@ -18,13 +18,16 @@ package uk.gov.hmrc.agentclientmandate.controllers
 
 import javax.inject.Inject
 import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.agentclientmandate._
-import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
+import uk.gov.hmrc.agentclientmandate.auth._
 import uk.gov.hmrc.agentclientmandate.connectors.{DefaultTaxEnrolmentConnector, UsersGroupSearchConnector}
+import uk.gov.hmrc.agentclientmandate.models.Mandate
+import uk.gov.hmrc.agentclientmandate.models.Status._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services._
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -48,8 +51,8 @@ class MandateController @Inject()(val createService: MandateCreateService,
 
   def fetch(mandateId: String): Action[AnyContent] = Action.async { _ =>
     fetchService.fetchClientMandate(mandateId).map {
-      case MandateFetched(x)  => Ok(Json.toJson(x))
-      case MandateNotFound    =>
+      case MandateFetched(x) => Ok(Json.toJson(x))
+      case MandateNotFound =>
         logWarn("Could not find mandate: " + mandateId)
         NotFound
       case _ => throw new Exception("Unknown mandate status")
@@ -60,72 +63,72 @@ class MandateController @Inject()(val createService: MandateCreateService,
     authRetrieval { implicit ar =>
       fetchService.fetchClientMandate(mandateId).flatMap {
         case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Active =>
-          val agentCode = {
-            if(ar.userType == "agent") {
-              Future.successful(ar.agentInformation.agentCode)
+          if (ar.userType == "agent") {
+            ar.agentInformation.agentCode match {
+              case Some(agentCode) =>
+                breakRelationship(agentCode, mandate)
+              case _ =>
+                throw new RuntimeException("agent code not found (agent case)!")
             }
-            else {
-              taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value).flatMap {
-                case Some(groupid) =>
-                  userGroupSearchConnector.fetchAgentCode(groupid)
-                case _ => Future.successful(None)
-              }
-            }
-          }
-          agentCode.flatMap {
-            case Some(code) =>
-              updateService.updateMandate(mandate, Some(models.Status.PendingCancellation)).flatMap {
-                case MandateUpdated(x) =>
-                  relationshipService.breakAgentClientRelationship(x, code, ar.userType)
-                  Future.successful(Ok)
-                case MandateUpdateError => {
-                  logWarn("Could not find mandate to remove after fetching: " + mandate.id)
-                  Future.successful(NotFound)
+          } else {
+            taxEnrolmentConnector.getGroupsWithEnrolmentDelegatedAted(ar.atedUtr.value).flatMap {
+              case Some(groupId) =>
+                userGroupSearchConnector.fetchAgentCode(groupId).flatMap {
+                  case Some(agentCode) =>
+                    breakRelationship(agentCode, mandate)
+                  case _ =>
+                    throw new RuntimeException("agent code not found (client case)!")
                 }
-                case _ => throw new Exception("Unknown mandate status")
-              }
-            case _ =>
-              throw new RuntimeException("agent code not found!")
-          }
-
-        case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.Approved =>
-          updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
-            case MandateUpdated(x) =>
-              val service = x.subscription.service.id
-              emailNotificationService.sendMail(x.agentParty.contactDetails.email, models.Status.Cancelled,
-                service = service, userType = Some(ar.userType), recipient = Some("agent"),
-                prevStatus = Some(models.Status.Approved), recipientName = mandate.agentParty.name)
-              doAudit("removed", "", x)
-              Future.successful(Ok)
-            case MandateUpdateError => {
-              logWarn("Could not find mandate to remove after fetching: " + mandate.id)
-              Future.successful(NotFound)
+              case _ =>
+                logWarn("Delegated enrolment Allocation not found for the given Enrolment Key")
+                cancelMandate(Active, mandate)
             }
-            case _ => throw new Exception("Unknown mandate status")
           }
-        case MandateFetched(mandate) if mandate.currentStatus.status == models.Status.New =>
-          updateService.updateMandate(mandate, Some(models.Status.Cancelled)).flatMap {
-            case MandateUpdated(x) =>
-              doAudit("removed", "", x)
-              Future.successful(Ok)
-            case MandateUpdateError => {
-              logWarn("Could not find mandate to remove after fetching: " + mandate.id)
-              Future.successful(NotFound)
-            }
-            case _ => throw new Exception("Unknown mandate status")
-          }
+        case MandateFetched(mandate) if List(Approved, models.Status.New).contains(mandate.currentStatus.status) =>
+          cancelMandate(mandate.currentStatus.status, mandate)
         case MandateFetched(mandate) =>
           throw new RuntimeException(s"Mandate with status ${mandate.currentStatus.status} cannot be removed")
-        case MandateNotFound => {
+        case MandateNotFound =>
           logWarn("Could not find mandate to remove: " + mandateId)
           Future.successful(NotFound)
-        }
         case _ => throw new Exception("Unknown mandate status")
       } recover {
         case e =>
           logError(s"[MandateController][remove] Recover Error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
           NotFound
       }
+    }
+  }
+
+  private def breakRelationship(agentCode: String, mandate: Mandate)(implicit ar: AuthRetrieval, hc: HeaderCarrier): Future[Result] = {
+    updateService.updateMandate(mandate, Some(PendingCancellation)).flatMap {
+      case MandateUpdated(x) =>
+        relationshipService.breakAgentClientRelationship(x, agentCode, ar.userType)
+        Future.successful(Ok)
+      case MandateUpdateError =>
+        logWarn("Could not find mandate to remove after fetching: " + mandate.id)
+        Future.successful(NotFound)
+      case _ =>
+        throw new Exception("Unknown mandate status")
+    }
+  }
+
+  private def cancelMandate(status: models.Status.Value, mandate: Mandate)(implicit ar: AuthRetrieval, hc: HeaderCarrier): Future[Result] = {
+    updateService.updateMandate(mandate, Some(Cancelled)).flatMap {
+      case MandateUpdated(x) =>
+        val service = x.subscription.service.id
+        if (status != models.Status.New) {
+          emailNotificationService.sendMail(x.agentParty.contactDetails.email, Cancelled,
+            service = service, userType = Some(ar.userType), recipient = Some("agent"),
+            prevStatus = Some(status), recipientName = mandate.agentParty.name)
+        }
+        doAudit("removed", "", x)
+        Future.successful(Ok)
+      case MandateUpdateError =>
+        logWarn("Could not find mandate to remove after fetching: " + mandate.id)
+        Future.successful(NotFound)
+      case _ =>
+        throw new Exception("Unknown mandate status")
     }
   }
 }
