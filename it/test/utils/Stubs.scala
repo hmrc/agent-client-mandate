@@ -22,7 +22,7 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping
 object Stubs {
 
   def stubES1ATED(status: Int, body: String): StubMapping = {
-    stubFor(get(urlMatching(s"/enrolment-store-proxy/enrolment-store/enrolments/HMRC-ATED-ORG~ATEDRefNumber~atedRef/groups"))
+    stubFor(get(urlMatching(s"/enrolment-store-proxy/enrolment-store/enrolments/HMRC-ATED-ORG~ATEDRefNumber~atedRef/groups\\?ignore-assignments=true"))
       .willReturn(
         aResponse()
           .withStatus(status)
