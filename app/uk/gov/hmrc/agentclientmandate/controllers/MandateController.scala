@@ -80,7 +80,7 @@ class MandateController @Inject()(val createService: MandateCreateService,
                     throw new RuntimeException("agent code not found (client case)!")
                 }
               case _ =>
-                logWarn("Delegated enrolment Allocation not found for the given Enrolment Key")
+                logError("Delegated group ID not found for the given Enrolment Key and the associated Mandate ID is:" + mandateId)
                 cancelMandate(Active, mandate)
             }
           }

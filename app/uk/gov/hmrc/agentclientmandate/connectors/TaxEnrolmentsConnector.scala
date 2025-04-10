@@ -127,7 +127,8 @@ trait TaxEnrolmentConnector extends Auditable {
   def getGroupsWithEnrolmentDelegatedAted(atedRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$atedRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
-    http.get(url"$getUrl").execute[HttpResponse].map { response =>
+    val ignoreAssignmentsParam = Map("ignore-assignments" -> "true")
+    http.get(url"$getUrl?$ignoreAssignmentsParam").execute[HttpResponse].map { response =>
       response.status match {
         case OK =>
           logInfo(s"[getGroupsWithEnrolmentDelegatedAted]: successfully retrieved group ID")
