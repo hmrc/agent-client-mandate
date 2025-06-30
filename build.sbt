@@ -22,7 +22,6 @@ lazy val microservice = Project(appName, file("."))
   .enablePlugins((Seq( play.sbt.PlayScala, SbtDistributablesPlugin ) ++ plugins) *)
   .settings(CodeCoverageSettings.settings *)
   .settings(playSettings *)
-  .settings(scalaSettings *)
   .settings(defaultSettings *)
   .settings(RoutesKeys.routesImport ++= Seq("uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._"))
   .settings(
@@ -36,7 +35,7 @@ lazy val microservice = Project(appName, file("."))
   )
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
-    resolvers += Resolver.jcenterRepo
+    resolvers ++= Seq()
   )
 
 lazy val it = project
