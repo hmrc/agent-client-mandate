@@ -169,7 +169,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       or(equal("currentStatus.status", Status.Active.toString),
         equal("currentStatus.status", Status.Approved.toString),
         equal("currentStatus.status", Status.Rejected.toString),
-        equal("currentStatus.status", Status.Cancelled.toString))
+        equal("currentStatus.status", Status.Cancelled.toString),
+        equal("currentStatus.status", Status.Expired.toString))
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
