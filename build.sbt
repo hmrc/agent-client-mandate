@@ -4,7 +4,6 @@ import play.sbt.routes.RoutesKeys
 import play.sbt.routes.RoutesKeys.routesGenerator
 import sbt.*
 import sbt.Keys.*
-import uk.gov.hmrc.DefaultBuildSettings.scalaSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 import uk.gov.hmrc.DefaultBuildSettings
