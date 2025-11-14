@@ -4,7 +4,6 @@ import play.sbt.routes.RoutesKeys
 import play.sbt.routes.RoutesKeys.routesGenerator
 import sbt.*
 import sbt.Keys.*
-import uk.gov.hmrc.DefaultBuildSettings.scalaSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 import uk.gov.hmrc.DefaultBuildSettings
@@ -12,7 +11,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 val appName = "agent-client-mandate"
 
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.16"
+ThisBuild / scalaVersion := "2.13.17"
 
 lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 lazy val plugins: Seq[Plugins] = Seq.empty
@@ -43,3 +42,5 @@ lazy val it = project
   .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(DefaultBuildSettings.itSettings())
   .settings(libraryDependencies ++= AppDependencies.itDependencies)
+
+addCommandAlias("runAllChecks", ";clean;compile;coverage;test;it/test;coverageReport")
