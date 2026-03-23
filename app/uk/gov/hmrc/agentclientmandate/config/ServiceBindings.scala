@@ -38,6 +38,7 @@ class ServiceBindings extends Module {
       playBind(classOf[AgentDetailsService]).to(classOf[DefaultAgentDetailsService]),
       playBind(classOf[NotificationEmailService]).to(classOf[DefaultNotificationEmailService]),
       playBind(classOf[EtmpConnector]).to(classOf[DefaultEtmpConnector]),
+      playBind(classOf[HipConnector]).to(classOf[DefaultHipConnector]),
       playBind(classOf[EmailConnector]).to(classOf[DefaultEmailConnector]),
       playBind(classOf[TaxEnrolmentConnector]).to(classOf[DefaultTaxEnrolmentConnector]),
       playBind(classOf[ServiceMetrics]).to(classOf[DefaultServiceMetrics]),

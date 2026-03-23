@@ -26,8 +26,9 @@ import org.mockito.Mockito.{reset, when}
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.Configuration
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, HipConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
@@ -37,6 +38,7 @@ import uk.gov.hmrc.agentclientmandate.utils.MockMetricsCache
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.tasks.{Phase, _}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -65,6 +67,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "mandateId" -> "mandateId",
       "credId" -> "credId"))
   val etmpMock: EtmpConnector = mock[EtmpConnector]
+  val hipMock: HipConnector = mock[HipConnector]
   val mockMandateFetchService: MandateFetchService = mock[MandateFetchService]
   val mockMandateUpdateService: MandateUpdateService = mock[MandateUpdateService]
   val mockMandateRepository: MandateRepository = mock[MandateRepository]
@@ -73,6 +76,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
   val mockServiceMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockMandateRepo: MandateRepo = mock[MandateRepo]
+  val mockConfiguration: Configuration = mock[Configuration]
 
   val timeToUse: Instant = Instant.now()
   val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
@@ -124,13 +128,15 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
   lazy val activationTaskService: ActivationTaskService = new ActivationTaskService(
     etmpMock,
+    hipMock,
     mockMandateUpdateService,
     taxEnrolmentMock,
     MockMetricsCache.mockMetrics,
     mockEmailNotificationService,
     mockAuditConnector,
     mockMandateFetchService,
-    mockMandateRepo
+    mockMandateRepo,
+    mockConfiguration
   )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()

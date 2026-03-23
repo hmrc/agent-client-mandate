@@ -53,3 +53,17 @@ object FeatureSwitch {
   implicit val formats: OFormat[FeatureSwitch] = Json.format[FeatureSwitch]
 }
 
+object ACMFeatureSwitches extends ACMFeatureSwitches
+
+trait ACMFeatureSwitches {
+
+  def hipSwitch()(implicit config: Configuration): FeatureSwitch = FeatureSwitch.forName("hipSwitch")
+
+  def apply(name: String)(implicit config: Configuration): Option[FeatureSwitch] = name match {
+    case "hipSwitch" => Some(hipSwitch())
+    case _ => None
+  }
+}
+
+
+

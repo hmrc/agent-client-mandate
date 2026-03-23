@@ -18,6 +18,7 @@ package uk.gov.hmrc.agentclientmandate.tasks
 
 import org.apache.pekko.actor.{ActorSystem, Props}
 import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestKit}
+
 import java.time.Instant
 import org.mockito.ArgumentMatchers._
 import org.mockito.ArgumentMatchers
@@ -25,8 +26,9 @@ import org.mockito.Mockito.{reset, when}
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.Configuration
 import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, HipConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
@@ -81,12 +83,14 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
       "userType" -> "agent"))
   val taxEnrolmentMock: TaxEnrolmentConnector = mock[TaxEnrolmentConnector]
   val etmpMock: EtmpConnector = mock[EtmpConnector]
+  val hipMock: HipConnector = mock[HipConnector]
   val mockMandateFetchService: MandateFetchService = mock[MandateFetchService]
   val mockMandateRepository: MandateRepository = mock[MandateRepository]
   val mockEmailNotificationService: NotificationEmailService = mock[NotificationEmailService]
   val mockMandateUpdateService: MandateUpdateService = mock[MandateUpdateService]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockMandateRepo: MandateRepo = mock[MandateRepo]
+  val mockConfiguration: Configuration = mock[Configuration]
 
   val timeToUse: Instant = Instant.now()
   val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
@@ -139,13 +143,15 @@ class DeActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"
 
   lazy val deActivationTaskService: DeActivationTaskService = new DeActivationTaskService(
     etmpMock,
+    hipMock,
     mockMandateUpdateService,
     taxEnrolmentMock,
     MockMetricsCache.mockMetrics,
     mockEmailNotificationService,
     mockAuditConnector,
     mockMandateFetchService,
-    mockMandateRepo
+    mockMandateRepo,
+    mockConfiguration
   )
 
   "DeActivationTaskExecutor" should {
