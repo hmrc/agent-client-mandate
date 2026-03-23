@@ -143,8 +143,8 @@ class MandateRepositoryISpec extends IntegrationSpec {
         await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "other", None, None, None)) match {
           case fetched if fetched.length == 5  => 
             await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "other", Some("cred-id-113244018120"), Some("cred-id-113244018121"), None)) match {
-              case fetched if fetched.length == 2  => succeed            
-              case fetched  => fail(s"ERROR: returned ${fetched.length} mandates")
+              case fetchedMandates if fetchedMandates.length == 2  => succeed
+              case fetchedMandates  => fail(s"ERROR: returned ${fetchedMandates.length} mandates")
             }
           case fetched  => fail(s"ERROR: returned ${fetched.length} mandates")
         }
@@ -184,7 +184,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
                       case Some(mandates) => mandates
                     }) match {
               case Nil => fail()
-              case mandates if mandates.forall(m => m.agentParty.contactDetails.email == "new@domeain.com") => succeed
+              case fetchedMandates if fetchedMandates.forall(m => m.agentParty.contactDetails.email == "new@domeain.com") => succeed
               case _ => fail()
           }
           case fetched  => fail(s"ERROR: failed to update agent email address")

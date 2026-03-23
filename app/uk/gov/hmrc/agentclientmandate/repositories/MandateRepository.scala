@@ -19,11 +19,11 @@ package uk.gov.hmrc.agentclientmandate.repositories
 import javax.inject.{Inject, Singleton}
 import java.time.Instant
 import play.api.Logger
-import org.mongodb.scala._
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Sorts._
 import org.mongodb.scala.model.Updates._
 import org.mongodb.scala.model._
+import uk.gov.hmrc.mdc.Mdc
 import uk.gov.hmrc.mongo._
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import org.mongodb.scala.result.InsertOneResult
@@ -31,7 +31,7 @@ import org.mongodb.scala.result.DeleteResult
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
-import uk.gov.hmrc.play.http.logging.Mdc
+
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}

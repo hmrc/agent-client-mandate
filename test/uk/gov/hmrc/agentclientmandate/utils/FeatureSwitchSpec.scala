@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,19 @@
 
 package uk.gov.hmrc.agentclientmandate.utils
 
-import org.apache.commons.lang3.RandomStringUtils
+import org.scalatestplus.play.PlaySpec
 
-object SessionUtils {
+import scala.io.Source
+import scala.util.Using
 
-  def getUniqueAckNo: String = {
-    val length = 32
-    val nanoTime = System.nanoTime()
-    val restChars = length - nanoTime.toString.length
-    val randomChars = RandomStringUtils.secure().nextAlphanumeric(restChars)
-    randomChars + nanoTime
+class FeatureSwitchSpec extends PlaySpec {
+
+  "HIP Switch feature flag should be false by default" in {
+    val applicationConfFileContents = Using.resource(Source.fromFile("conf/application.conf")) { source => source.getLines().mkString("") }
+    val hipSwitchFlagSetToFalse = applicationConfFileContents.contains("feature.hipSwitch = false")
+
+    withClue("HIP Switch feature flag should be false by default in application.conf:") {
+      hipSwitchFlagSetToFalse mustBe true
+    }
   }
 }

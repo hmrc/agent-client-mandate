@@ -1,0 +1,155 @@
+/*
+ * Copyright 2024 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.agentclientmandate.connectors
+
+import com.codahale.metrics.Timer
+import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito.{reset, when}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.play.PlaySpec
+import play.api.Configuration
+import play.api.libs.json.{JsValue, Json}
+import play.api.test.Helpers._
+import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
+import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
+import uk.gov.hmrc.agentclientmandate.utils.{FeatureSwitch, SessionUtils}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+
+import scala.concurrent.{ExecutionContext, Future}
+
+
+class HipConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach{
+
+  val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
+  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  implicit val configuration: Configuration = mock[Configuration]
+
+override def beforeEach(): Unit = {
+    reset(mockMetrics)
+    reset(mockAuditConnector)
+
+    when(mockMetrics.startTimer(any()))
+      .thenReturn(new Timer().time)
+    FeatureSwitch.disable(FeatureSwitch("hipSwitch", false))
+  }
+
+  override def afterEach(): Unit = {
+    FeatureSwitch.disable(FeatureSwitch("hipSwitch", false))
+  }
+
+  trait Setup extends ConnectorTest {
+
+    class TestHipConnector extends HipConnector {
+      override implicit val ec: ExecutionContext = ExecutionContext.global
+      override implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+
+      override val transmittingSystem: String = "HIP"
+      override val clientId: String = ""
+      override val clientSecret: String = ""
+      val originatingSystem: String = ""
+      override val authorizationToken: String = ""
+
+      override val http: HttpClientV2 = mockHttpClient
+      override val metrics: ServiceMetrics = mockMetrics
+      val hipPrefix: String = "http://localhost:9020"
+      val hipUrl = s"${hipPrefix}/etmp/RESTAdapter/ated"
+      override val auditConnector: AuditConnector = mockAuditConnector
+
+    }
+
+    val connector = new TestHipConnector
+  }
+
+  "HipConnector" must {
+
+    "maintainAtedRelationship" must {
+      "return valid response, if create/update relationship is successful in HIP" in new Setup {
+        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
+        val successResponse: JsValue = Json.parse("""{"processingDate" :  "2014-12-17T09:30:47Z"}""")
+        val wrappedSuccessResponse: JsValue = Json.obj("success" -> successResponse)
+
+        when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(CREATED, wrappedSuccessResponse.toString)))
+
+        val etmpRelationship: EtmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
+        val agentClientRelationship: EtmpAtedAgentClientRelationship = EtmpAtedAgentClientRelationship(
+          SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
+        val response: HttpResponse = await(connector.maintainAtedRelationship(agentClientRelationship))
+        response.status must be(OK)
+        response.json must be(successResponse)
+      }
+
+      "Check for a failure response when we try to create/update ATED relation in HIP" in new Setup {
+        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
+        val failureResponse: JsValue = Json.parse(
+          """
+            |{
+            |  "error": {
+            |    "code": "500",
+            |    "message": "string",
+            |    "logID": "D82EBAB67AC6D7565C0682CA91BDC577"
+            |  }
+            |}""".stripMargin)
+
+        when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, failureResponse.toString)))
+
+        val etmpRelationship: EtmpRelationship = EtmpRelationship(action = "authorise", isExclusiveAgent = Some(true))
+        val agentClientRelationship: EtmpAtedAgentClientRelationship = EtmpAtedAgentClientRelationship(
+          SessionUtils.getUniqueAckNo, "ATED-123", "AGENT-123", etmpRelationship)
+        val response: HttpResponse = await(connector.maintainAtedRelationship(agentClientRelationship))
+        response.status must be(INTERNAL_SERVER_ERROR)
+      }
+    }
+
+    "getAtedSubscriptionDetails" must {
+      "return valid response, if success response received from HIP" in new Setup {
+        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
+        val successResponse: JsValue = Json.parse("""{"safeId" :  "safe-id"}""")
+        val wrappedSuccessResponse: JsValue = Json.obj("success" -> successResponse)
+
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, wrappedSuccessResponse.toString)))
+
+        val response: JsValue = await(connector.getAtedSubscriptionDetails("ated-ref-num"))
+        response must be(successResponse)
+      }
+
+      "throws error, if response status is not OK from HIP" in new Setup {
+        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
+
+        val failureResponse: JsValue = Json.parse(
+          """
+          |{
+          |  "error": {
+          |    "code": "500",
+          |    "message": "string",
+          |    "logID": "D82EBAB67AC6D7565C0682CA91BDC577"
+          |  }
+          |}""".stripMargin)
+
+        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
+
+        val result: Future[JsValue] = connector.getAtedSubscriptionDetails("ated-ref-num")
+        val response: RuntimeException = the[RuntimeException] thrownBy await(result)
+        response.getMessage must be("Error in getting ATED subscription details from ETMP")
+      }
+    }
+
+  }
+
+}
