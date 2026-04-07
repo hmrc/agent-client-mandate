@@ -54,13 +54,13 @@ trait HipConnector extends Auditable {
   implicit val ec: ExecutionContext
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val transmittingSystem: String = "HIP"
-  val clientId: String
-  val clientSecret: String
-  val originatingSystem: String
-  val authorizationToken: String = Base64.getEncoder.encodeToString(s"$clientId:$clientSecret".getBytes("UTF-8"))
+  def hipPrefix: String
+  def clientId: String
+  def clientSecret: String
+  def authorizationToken: String = Base64.getEncoder.encodeToString(s"$clientId:$clientSecret".getBytes("UTF-8"))
 
-  val hipPrefix: String
+  val transmittingSystem: String = "HIP"
+  val originatingSystem: String
   val hipUrl: String
 
   def http: HttpClientV2
