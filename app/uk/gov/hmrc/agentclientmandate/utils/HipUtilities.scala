@@ -43,7 +43,7 @@ object HipUtilities {
   }
 
   def removeAcknowledgementReferenceField(hipRequestPayload: JsValue): JsObject = {
-    if ((hipRequestPayload \ AcknowledgementReference).isDefined) {
+    if ((hipRequestPayload \ AcknowledgementReference).isDefined || (hipRequestPayload \ AcknowledgmentReference).isDefined ) {
       hipRequestPayload.as[JsObject] - AcknowledgementReference - AcknowledgmentReference
     } else {
       logger.warn(s"Request does not contain a '$AcknowledgementReference node.")

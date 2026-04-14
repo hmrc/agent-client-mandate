@@ -98,7 +98,7 @@ class HipUtilitiesSpec extends PlaySpec {
     val inputJsonIncorrectSpelling: JsValue = Json.parse(
       """
         |{
-        |"acknowledgementReference":"Tp0x8ql6GldqGyGh6u36149378018603",
+        |"acknowledgmentReference":"Tp0x8ql6GldqGyGh6u36149378018603",
         |"safeId":"XE0001234567890",
         |"emailConsent":false,
         |"address":[
