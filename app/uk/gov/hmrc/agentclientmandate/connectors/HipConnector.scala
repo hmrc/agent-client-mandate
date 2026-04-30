@@ -85,12 +85,9 @@ trait HipConnector extends Auditable with Logging {
     val jsonData = HipUtilities.removeAcknowledgementReferenceField(Json.toJson(agentClientRelationship))
     val postUrl = s"""$hipUrl/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
-    // Log the Request Body
-    logger.warn(s"[maintainAtedRelationship] Request Body: ${Json.stringify(jsonData)}")
-      http.post(url"$postUrl").withBody(jsonData).setHeader(headers: _*).execute[HttpResponse].map{ response =>
+
+    http.post(url"$postUrl").withBody(jsonData).setHeader(headers: _*).execute[HttpResponse].map{ response =>
       timerContext.stop()
-        // Log the Response Body
-        logger.warn(s"[maintainAtedRelationship] Response Status: ${response.status} | Response Body: ${response.body}")
       response.status match {
         case CREATED =>
           metrics.incrementSuccessCounter(MetricsEnum.MaintainAtedRelationship)
@@ -139,8 +136,7 @@ trait HipConnector extends Auditable with Logging {
     val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
     http.get(url"$getUrl").setHeader(headers: _*).execute[HttpResponse].map{ response =>
       timerContext.stop()
-      // Log the Response Body
-      logger.warn(s"[getAtedSubscriptionDetails] Response Status: ${response.status} | Response Body: ${response.body}")
+
       response.status match {
         case OK =>
           metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
