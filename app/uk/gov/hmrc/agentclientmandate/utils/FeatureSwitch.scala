@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2026 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,9 +47,23 @@ object FeatureSwitch {
     forName(name)
   }
 
-  def confPropertyName(name: String): String = s"features.$name"
-  def systemPropertyName(name: String): String = s"features.$name"
+  def confPropertyName(name: String): String = s"feature.$name"
+  def systemPropertyName(name: String): String = s"feature.$name"
 
   implicit val formats: OFormat[FeatureSwitch] = Json.format[FeatureSwitch]
 }
+
+object ACMFeatureSwitches extends ACMFeatureSwitches
+
+trait ACMFeatureSwitches {
+
+  def hipSwitch()(implicit config: Configuration): FeatureSwitch = FeatureSwitch.forName("hipSwitch")
+
+  def apply(name: String)(implicit config: Configuration): Option[FeatureSwitch] = name match {
+    case "hipSwitch" => Some(hipSwitch())
+    case _ => None
+  }
+}
+
+
 

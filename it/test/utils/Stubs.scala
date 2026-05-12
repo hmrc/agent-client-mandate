@@ -186,6 +186,24 @@ object Stubs {
     )
   }
 
+  def stubGetSubscriptionHip: StubMapping = {
+
+    stubFor(get(urlMatching("/etmp/RESTAdapter/ated/subscription/XN1200000100001"))
+      .willReturn(
+        aResponse()
+          .withStatus(200)
+          .withBody(
+            s"""{
+               |  "success":
+               |  {
+               |    "safeId" : "Test",
+               |    "organisationName" : "Test"
+               |  }
+               |}""".stripMargin)
+      )
+    )
+  }
+
   def stubGetSafeId: StubMapping = {
 
     stubFor(get(urlMatching(s"/registration/details\\?safeid=Test"))

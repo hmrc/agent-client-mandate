@@ -28,6 +28,7 @@ trait IntegrationApplication extends GuiceOneServerPerSuite with WireMockConfig 
 
   val currentAppBaseUrl: String = "agent-client-mandate"
   val testAppUrl: String        = s"http://localhost:$port"
+  val hipSwitch: Boolean        = false
 
   lazy val ws: WSClient = app.injector.instanceOf[WSClient]
 
@@ -38,6 +39,8 @@ trait IntegrationApplication extends GuiceOneServerPerSuite with WireMockConfig 
       "microservice.services.auth.port"                     -> wireMockPort,
       "microservice.services.etmp-hod.host"                 -> wireMockHost,
       "microservice.services.etmp-hod.port"                 -> wireMockPort,
+      "microservice.services.hip.host"                      -> wireMockHost,
+      "microservice.services.hip.port"                      -> wireMockPort,
       "microservice.services.email.host"                    -> wireMockHost,
       "microservice.services.email.port"                    -> wireMockPort,
       "microservice.services.users-groups-search.host"      -> wireMockHost,
@@ -45,7 +48,8 @@ trait IntegrationApplication extends GuiceOneServerPerSuite with WireMockConfig 
       "microservice.services.tax-enrolments.host"           -> wireMockHost,
       "microservice.services.tax-enrolments.port"           -> wireMockPort,
       "microservice.services.enrolment-store-proxy.host"    -> wireMockHost,
-      "microservice.services.enrolment-store-proxy.port"    -> wireMockPort
+      "microservice.services.enrolment-store-proxy.port"    -> wireMockPort,
+      "feature.hipSwitch"                                   -> hipSwitch
     )
     .build()
 

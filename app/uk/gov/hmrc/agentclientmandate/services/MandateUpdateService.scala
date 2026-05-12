@@ -16,14 +16,17 @@
 
 package uk.gov.hmrc.agentclientmandate.services
 
+import play.api.Configuration
+
 import javax.inject.Inject
 import java.time.{Duration, Instant}
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
-import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
+import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, HipConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.utils.ACMFeatureSwitches
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -32,21 +35,25 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import scala.concurrent.{ExecutionContext, Future}
 
 class DefaultMandateUpdateService @Inject()(val etmpConnector: EtmpConnector,
+                                            val hipConnector: HipConnector,
                                             val auditConnector: AuditConnector,
                                             val mandateRepo: MandateRepo,
                                             val ec: ExecutionContext,
-                                            val servicesConfig: ServicesConfig) extends MandateUpdateService {
+                                            val servicesConfig: ServicesConfig,
+                                            override implicit val configuration: Configuration) extends MandateUpdateService {
   val mandateRepository: MandateRepository = mandateRepo.repository
   lazy val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
 }
 
 trait MandateUpdateService extends Auditable {
   implicit val ec: ExecutionContext
+  implicit val configuration: Configuration
 
   val expiryAfterDays: Int
 
   def mandateRepository: MandateRepository
   def etmpConnector: EtmpConnector
+  def hipConnector: HipConnector
 
   def approveMandate(approvedMandate: Mandate)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
     val service = approvedMandate.subscription.service.id.toLowerCase
@@ -54,7 +61,14 @@ trait MandateUpdateService extends Auditable {
       case "ated" =>
         mandateRepository.fetchMandate(approvedMandate.id) flatMap {
           case MandateFetched(m) if m.currentStatus.status == Status.New =>
-            etmpConnector.getAtedSubscriptionDetails(ar.atedUtr.value) flatMap { subscriptionJson =>
+
+            val responseJsonFuture = if (ACMFeatureSwitches.hipSwitch().enabled) {
+              hipConnector.getAtedSubscriptionDetails(ar.atedUtr.value)
+            } else {
+              etmpConnector.getAtedSubscriptionDetails(ar.atedUtr.value)
+            }
+
+            responseJsonFuture.flatMap{ subscriptionJson =>
               val clientPartyId = (subscriptionJson \ "safeId").as[String]
               val clientPartyName = (subscriptionJson \ "organisationName").as[String]
               val approvedBy = User(ar.govGatewayId, clientPartyName)

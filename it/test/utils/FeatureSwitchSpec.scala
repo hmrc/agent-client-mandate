@@ -26,8 +26,8 @@ class FeatureSwitchSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(
     Map(
-      "features.allocation.usingGG" -> "true",
-      "features.deallocation.usingGG" -> "false"
+      "feature.allocation.usingGG" -> "true",
+      "feature.deallocation.usingGG" -> "false"
     )
   ).build()
   implicit override lazy val app: Application = fakeApplication()
