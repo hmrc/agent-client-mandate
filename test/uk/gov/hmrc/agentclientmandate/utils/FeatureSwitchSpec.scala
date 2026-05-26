@@ -23,12 +23,12 @@ import scala.util.Using
 
 class FeatureSwitchSpec extends PlaySpec {
 
-  "HIP Switch feature flag should be false by default" in {
+  "HIP Switch feature flag should be true by default" in {
     val applicationConfFileContents = Using.resource(Source.fromFile("conf/application.conf")) { source => source.getLines().mkString("") }
-    val hipSwitchFlagSetToFalse = applicationConfFileContents.contains("feature.hipSwitch = false")
+    val hipSwitchFlagSetToTrue = applicationConfFileContents.contains("feature.hipSwitch = true")
 
-    withClue("HIP Switch feature flag should be false by default in application.conf:") {
-      hipSwitchFlagSetToFalse mustBe true
+    withClue("HIP Switch feature flag should be true by default in application.conf:") {
+      hipSwitchFlagSetToTrue mustBe true
     }
   }
 }
