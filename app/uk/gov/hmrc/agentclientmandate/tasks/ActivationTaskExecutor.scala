@@ -21,13 +21,12 @@ import play.api.Configuration
 import javax.inject.Inject
 import java.time.Instant
 import play.api.http.Status._
-import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, HipConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{HipConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
-import uk.gov.hmrc.agentclientmandate.utils.ACMFeatureSwitches
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
@@ -44,8 +43,7 @@ import scala.util.{Failure, Success, Try}
 
 class ActivationTaskExecutor extends TaskExecutor
 
-class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
-                                      val hipConnector: HipConnector,
+class ActivationTaskService @Inject()(val hipConnector: HipConnector,
                                       val mandateUpdateService: MandateUpdateService,
                                       val taxEnrolmentConnector: TaxEnrolmentConnector,
                                       val metrics: ServiceMetrics,
@@ -75,11 +73,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
   private def start(args: Map[String, String]): Try[Signal] = {
     val request = createRelationship(args("clientId"), args("agentPartyId"))
 
-    val result = if (ACMFeatureSwitches.hipSwitch().enabled) {
-      Await.result(hipConnector.maintainAtedRelationship(request), 60 seconds)
-    } else {
-      Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
-    }
+    val result = Await.result(hipConnector.maintainAtedRelationship(request), 60 seconds)
 
     result.status match {
       case OK =>
@@ -160,11 +154,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         // rolling back ETMP as we have failed GG proxy call
         val request = breakRelationship(args("clientId"), args("agentPartyId"))
 
-        if (ACMFeatureSwitches.hipSwitch().enabled) {
-          Await.result(hipConnector.maintainAtedRelationship(request), 5 seconds)
-        } else {
-          Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
-        }
+        Await.result(hipConnector.maintainAtedRelationship(request), 5 seconds)
 
         Success(Start(args))
       case Next("finalize-activation", args) =>

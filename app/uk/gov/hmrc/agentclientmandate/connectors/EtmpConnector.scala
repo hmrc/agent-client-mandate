@@ -57,7 +57,6 @@ trait EtmpConnector extends Auditable {
   def metrics: ServiceMetrics
   def maintainAtedRelationship(agentClientRelationship: EtmpAtedAgentClientRelationship): Future[HttpResponse] = {
 
-
     val jsonData = Json.toJson(agentClientRelationship)
     val postUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/relationship"""
     val timerContext = metrics.startTimer(MetricsEnum.MaintainAtedRelationship)
@@ -102,24 +101,6 @@ trait EtmpConnector extends Auditable {
       case unknownIdentifier =>
         logWarn(s"[EtmpConnector][getDetails] - unexpected identifier type supplied of $unknownIdentifier")
         throw new RuntimeException(s"Unexpected identifier type supplied - $unknownIdentifier")
-    }
-  }
-
-  def getAtedSubscriptionDetails(atedRefNo: String): Future[JsValue] = {
-    val getUrl = s"""$etmpUrl/annual-tax-enveloped-dwellings/subscription/$atedRefNo"""
-    val timerContext = metrics.startTimer(MetricsEnum.AtedSubscriptionDetails)
-
-    http.get(url"$getUrl").setHeader(additionalHeaders: _*).execute[HttpResponse].map{ response =>
-      timerContext.stop()
-      response.status match {
-        case OK =>
-          metrics.incrementSuccessCounter(MetricsEnum.AtedSubscriptionDetails)
-          response.json
-        case _ =>
-          metrics.incrementFailedCounter(MetricsEnum.AtedSubscriptionDetails)
-          doFailedAudit("getAtedSubscriptionDetailsFailed", getUrl, response.body)
-          throw new RuntimeException("Error in getting ATED subscription details from ETMP")
-      }
     }
   }
 
