@@ -26,7 +26,6 @@ import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, HipConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.utils.ACMFeatureSwitches
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -62,11 +61,7 @@ trait MandateUpdateService extends Auditable {
         mandateRepository.fetchMandate(approvedMandate.id) flatMap {
           case MandateFetched(m) if m.currentStatus.status == Status.New =>
 
-            val responseJsonFuture = if (ACMFeatureSwitches.hipSwitch().enabled) {
-              hipConnector.getAtedSubscriptionDetails(ar.atedUtr.value)
-            } else {
-              etmpConnector.getAtedSubscriptionDetails(ar.atedUtr.value)
-            }
+            val responseJsonFuture = hipConnector.getAtedSubscriptionDetails(ar.atedUtr.value)
 
             responseJsonFuture.flatMap{ subscriptionJson =>
               val clientPartyId = (subscriptionJson \ "safeId").as[String]

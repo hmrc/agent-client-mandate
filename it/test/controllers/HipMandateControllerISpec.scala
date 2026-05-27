@@ -25,7 +25,6 @@ import uk.gov.hmrc.agentclientmandate.models
 import uk.gov.hmrc.agentclientmandate.models.Status.{Cancelled, New}
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
-import uk.gov.hmrc.agentclientmandate.utils.FeatureSwitch
 import utils.Stubs._
 
 import java.time.Instant
@@ -35,16 +34,6 @@ class
 HipMandateControllerISpec extends IntegrationSpec {
 
   implicit val config: Configuration = app.injector.instanceOf[Configuration]
-
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
-  }
-
-  override def afterAll(): Unit = {
-    super.afterAll()
-    FeatureSwitch.disable(FeatureSwitch("hipSwitch", false))
-  }
 
   val mandateDto: CreateMandateDto = CreateMandateDto(
     email = "not-real-email@notrealemail.fake", serviceName = "ated", displayName = "display-name"

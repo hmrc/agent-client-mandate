@@ -129,28 +129,5 @@ override def beforeEach(): Unit = {
         response.status must be(INTERNAL_SERVER_ERROR)
       }
     }
-
-    "getAtedSubscriptionDetails" must {
-      "return valid response, if success response received from ETMP" in new Setup {
-        val successResponse: JsValue = Json.parse("""{"safeId" :  "safe-id"}""")
-
-        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(OK, successResponse.toString)))
-
-        val response: JsValue = await(connector.getAtedSubscriptionDetails("ated-ref-num"))
-        response must be(successResponse)
-      }
-
-      "throws error, if response status is not OK from ETMP" in new Setup {
-        val failureResponse: JsValue = Json.parse("""{"Reason" : "Service Unavailable"}""")
-
-        when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
-
-        val result: Future[JsValue] = connector.getAtedSubscriptionDetails("ated-ref-num")
-        val response: RuntimeException = the[RuntimeException] thrownBy await(result)
-        response.getMessage must be("Error in getting ATED subscription details from ETMP")
-      }
-    }
-
   }
-
 }

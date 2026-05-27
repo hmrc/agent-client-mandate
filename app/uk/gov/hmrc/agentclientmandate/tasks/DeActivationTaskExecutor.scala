@@ -21,13 +21,12 @@ import play.api.Configuration
 import javax.inject.Inject
 import java.time.Instant
 import play.api.http.Status._
-import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, HipConnector, TaxEnrolmentConnector}
+import uk.gov.hmrc.agentclientmandate.connectors.{HipConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories._
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
-import uk.gov.hmrc.agentclientmandate.utils.ACMFeatureSwitches
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
@@ -43,16 +42,15 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class DeactivationTaskExecutor extends TaskExecutor
-class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
-                                        val hipConnector: HipConnector,
-                                         val mandateUpdateService: MandateUpdateService,
-                                         val taxEnrolmentConnector: TaxEnrolmentConnector,
-                                         val metrics: ServiceMetrics,
-                                         val emailNotificationService: NotificationEmailService,
-                                         val auditConnector: AuditConnector,
-                                         val fetchService: MandateFetchService,
-                                         val mandateRepo: MandateRepo,
-                                         implicit val configuration: Configuration)(implicit ec: ExecutionContext) extends ScheduledService with Auditable {
+class DeActivationTaskService @Inject()(val hipConnector: HipConnector,
+                                        val mandateUpdateService: MandateUpdateService,
+                                        val taxEnrolmentConnector: TaxEnrolmentConnector,
+                                        val metrics: ServiceMetrics,
+                                        val emailNotificationService: NotificationEmailService,
+                                        val auditConnector: AuditConnector,
+                                        val fetchService: MandateFetchService,
+                                        val mandateRepo: MandateRepo,
+                                        implicit val configuration: Configuration)(implicit ec: ExecutionContext) extends ScheduledService with Auditable {
 
   val mandateRepository: MandateRepository = mandateRepo.repository
 
@@ -72,11 +70,7 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
   private def start(args: Map[String, String]): Try[Signal] = {
     val request = breakRelationship(args("clientId"), args("agentPartyId"))
 
-    val result = if (ACMFeatureSwitches.hipSwitch().enabled) {
-      Await.result(hipConnector.maintainAtedRelationship(request), 60 seconds)
-    } else {
-      Await.result(etmpConnector.maintainAtedRelationship(request), 60 seconds)
-    }
+    val result = Await.result(hipConnector.maintainAtedRelationship(request), 60 seconds)
 
     result.status match {
       case OK => Success(Next("gg-proxy-deactivation", args))
@@ -181,11 +175,7 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
         // rolling back ETMP as we have failed GG proxy call
         val request = createRelationship(args("clientId"), args("agentPartyId"))
 
-        if (ACMFeatureSwitches.hipSwitch().enabled) {
-          Await.result(hipConnector.maintainAtedRelationship(request), 5 seconds)
-        } else {
-          Await.result(etmpConnector.maintainAtedRelationship(request), 5 seconds)
-        }
+        Await.result(hipConnector.maintainAtedRelationship(request), 5 seconds)
 
         Success(Start(args))
       //failed to update the status in Mongo from PendingCancellation to Cancelled

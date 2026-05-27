@@ -27,7 +27,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
-import uk.gov.hmrc.agentclientmandate.utils.{FeatureSwitch, SessionUtils}
+import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -47,11 +47,6 @@ override def beforeEach(): Unit = {
 
     when(mockMetrics.startTimer(any()))
       .thenReturn(new Timer().time)
-    FeatureSwitch.disable(FeatureSwitch("hipSwitch", false))
-  }
-
-  override def afterEach(): Unit = {
-    FeatureSwitch.disable(FeatureSwitch("hipSwitch", false))
   }
 
   trait Setup extends ConnectorTest {
@@ -81,7 +76,6 @@ override def beforeEach(): Unit = {
 
     "maintainAtedRelationship" must {
       "return valid response, if create/update relationship is successful in HIP" in new Setup {
-        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
         val successResponse: JsValue = Json.parse("""{"processingDate" :  "2014-12-17T09:30:47Z"}""")
         val wrappedSuccessResponse: JsValue = Json.obj("success" -> successResponse)
 
@@ -96,7 +90,6 @@ override def beforeEach(): Unit = {
       }
 
       "Check for a failure response when we try to create/update ATED relation in HIP" in new Setup {
-        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
         val failureResponse: JsValue = Json.parse(
           """
             |{
@@ -119,7 +112,6 @@ override def beforeEach(): Unit = {
 
     "getAtedSubscriptionDetails" must {
       "return valid response, if success response received from HIP" in new Setup {
-        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
         val successResponse: JsValue = Json.parse("""{"safeId" :  "safe-id"}""")
         val wrappedSuccessResponse: JsValue = Json.obj("success" -> successResponse)
 
@@ -130,7 +122,6 @@ override def beforeEach(): Unit = {
       }
 
       "throws error, if response status is not OK from HIP" in new Setup {
-        FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
         val failureResponse: JsValue = Json.parse(
           """
@@ -149,7 +140,5 @@ override def beforeEach(): Unit = {
         response.getMessage must be("Error in getting ATED subscription details from ETMP")
       }
     }
-
   }
-
 }
