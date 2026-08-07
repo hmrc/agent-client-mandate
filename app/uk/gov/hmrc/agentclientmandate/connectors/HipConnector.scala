@@ -19,6 +19,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.http.Status
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}

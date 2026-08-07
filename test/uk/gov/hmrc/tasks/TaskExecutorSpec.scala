@@ -21,7 +21,7 @@ import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestActorRef, T
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers.*
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics

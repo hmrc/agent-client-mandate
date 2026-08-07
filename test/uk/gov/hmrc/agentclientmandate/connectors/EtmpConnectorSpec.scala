@@ -34,12 +34,12 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach{
+class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-override def beforeEach(): Unit = {
+  override def beforeEach(): Unit = {
     reset(mockMetrics)
     reset(mockAuditConnector)
 

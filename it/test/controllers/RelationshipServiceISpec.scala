@@ -21,6 +21,7 @@ import helpers.IntegrationSpec
 import java.time.{LocalDateTime, ZoneOffset}
 import org.scalatest
 import play.api.libs.json.Json
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.agentclientmandate.models._
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}

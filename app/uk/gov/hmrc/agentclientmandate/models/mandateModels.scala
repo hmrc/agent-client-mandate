@@ -37,7 +37,7 @@ object PartyType extends Enumeration {
   implicit val enumFormat: Format[PartyType] = new Format[PartyType] {
     def reads(json: JsValue): JsSuccess[models.PartyType.Value] = JsSuccess(PartyType.withName(json.as[String]))
 
-    def writes(`enum`: PartyType): JsString = JsString(enum.toString)
+    def writes(`enum`: PartyType): JsString = JsString(`enum`.toString)
   }
 }
 
@@ -62,7 +62,7 @@ object Status extends Enumeration {
   implicit val enumFormat: Format[Status] = new Format[Status] {
     def reads(json: JsValue): JsSuccess[models.Status.Value] = JsSuccess(Status.withName(json.as[String]))
 
-    def writes(`enum`: Status): JsString = JsString(enum.toString)
+    def writes(`enum`: Status): JsString = JsString(`enum`.toString)
   }
 }
 

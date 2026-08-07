@@ -49,7 +49,6 @@ class ClientController @Inject()(val createService: MandateCreateService,
     fetchService.fetchClientMandate(clientId, service).map {
       case MandateFetched(x)  => Ok(Json.toJson(x))
       case MandateNotFound    => NotFound
-      case _                  => throw new Exception("Unknown mandate status")
     }
   }
 

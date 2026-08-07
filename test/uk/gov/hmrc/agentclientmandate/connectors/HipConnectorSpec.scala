@@ -35,13 +35,13 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class HipConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach{
+class HipConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   implicit val configuration: Configuration = mock[Configuration]
 
-override def beforeEach(): Unit = {
+  override def beforeEach(): Unit = {
     reset(mockMetrics)
     reset(mockAuditConnector)
 
@@ -134,13 +134,13 @@ override def beforeEach(): Unit = {
 
         val failureResponse: JsValue = Json.parse(
           """
-          |{
-          |  "error": {
-          |    "code": "500",
-          |    "message": "string",
-          |    "logID": "D82EBAB67AC6D7565C0682CA91BDC577"
-          |  }
-          |}""".stripMargin)
+            |{
+            |  "error": {
+            |    "code": "500",
+            |    "message": "string",
+            |    "logID": "D82EBAB67AC6D7565C0682CA91BDC577"
+            |  }
+            |}""".stripMargin)
 
         when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
 

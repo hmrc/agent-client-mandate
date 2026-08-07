@@ -29,8 +29,8 @@ lazy val microservice = Project(appName, file("."))
     routesGenerator := InjectedRoutesGenerator,
     Test / parallelExecution := true,
     Test / fork := true,
-    scalacOptions += "-Wconf:src=routes/.*:s",
-    scalacOptions ++= Seq("-feature")
+    scalacOptions ++= Seq("-feature", "-Wconf:src=routes/.*:s"),
+    scalacOptions ~= (_.distinct)
   )
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
@@ -42,5 +42,6 @@ lazy val it = project
   .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(DefaultBuildSettings.itSettings())
   .settings(libraryDependencies ++= AppDependencies.itDependencies)
+  .settings(scalacOptions ~= (_.distinct))
 
 addCommandAlias("runAllChecks", ";clean;compile;coverage;test;it/test;coverageReport")

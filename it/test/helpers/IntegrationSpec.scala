@@ -18,6 +18,7 @@ package helpers
 
 import helpers.application.IntegrationApplication
 import helpers.wiremock.WireMockSetup
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest._
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.ws.WSRequest

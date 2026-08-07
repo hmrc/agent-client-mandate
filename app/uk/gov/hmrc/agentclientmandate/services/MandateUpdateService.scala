@@ -42,7 +42,7 @@ class DefaultMandateUpdateService @Inject()(val etmpConnector: EtmpConnector,
                                             val servicesConfig: ServicesConfig,
                                             override implicit val configuration: Configuration) extends MandateUpdateService {
   val mandateRepository: MandateRepository = mandateRepo.repository
-  lazy val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
+  override val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
 }
 
 trait MandateUpdateService extends Auditable {

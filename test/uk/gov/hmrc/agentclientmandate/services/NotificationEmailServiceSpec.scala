@@ -44,13 +44,13 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  val validResponse: JsValue = Json.parse( """{"valid":"true"}""")
-  val invalidResponse: JsValue = Json.parse( """{"valid":"false"}""")
+  val validResponse: JsValue = Json.parse("""{"valid":"true"}""")
+  val invalidResponse: JsValue = Json.parse("""{"valid":"false"}""")
 
   val clientMandate: Mandate =
     Mandate(
       id = "123",
-      createdBy = User("credid",nameGen.sample.get , None),
+      createdBy = User("credid", nameGen.sample.get, None),
       agentParty = Party(partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample)),
       clientParty = Some(Party(
         partyIDGen.sample.get, nameGen.sample.get, PartyType.Organisation, ContactDetails(emailGen.sample.get, telephoneNumberGen.sample))),
@@ -73,7 +73,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
 
   "NotificationEmailService" should {
 
-     "send the correct email/emails to the correct recipients" when {
+    "send the correct email/emails to the correct recipients" when {
 
       "client approves mandate" in new Setup {
         val email = "agent_email@email.com"
@@ -92,18 +92,18 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_activates_mandate", "Annual Tax on Enveloped Dwellings", None, "Client name")
       }
 
-       "agent self-auth non-uk mandate" in new Setup {
-         val email = "agent_email@email.com"
-         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-         val response: Future[EmailStatus] = service.sendMail(email, Status.Active, Some("agent"), Some("agent"), "Agent name", "ATED", None)
-         await(response) must be(EmailSent)
-         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_self_auth_activates_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
-       }
-
-       "agent rejects mandate" in new Setup {
-         val email = "client_email@email.com"
+      "agent self-auth non-uk mandate" in new Setup {
+        val email = "agent_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-        val response: Future[EmailStatus] = service.sendMail(email, Status.Rejected, Some("agent"), Some("client"),"Client name","ATED", Some(Status.Approved))
+        val response: Future[EmailStatus] = service.sendMail(email, Status.Active, Some("agent"), Some("agent"), "Agent name", "ATED", None)
+        await(response) must be(EmailSent)
+        verify(mockEmailConnector).sendTemplatedEmail(email, "agent_self_auth_activates_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
+      }
+
+      "agent rejects mandate" in new Setup {
+        val email = "client_email@email.com"
+        when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
+        val response: Future[EmailStatus] = service.sendMail(email, Status.Rejected, Some("agent"), Some("client"), "Client name", "ATED", Some(Status.Approved))
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "agent_rejects_mandate", "Annual Tax on Enveloped Dwellings", None, "Client name")
       }
@@ -116,12 +116,12 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(agentEmail), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
 
         val responseToAgent: Future[EmailStatus] = service.sendMail(
-          agentEmail, Status.Cancelled, Some("agent"), Some("agent"),"Agent name","ATED", Some(Status.Active))
+          agentEmail, Status.Cancelled, Some("agent"), Some("agent"), "Agent name", "ATED", Some(Status.Active))
         val responseToClient: Future[EmailStatus] = service.sendMail(
           clientEmail,
           Status.Cancelled,
           Some("agent"),
-          Some("client"),"Client name","ATED",
+          Some("client"), "Client name", "ATED",
           uniqueAuthNo = Some("UNIQUEREF123"),
           prevStatus = Some(Status.Active))
 
@@ -138,7 +138,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
         val email = "client@client_email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         val response: Future[EmailStatus] = service.sendMail(
-          email, Status.Cancelled, Some("client"), Some("agent"), "Agent name","ATED", Some(Status.Approved), None)
+          email, Status.Cancelled, Some("client"), Some("agent"), "Agent name", "ATED", Some(Status.Approved), None)
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_removes_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
       }
@@ -147,7 +147,7 @@ class NotificationEmailServiceSpec extends PlaySpec with MockitoSugar with Befor
         val email = "client_email@email.com"
         when(mockEmailConnector.sendTemplatedEmail(ArgumentMatchers.eq(email), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
         val response: Future[EmailStatus] = service.sendMail(
-          email, Status.Cancelled, Some("client"), Some("agent"),"Agent name","ATED", Some(Status.Active), None)
+          email, Status.Cancelled, Some("client"), Some("agent"), "Agent name", "ATED", Some(Status.Active), None)
         await(response) must be(EmailSent)
         verify(mockEmailConnector).sendTemplatedEmail(email, "client_cancels_active_mandate", "Annual Tax on Enveloped Dwellings", None, "Agent name")
       }

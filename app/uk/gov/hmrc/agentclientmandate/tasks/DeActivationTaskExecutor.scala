@@ -43,16 +43,17 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class DeactivationTaskExecutor extends TaskExecutor
+
 class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                         val hipConnector: HipConnector,
-                                         val mandateUpdateService: MandateUpdateService,
-                                         val taxEnrolmentConnector: TaxEnrolmentConnector,
-                                         val metrics: ServiceMetrics,
-                                         val emailNotificationService: NotificationEmailService,
-                                         val auditConnector: AuditConnector,
-                                         val fetchService: MandateFetchService,
-                                         val mandateRepo: MandateRepo,
-                                         implicit val configuration: Configuration)(implicit ec: ExecutionContext) extends ScheduledService with Auditable {
+                                        val mandateUpdateService: MandateUpdateService,
+                                        val taxEnrolmentConnector: TaxEnrolmentConnector,
+                                        val metrics: ServiceMetrics,
+                                        val emailNotificationService: NotificationEmailService,
+                                        val auditConnector: AuditConnector,
+                                        val fetchService: MandateFetchService,
+                                        val mandateRepo: MandateRepo,
+                                        implicit val configuration: Configuration)(implicit ec: ExecutionContext) extends ScheduledService with Auditable {
 
   val mandateRepository: MandateRepository = mandateRepo.repository
 
@@ -62,10 +63,10 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     implicit val hc: HeaderCarrier = HeaderCarrier(authorization = Some(Authorization(auth)))
 
     signal match {
-      case Start(args)                          => start(args)
-      case Next("gg-proxy-deactivation", args)  => unenrolTaxEnrolments(args)
-      case Next("finalize-deactivation", args)  => finalize(args)
-      case _                                    => throw new Exception("Unknown signal type")
+      case Start(args) => start(args)
+      case Next("gg-proxy-deactivation", args) => unenrolTaxEnrolments(args)
+      case Next("finalize-deactivation", args) => finalize(args)
+      case _ => throw new Exception("Unknown signal type")
     }
   }
 
@@ -81,8 +82,8 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     result.status match {
       case OK => Success(Next("gg-proxy-deactivation", args))
       case _ =>
-    logWarn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
-    Failure(new Exception("ETMP call failed, status: " + result.status))
+        logWarn(s"[DeActivationTaskExecutor] - call to ETMP failed with status ${result.status} for mandate reference::${args("mandateId")}")
+        Failure(new Exception("ETMP call failed, status: " + result.status))
     }
   }
 
@@ -120,8 +121,8 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             args("userType") match {
               case "agent" =>
                 handleRemoveMandateEmailRequest(m.agentParty.contactDetails.email, Some("agent"), mandate.agentParty.name, args, mandate, Some("agent"), previousStatus)
-                m.clientParty.foreach( client =>
-                  if(client.contactDetails.email != ""){
+                m.clientParty.foreach(client =>
+                  if (client.contactDetails.email != "") {
                     handleRemoveMandateEmailRequest(client.contactDetails.email, Some("client"),
                       mandate.clientParty.fold("")(_.name), args, mandate, Some("agent"), previousStatus)
                   }
@@ -147,16 +148,16 @@ class DeActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                               mandate: Mandate, userType: Option[String], prevStatus: Option[Status])(implicit hc: HeaderCarrier): Unit = {
 
     val service = mandate.subscription.service.id
-    val uniqueAuthNo: Option[String] = if(recipient.contains("client")) Some(mandate.id) else None
+    val uniqueAuthNo: Option[String] = if (recipient.contains("client")) Some(mandate.id) else None
 
     Try(emailNotificationService.sendMail(email, models.Status.Cancelled, userType,
       recipient, recipientName = recipientName, service, uniqueAuthNo = uniqueAuthNo, prevStatus = prevStatus)) match {
-        case Success(_) =>
-          doAudit("emailSent", args("agentCode"), mandate)
-        case Failure(reason) =>
-          doFailedAudit("emailSentFailed", s"receiver email::$email " +
-            s"status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
-      }
+      case Success(_) =>
+        doAudit("emailSent", args("agentCode"), mandate)
+      case Failure(reason) =>
+        doFailedAudit("emailSentFailed", s"receiver email::$email " +
+          s"status:: ${models.Status.Cancelled} service::$service", reason.getMessage)
+    }
   }
 
   override def rollback(signal: Signal): Try[Signal] = {

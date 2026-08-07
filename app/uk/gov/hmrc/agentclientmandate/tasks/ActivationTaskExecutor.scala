@@ -124,7 +124,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             val service = m.subscription.service.id
             Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active,
               userType = Some("agent"), recipient = receiverParty._2,service = service, recipientName = receiverParty._3, prevStatus = previousStatus)) match {
-              case Success(v) =>
+              case Success(_) =>
                 doAudit("emailSent", args("agentCode"), m)
               case Failure(reason) =>
                 doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Active} service::$service", reason.getMessage)
@@ -139,7 +139,6 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
       case MandateNotFound =>
         logWarn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
         Failure(new Exception("Could not find mandate to activate"))
-      case _ => throw new Exception("Unknown fetch result")
     }
   }
 

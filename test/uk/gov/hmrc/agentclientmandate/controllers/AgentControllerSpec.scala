@@ -236,7 +236,7 @@ class AgentControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfter
     "not activate the client" when {
 
       "status of mandate returned is not Approved" in new Setup {
-        forAll { mandateStatus: Status.Status =>
+        forAll { (mandateStatus: Status.Status) =>
           whenever(mandateStatus != Status.Approved) {
             when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn
               Future.successful(MandateFetched(mandateWithStatus(mandateStatus)))

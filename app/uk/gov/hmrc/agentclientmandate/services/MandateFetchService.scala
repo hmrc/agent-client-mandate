@@ -28,7 +28,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DefaultMandateFetchService @Inject()(val mandateRepo: MandateRepo,
                                            val servicesConfig: ServicesConfig) extends MandateFetchService {
   val mandateRepository: MandateRepository = mandateRepo.repository
-  lazy val clientCancelledMandateNotification: Int = servicesConfig.getInt("client-cancelled-mandate-notification-days")
+  override val clientCancelledMandateNotification: Int = servicesConfig.getInt("client-cancelled-mandate-notification-days")
 }
 
 trait MandateFetchService {

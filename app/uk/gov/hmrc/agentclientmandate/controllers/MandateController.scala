@@ -55,7 +55,6 @@ class MandateController @Inject()(val createService: MandateCreateService,
       case MandateNotFound =>
         logWarn("Could not find mandate: " + mandateId)
         NotFound
-      case _ => throw new Exception("Unknown mandate status")
     }
   }
 
@@ -91,7 +90,6 @@ class MandateController @Inject()(val createService: MandateCreateService,
         case MandateNotFound =>
           logWarn("Could not find mandate to remove: " + mandateId)
           Future.successful(NotFound)
-        case _ => throw new Exception("Unknown mandate status")
       } recover {
         case e =>
           logError(s"[MandateController][remove] Recover Error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
