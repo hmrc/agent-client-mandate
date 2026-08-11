@@ -18,9 +18,9 @@ package uk.gov.hmrc.agentclientmandate.utils
 
 import java.time.Instant
 import org.scalatestplus.play.PlaySpec
-import play.api.test.Helpers._
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import play.api.test.Helpers.*
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.http.HttpResponse
 
 

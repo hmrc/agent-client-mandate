@@ -19,14 +19,15 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import javax.inject.Inject
 import play.api.http.Status.ACCEPTED
 import play.api.libs.json.Json
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.models.SendEmailRequest
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -43,14 +44,14 @@ class DefaultEmailConnector @Inject()(val auditConnector: AuditConnector,
 }
 
 trait EmailConnector extends Auditable {
-  implicit val ec: ExecutionContext
+  given ec: ExecutionContext
 
   def sendEmailUri: String
   def serviceUrl: String
   def http: HttpClientV2
 
   def sendTemplatedEmail(emailString: String, templateName: String, serviceString: String,
-                         uniqueAuthNo: Option[String], recipientName: String)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+                         uniqueAuthNo: Option[String], recipientName: String)(using hc: HeaderCarrier): Future[EmailStatus] = {
 
     val defaultParams = Map("emailAddress" -> emailString, "service" -> serviceString, "recipient" -> recipientName)
 

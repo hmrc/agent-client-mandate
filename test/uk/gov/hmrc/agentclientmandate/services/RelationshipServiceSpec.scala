@@ -20,19 +20,19 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.mockito.Mockito.reset
 
 import java.time.Instant
-import org.scalatest._
-import org.scalatest.matchers.should.Matchers._
+import org.scalatest.*
+import org.scalatest.matchers.should.Matchers.*
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskService, DeActivationTaskService}
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.domain.{AtedUtr, Generator}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
-import uk.gov.hmrc.tasks._
+import uk.gov.hmrc.tasks.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -41,7 +41,7 @@ class RelationshipServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val agentCode = "ABC"
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
   lazy val mockConfig: Config = ConfigFactory.load("identifiers.properties")
 
   val mockActivationTaskService: ActivationTaskService = mock[ActivationTaskService]

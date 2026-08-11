@@ -11,7 +11,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 val appName = "agent-client-mandate"
 
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.18"
+ThisBuild / scalaVersion := "3.3.7"
 
 lazy val appDependencies: Seq[ModuleID] = AppDependencies()
 lazy val plugins: Seq[Plugins] = Seq.empty
@@ -22,15 +22,18 @@ lazy val microservice = Project(appName, file("."))
   .settings(CodeCoverageSettings.settings *)
   .settings(playSettings *)
   .settings(defaultSettings *)
-  .settings(RoutesKeys.routesImport ++= Seq("uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._"))
+  .settings(RoutesKeys.routesImport ++= Seq(
+    "uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders._",
+    "uk.gov.hmrc.agentclientmandate.binders.DelegationPathBinders.given"
+  ))
   .settings(
     libraryDependencies ++= appDependencies,
     retrieveManaged := true,
     routesGenerator := InjectedRoutesGenerator,
     Test / parallelExecution := true,
     Test / fork := true,
-    scalacOptions += "-Wconf:src=routes/.*:s",
-    scalacOptions ++= Seq("-feature")
+    scalacOptions ++= Seq("-feature", "-Wconf:src=routes/.*:s"),
+    scalacOptions ~= (_.distinct)
   )
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(
@@ -42,5 +45,6 @@ lazy val it = project
   .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
   .settings(DefaultBuildSettings.itSettings())
   .settings(libraryDependencies ++= AppDependencies.itDependencies)
+  .settings(scalacOptions ~= (_.distinct))
 
 addCommandAlias("runAllChecks", ";clean;compile;coverage;test;it/test;coverageReport")

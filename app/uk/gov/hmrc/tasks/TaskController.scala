@@ -21,7 +21,7 @@ import scala.language.postfixOps
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 trait TaskControllerT {
 
@@ -51,7 +51,7 @@ trait TaskControllerT {
   }
 
   protected def startClock(intervalSecs: Int): Unit = {
-    implicit val ec: ExecutionContextExecutor = system.dispatcher
+    given ec: ExecutionContextExecutor = system.dispatcher
     cancellable =
       system.scheduler.scheduleWithFixedDelay(0 seconds, intervalSecs seconds)(new RunnableTask)
   }

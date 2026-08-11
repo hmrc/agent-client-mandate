@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentclientmandate.services
 import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailConnector, EmailStatus}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logError
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -31,7 +31,7 @@ trait NotificationEmailService {
   def emailConnector: EmailConnector
 
   def sendMail(emailString: String, action: Status, userType: Option[String], recipient: Option[String], recipientName: String,
-               service: String, prevStatus: Option[Status], uniqueAuthNo: Option[String] = None)(implicit hc: HeaderCarrier): Future[EmailStatus] = {
+               service: String, prevStatus: Option[Status], uniqueAuthNo: Option[String] = None)(using hc: HeaderCarrier): Future[EmailStatus] = {
 
     def template: String = {
       (action, userType, prevStatus, recipient) match {

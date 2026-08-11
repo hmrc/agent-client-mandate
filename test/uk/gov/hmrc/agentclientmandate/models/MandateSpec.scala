@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.models
 
 import java.time.Instant
 import org.scalatestplus.play.PlaySpec
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 
 class MandateSpec extends PlaySpec {
 

@@ -19,13 +19,13 @@ package repositories
 import helpers.IntegrationSpec
 import java.time.{LocalDateTime, ZoneOffset, Instant}
 import org.scalatest.Assertion
-import org.mongodb.scala._
-import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.*
+import org.mongodb.scala.model.Filters.*
 import uk.gov.hmrc.agentclientmandate.models
 import uk.gov.hmrc.agentclientmandate.models.Status
-import uk.gov.hmrc.agentclientmandate.models.Status._
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.models.Status.*
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -78,7 +78,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
         mandateRepo.repository.insertMandate(mandate).map{
           case MandateCreated(_) => 1
           case _ => 0
-        }.recover{case x => 0}
+        }.recover{case _ => 0}
       }
     ).map(_.sum)
 
@@ -93,7 +93,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
     "Insert and retrieve a mandate" in {
       val mandate = createMandate(mandateIds(0), "cred-id-113244018119", serviceName, agentIds(1), clientIds(0), when, New)
       await(mandateRepo.repository.insertMandate(mandate)) match {
-        case mandateCreate: MandateCreated =>
+        case _: MandateCreated =>
           await(mandateRepo.repository.fetchMandate(mandate.id)) match {
             case MandateFetched(fetched) if fetched ==mandate => succeed
             case err => fail(s"ERRR: $err")
@@ -105,7 +105,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
     "Insert, Update and retrieve a mandate" in {
       val mandate = createMandate(mandateIds(0), "cred-id-113244018119", serviceName, agentIds(1), clientIds(0), when, New)
       await(mandateRepo.repository.insertMandate(mandate)) match {
-        case mandateCreate: MandateCreated =>
+        case _: MandateCreated =>
           val updatedMandate = mandate.copy(currentStatus = mandate.currentStatus.copy(timestamp = laterThanWhen))
           await(mandateRepo.repository.updateMandate(updatedMandate)) match {
             case MandateUpdated(update) => await(mandateRepo.repository.fetchMandate(update.id)) match {
@@ -131,14 +131,15 @@ class MandateRepositoryISpec extends IntegrationSpec {
     }
 
     "Multiple Inserts and getAllMandatesByServiceName" in {
-      val mandates = 
+      val mandates = (
         createMandate(mandateIds(0), "cred-id-113244018120", "other", agentIds(1), clientIds(0), when, Active) ::
        (createMandate(mandateIds(1), "cred-id-113244018121", "other", agentIds(1), clientIds(1), when, Active) ::
-       (createMandate(mandateIds(2), "cred-id-113244018122", "other", agentIds(1), clientIds(2), when, Active) :: 
+       (createMandate(mandateIds(2), "cred-id-113244018122", "other", agentIds(1), clientIds(2), when, Active) ::
         Range(3,5).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", "other", agentIds(1), clientIds(idx), when, Active)).toList)) ++
         // mandates 5 to 9 will have a Subscription to the "ated" service"
         Range(5,10).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", serviceName, agentIds(1), clientIds(idx), when, Active)).toList
-                     
+      )
+
       createMandatesAndWait(mandates){
         await(mandateRepo.repository.getAllMandatesByServiceName(agentIds(1), "other", None, None, None)) match {
           case fetched if fetched.length == 5  => 
@@ -187,7 +188,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
               case fetchedMandates if fetchedMandates.forall(m => m.agentParty.contactDetails.email == "new@domeain.com") => succeed
               case _ => fail()
           }
-          case fetched  => fail(s"ERROR: failed to update agent email address")
+          case _  => fail(s"ERROR: failed to update agent email address")
         }
       }
     }
@@ -213,7 +214,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
               case mandate: Mandate if mandate.clientParty.fold(false)(_.contactDetails.email == "new@domeain.com") => succeed
               case _ => fail()
           }
-          case fetched  => fail(s"ERROR: failed to update agent email address")
+          case _  => fail(s"ERROR: failed to update agent email address")
         }
       }
     }
@@ -221,7 +222,7 @@ class MandateRepositoryISpec extends IntegrationSpec {
     "Insert and updateAgentCredId" in {
       val mandate = createMandate(mandateIds(0), "cred-id-113244018119", serviceName, agentIds(1), clientIds(0), when, New)
       await(mandateRepo.repository.insertMandate(mandate)) match {
-        case mandateCreate: MandateCreated =>
+        case _: MandateCreated =>
           await(mandateRepo.repository.updateAgentCredId("cred-id-113244018119", "cred-id-113244018144")) match {
             case MandateUpdatedCredId => await(mandateRepo.repository.fetchMandate(mandateIds(0))) match {
               case MandateFetched(fetched) if fetched.createdBy.credId == "cred-id-113244018144" => succeed
@@ -235,13 +236,13 @@ class MandateRepositoryISpec extends IntegrationSpec {
     }
 
     "Multiple Inserts and findOldMandates" in {
-      val mandates = 
+      val mandates = (
         createMandate(mandateIds(0), "cred-id-113244018120", "ated", agentIds(1), clientIds(0), when, Approved) ::
        (createMandate(mandateIds(1), "cred-id-113244018121", "ated", agentIds(1), clientIds(1), when, PendingCancellation) ::
-       (createMandate(mandateIds(2), "cred-id-113244018122", "ated", agentIds(1), clientIds(2), when, PendingActivation) :: 
+       (createMandate(mandateIds(2), "cred-id-113244018122", "ated", agentIds(1), clientIds(2), when, PendingActivation) ::
         Range(3,5).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", "ated", agentIds(1), clientIds(idx), when, Active)).toList)) ++
         Range(5,10).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", serviceName, agentIds(1), clientIds(idx), when, Approved)).toList
-                     
+      )
       createMandatesAndWait(mandates){
         await(mandateRepo.repository.findOldMandates(laterThanWhen)) match {
           case fetched if fetched.length == 8  => succeed
@@ -251,13 +252,13 @@ class MandateRepositoryISpec extends IntegrationSpec {
     }
 
     "Muiple Inserts and getClientCancelledMandates" in {
-      val mandates = 
+      val mandates = (
         createMandate(mandateIds(0), "cred-id-113244018120", "ated", agentIds(1), clientIds(0), laterThanWhen, Cancelled) ::
        (createMandate(mandateIds(1), "cred-id-113244018121", "ated", agentIds(1), clientIds(1), laterThanWhen, PendingCancellation) ::
-       (createMandate(mandateIds(2), "cred-id-113244018122", "ated", agentIds(1), clientIds(2), laterThanWhen, Cancelled) :: 
+       (createMandate(mandateIds(2), "cred-id-113244018122", "ated", agentIds(1), clientIds(2), laterThanWhen, Cancelled) ::
         Range(3,5).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", "ated", agentIds(1), clientIds(idx), when, Active)).toList)) ++
         Range(5,10).map(idx => createMandate(mandateIds(idx), "cred-id-113244018119", serviceName, agentIds(1), clientIds(idx), when, Approved)).toList
-                     
+      )
       createMandatesAndWait(mandates){
         await(mandateRepo.repository.getClientCancelledMandates(when, agentIds(1), "ated")) match {
           case fetched if fetched.length == 2  => succeed
@@ -269,10 +270,10 @@ class MandateRepositoryISpec extends IntegrationSpec {
     "Insert and removeMandate" in {
       val mandate = createMandate(mandateIds(0), "cred-id-113244018119", serviceName, agentIds(1), clientIds(0), when, New)
       await(mandateRepo.repository.insertMandate(mandate)) match {
-        case mandateCreate: MandateCreated =>
+        case _: MandateCreated =>
           await(mandateRepo.repository.removeMandate(mandateIds(0))) match {
             case MandateRemoved => await(mandateRepo.repository.fetchMandate(mandateIds(0))) match {
-              case MandateFetched(fetched) => fail()
+              case MandateFetched(_) => fail()
               case _ => succeed
             }
             case _ => fail()

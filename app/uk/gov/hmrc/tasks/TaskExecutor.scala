@@ -19,7 +19,7 @@ package uk.gov.hmrc.tasks
 import org.apache.pekko.actor.Actor
 import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.metrics.MetricsEnum
-import uk.gov.hmrc.tasks.Phase._
+import uk.gov.hmrc.tasks.Phase.*
 import utils.ScheduledService
 
 import scala.util.{Failure, Success, Try}

@@ -18,7 +18,7 @@ package uk.gov.hmrc.agentclientmandate.auth
 
 import play.api.mvc.Result
 import play.api.mvc.Results.Unauthorized
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals._
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.*
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials, ~}
 import uk.gov.hmrc.auth.core.{AuthorisedFunctions, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -59,7 +59,7 @@ case class AuthRetrieval(enrolments: Set[Enrolment],
 trait AuthFunctionality extends AuthorisedFunctions {
 
   def authRetrieval(body: AuthRetrieval => Future[Result])
-                   (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+                   (using hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     authorised().retrieve(allEnrolments and agentInformation and credentials) {
       case Enrolments(enrolments) ~ agentInfo ~ creds =>
         body(AuthRetrieval(enrolments, agentInfo, creds))

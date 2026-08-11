@@ -24,8 +24,8 @@ import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, HipConnector}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
 import uk.gov.hmrc.agentclientmandate.utils.ACMFeatureSwitches
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
 import uk.gov.hmrc.http.HeaderCarrier
@@ -39,15 +39,15 @@ class DefaultMandateUpdateService @Inject()(val etmpConnector: EtmpConnector,
                                             val auditConnector: AuditConnector,
                                             val mandateRepo: MandateRepo,
                                             val ec: ExecutionContext,
-                                            val servicesConfig: ServicesConfig,
-                                            override implicit val configuration: Configuration) extends MandateUpdateService {
+                                            val servicesConfig: ServicesConfig)(
+                                            using val configuration: Configuration) extends MandateUpdateService {
   val mandateRepository: MandateRepository = mandateRepo.repository
-  lazy val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
+  override val expiryAfterDays: Int = servicesConfig.getInt("expiry-after-days")
 }
 
 trait MandateUpdateService extends Auditable {
-  implicit val ec: ExecutionContext
-  implicit val configuration: Configuration
+  given ec: ExecutionContext
+  given configuration: Configuration
 
   val expiryAfterDays: Int
 
@@ -55,7 +55,7 @@ trait MandateUpdateService extends Auditable {
   def etmpConnector: EtmpConnector
   def hipConnector: HipConnector
 
-  def approveMandate(approvedMandate: Mandate)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
+  def approveMandate(approvedMandate: Mandate)(using ar: AuthRetrieval): Future[MandateUpdate] = {
     val service = approvedMandate.subscription.service.id.toLowerCase
     service match {
       case "ated" =>
@@ -95,7 +95,7 @@ trait MandateUpdateService extends Auditable {
     }
   }
 
-  def updateMandate(mandate: Mandate, setStatus: Option[Status] = None)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
+  def updateMandate(mandate: Mandate, setStatus: Option[Status] = None)(using ar: AuthRetrieval): Future[MandateUpdate] = {
     val updatedMandate = setStatus match {
       case Some(x) => mandate.updateStatus(MandateStatus(x, Instant.now, ar.govGatewayId))
       case None => mandate
@@ -113,7 +113,7 @@ trait MandateUpdateService extends Auditable {
     mandateRepository.updateClientEmail(mandateId, email)
   }
 
-  def updateAgentCredId(oldCredId: String)(implicit ar: AuthRetrieval): Future[MandateUpdate] = {
+  def updateAgentCredId(oldCredId: String)(using ar: AuthRetrieval): Future[MandateUpdate] = {
     mandateRepository.updateAgentCredId(oldCredId, ar.govGatewayId)
   }
 
@@ -126,7 +126,7 @@ trait MandateUpdateService extends Auditable {
         val updatedMandate = mandate.updateStatus(MandateStatus(Status.Expired, Instant.now, "SYSTEM"))
         mandateRepository.updateMandate(updatedMandate).map {
           case MandateUpdated(m) =>
-            implicit val hc: HeaderCarrier = HeaderCarrier()
+            given hc: HeaderCarrier = HeaderCarrier()
             doAudit("expire", "", m)
           case MandateUpdateError => logWarn("Could not expire mandate")
           case _ => throw new Exception("Unknown update status")

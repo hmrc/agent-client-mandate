@@ -20,7 +20,7 @@ import javax.inject.Inject
 import play.api.libs.json.JsValue
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.repositories.*
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext
@@ -33,7 +33,7 @@ class DefaultPerformanceTestSupportController @Inject()(
 }
 
 trait PerformanceTestSupportController extends BackendController {
-  implicit lazy val executionContext: ExecutionContext = defaultExecutionContext
+  given executionContext: ExecutionContext = defaultExecutionContext
 
   def mandateRepository: MandateRepository
 

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import java.time.Instant
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
@@ -25,13 +25,13 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{ControllerComponents, Result}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.services._
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
+import uk.gov.hmrc.agentclientmandate.services.*
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -82,7 +82,7 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
       cc
     )
     {
-      override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
+      override def authRetrieval(body: AuthRetrieval => Future[Result])(using hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
     }
   }
 
@@ -115,7 +115,7 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
   "ClientController" should {
     "return a NOT_FOUND " when {
       "an exception is thrown by approveMandate in 'approve'" in  new Setup {
-        when(updateServiceMock.approveMandate(any())(any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for ATEDRefNumber.")))
+        when(updateServiceMock.approveMandate(any())(using any())).thenReturn(Future.failed(new RuntimeException("[AuthRetrieval] No enrolment id found for ATEDRefNumber.")))
 
         val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result: Future[Result] = TestMandateController.approve().apply(fakeRequest)
@@ -125,14 +125,14 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
 
     "fetch a mandate" when {
       "mandate found when fetching by client and valid clientId" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(any(), any())(any())) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(any(), any())(using any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result: Future[Result] = TestMandateController.fetchByClient(clientId, service).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(newMandate))
       }
 
       "mandate not found when fetching by client using invalid clientId" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(any(), any())(any())) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(any(), any())(using any())) thenReturn Future.successful(MandateNotFound)
 
         val result: Future[Result] = TestMandateController.fetchByClient(clientId, service).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
@@ -141,7 +141,7 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
 
     "update mandate for a client" when {
       "client provided valid payload and mandate has been successfully updated in mongo" in new Setup {
-        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(using any())).thenReturn(Future.successful(MandateUpdated(newMandate)))
         val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result: Future[Result] = TestMandateController.approve().apply(fakeRequest)
         status(result) must be(OK)
@@ -150,7 +150,7 @@ class ClientControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAfte
 
     "throw error while trying to update mandate for a client" when {
       "client provided valid payload but mandate wasn't successfully updated in mongo" in new Setup {
-        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(any())).thenReturn(Future.successful(MandateUpdateError))
+        when(updateServiceMock.approveMandate(ArgumentMatchers.eq(newMandate))(using any())).thenReturn(Future.successful(MandateUpdateError))
         val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "", headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = Json.toJson(newMandate))
         val result: Future[Result] = TestMandateController.approve().apply(fakeRequest)
         status(result) must be(INTERNAL_SERVER_ERROR)

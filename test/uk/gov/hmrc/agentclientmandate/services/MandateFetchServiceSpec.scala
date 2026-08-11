@@ -17,16 +17,16 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import java.time.Instant
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched, MandateRepository}
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -37,7 +37,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
   val mandateId = "123"
   val mockMandateRepository: MandateRepository = mock[MandateRepository]
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
 
   trait Setup {
 
@@ -53,7 +53,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     reset(mockMandateRepository)
   }
 
-  implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
+  given testAuthRetrieval: AuthRetrieval = AuthRetrieval(
     enrolments = Set(),
     agentInformation = AgentInformation(None, None, None),
     credentials = Option(Credentials(providerId = "cred-id-113244018119", providerType = "GovernmentGateway"))
@@ -77,7 +77,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
       "a client mandate is found for a valid mandate id in MongoDB" in new Setup {
 
-        when(mockMandateRepository.fetchMandate(any())(any())) thenReturn Future.successful(MandateFetched(clientMandate))
+        when(mockMandateRepository.fetchMandate(any())(using any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
         val response: Future[MandateFetchStatus] = service.fetchClientMandate(mandateId)
         await(response) must be(MandateFetched(clientMandate))
@@ -86,7 +86,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "list of client mandate is found for a valid arn and service name in MongoDB" in new Setup {
 
-      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())(using any())) thenReturn Future.successful(List(clientMandate))
 
       val response: Future[Seq[Mandate]] = service.getAllMandates(agentReferenceNumberGen.sample.get, "ATED", None, None)
       await(response) must be(List(clientMandate))
@@ -95,7 +95,7 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
     "list of client mandate is found for a valid arn and service name in MongoDB and filtering is applied" in new Setup {
 
       val agentRefNumber: String = agentReferenceNumberGen.sample.get
-      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())(any())) thenReturn Future.successful(List(clientMandate))
+      when(mockMandateRepository.getAllMandatesByServiceName(any(), any(), any(), any(), any())(using any())) thenReturn Future.successful(List(clientMandate))
 
       val response: Future[Seq[Mandate]] = service.getAllMandates(agentRefNumber, "ATED", Some("credId"), None)
       await(response) must be(List(clientMandate))
@@ -103,21 +103,21 @@ class MandateFetchServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "a mandate is found for a valid client id and service" in new Setup {
 
-      when(mockMandateRepository.fetchMandateByClient(any(), any())(any())) thenReturn Future.successful(MandateFetched(clientMandate))
+      when(mockMandateRepository.fetchMandateByClient(any(), any())(using any())) thenReturn Future.successful(MandateFetched(clientMandate))
 
       val response: Future[MandateFetchStatus] = service.fetchClientMandate("clientId", "service")
       await(response) must be(MandateFetched(clientMandate))
     }
 
     "a list of mandates is found for an agent id" in new Setup {
-      when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())(any())) thenReturn Future.successful(List(clientMandate.id))
+      when(mockMandateRepository.findMandatesMissingAgentEmail(any(), any())(using any())) thenReturn Future.successful(List(clientMandate.id))
 
       val response: Future[Seq[String]] = service.getMandatesMissingAgentsEmails("agentId", "ated")
       await(response) must be(List(clientMandate.id))
     }
 
     "a list of client display names" in new Setup {
-      when(mockMandateRepository.getClientCancelledMandates(any(), any(), any())(any())) thenReturn Future.successful(List("AAA", "BBB"))
+      when(mockMandateRepository.getClientCancelledMandates(any(), any(), any())(using any())) thenReturn Future.successful(List("AAA", "BBB"))
       val response: Future[Seq[String]] = service.fetchClientCancelledMandates("arn", "service")
       await(response) must be(List("AAA", "BBB"))
     }

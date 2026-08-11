@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.controllers
 
 import java.time.Instant
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
@@ -25,14 +25,14 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
 import play.api.mvc.{ControllerComponents, Result}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.{FakeRequest, Helpers}
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.{DefaultTaxEnrolmentConnector, EmailSent, UsersGroupSearchConnector}
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.services._
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
+import uk.gov.hmrc.agentclientmandate.services.*
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -99,7 +99,7 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       usersGroupSearchConnectorMock,
       cc
     ){
-      override def authRetrieval(body: AuthRetrieval => Future[Result])(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
+      override def authRetrieval(body: AuthRetrieval => Future[Result])(using hc: HeaderCarrier, ec: ExecutionContext): Future[Result] = body(ar)
     }
   }
 
@@ -184,40 +184,40 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
     "remove the mandate" when {
       "logged in as agent " when {
         "request is valid and client mandate found and status is active" in new Setup {
-          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
-          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(activeMandate))
+          when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdated(newMandate))
           val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
           status(result) must be(OK)
         }
 
         "request is valid and client mandate found and status is approved" in new Setup {
-          when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())) thenReturn Future.successful(EmailSent)
-          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
-          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          when(notificationServiceMock.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(using any())) thenReturn Future.successful(EmailSent)
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(approvedMandate))
+          when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdated(newMandate))
           val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
           status(result) must be(OK)
         }
 
         "request is valid and client mandate found and status is New" in new Setup {
-          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
-          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(newMandate))
+          when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdated(newMandate))
           val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
           status(result) must be(OK)
         }
       }
       "logged in as client " when {
         "request is valid and client mandate found and status is active" in new Setup(arClient) {
-          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
-          when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(any())) thenReturn Future.successful(Some("groupId"))
-          when(usersGroupSearchConnectorMock.fetchAgentCode(any())(any())) thenReturn Future.successful(Some("agentCode"))
-          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(activeMandate))
+          when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(using any())) thenReturn Future.successful(Some("groupId"))
+          when(usersGroupSearchConnectorMock.fetchAgentCode(any())(using any())) thenReturn Future.successful(Some("agentCode"))
+          when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdated(newMandate))
           val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
           status(result) must be(OK)
         }
         "ES1 call returns no delegated groupId for the client" in new Setup(arClient) {
-          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
-          when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(any())) thenReturn Future.successful(None)
-          when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdated(newMandate))
+          when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(activeMandate))
+          when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(using any())) thenReturn Future.successful(None)
+          when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdated(newMandate))
           val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
           status(result) mustBe OK
         }
@@ -227,16 +227,16 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
     "cant remove the mandate" when {
 
       "No agent code retrieved from userGroupSearch" in new Setup(arClient) {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(any())) thenReturn Future.successful(Some("groupId"))
-        when(usersGroupSearchConnectorMock.fetchAgentCode(any())(any())) thenReturn Future.successful(None)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(taxEnrolmentConnectorMock.getGroupsWithEnrolmentDelegatedAted(any())(using any())) thenReturn Future.successful(Some("groupId"))
+        when(usersGroupSearchConnectorMock.fetchAgentCode(any())(using any())) thenReturn Future.successful(None)
         val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
         status(result) mustBe NOT_FOUND
       }
 
       "mongo update error occurs while changing the status to PENDING_CANCELLATION" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(activeMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(activeMandate))
+        when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdateError)
 
         val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
@@ -244,8 +244,8 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "mongo update error occurs while changing the status to CANCELLED" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(approvedMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(approvedMandate))
+        when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdateError)
 
         val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
@@ -253,8 +253,8 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "mongo update error occurs while changing the New status to CANCELLED" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
-        when(updateServiceMock.updateMandate(any(), any())(any())) thenReturn Future.successful(MandateUpdateError)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(newMandate))
+        when(updateServiceMock.updateMandate(any(), any())(using any())) thenReturn Future.successful(MandateUpdateError)
 
         val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
@@ -262,13 +262,13 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
       }
 
       "status of mandate returned is not ACTIVE" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(cancelledMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(cancelledMandate))
 
         status(TestMandateController.remove(mandateId).apply(FakeRequest())) mustBe NOT_FOUND
       }
 
       "no mandate is fetched" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateNotFound)
 
         val result: Future[Result] = TestMandateController.remove(mandateId).apply(FakeRequest())
 
@@ -278,14 +278,14 @@ class MandateControllerSpec extends PlaySpec with MockitoSugar with BeforeAndAft
 
     "fetch a mandate" when {
       "a valid mandate id is passed" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateFetched(newMandate))
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateFetched(newMandate))
         val result: Future[Result] = TestMandateController.fetch(mandateId).apply(FakeRequest())
         status(result) must be(OK)
         contentAsJson(result) must be(Json.toJson(newMandate))
       }
 
       "return not found with invalid or non-existing mandateId is passed" in new Setup {
-        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(any())) thenReturn Future.successful(MandateNotFound)
+        when(fetchServiceMock.fetchClientMandate(ArgumentMatchers.eq(mandateId))(using any())) thenReturn Future.successful(MandateNotFound)
         val result: Future[Result] = TestMandateController.fetch(mandateId).apply(FakeRequest())
         status(result) must be(NOT_FOUND)
       }

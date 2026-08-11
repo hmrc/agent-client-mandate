@@ -18,7 +18,8 @@ package helpers
 
 import helpers.application.IntegrationApplication
 import helpers.wiremock.WireMockSetup
-import org.scalatest._
+import org.mongodb.scala.SingleObservableFuture
+import org.scalatest.*
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.ws.WSRequest
 import uk.gov.hmrc.agentclientmandate.repositories.MandateRepo
@@ -34,7 +35,7 @@ trait IntegrationSpec
     with AssertionHelpers
     with LoginStub {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
   val BearerToken: String = "mock-bearer-token"
 
   lazy val mandateRepo: MandateRepo = app.injector.instanceOf[MandateRepo]

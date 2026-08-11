@@ -17,15 +17,19 @@
 package controllers
 
 import helpers.IntegrationSpec
+
 import java.time.Instant
 import org.scalatest
 import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.ws.DefaultBodyReadables.readableAsString
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.agentclientmandate.models
 import uk.gov.hmrc.agentclientmandate.models.Status.{Cancelled, New}
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
-import utils.Stubs._
+import utils.Stubs.*
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class

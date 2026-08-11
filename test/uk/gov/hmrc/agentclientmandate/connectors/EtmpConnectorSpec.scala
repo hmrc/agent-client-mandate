@@ -17,29 +17,29 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import com.codahale.metrics.Timer
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
 import uk.gov.hmrc.agentclientmandate.utils.SessionUtils
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach{
+class EtmpConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
 
-override def beforeEach(): Unit = {
+  override def beforeEach(): Unit = {
     reset(mockMetrics)
     reset(mockAuditConnector)
 

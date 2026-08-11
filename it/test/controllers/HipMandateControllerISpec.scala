@@ -20,13 +20,15 @@ import helpers.IntegrationSpec
 import org.scalatest
 import play.api.Configuration
 import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.ws.DefaultBodyReadables.readableAsString
 import play.api.libs.ws.WSResponse
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.agentclientmandate.models
 import uk.gov.hmrc.agentclientmandate.models.Status.{Cancelled, New}
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateFetchStatus, MandateFetched}
 import uk.gov.hmrc.agentclientmandate.utils.FeatureSwitch
-import utils.Stubs._
+import utils.Stubs.*
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,7 +36,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class
 HipMandateControllerISpec extends IntegrationSpec {
 
-  implicit val config: Configuration = app.injector.instanceOf[Configuration]
+  given config: Configuration = app.injector.instanceOf[Configuration]
 
   override def beforeAll(): Unit = {
     super.beforeAll()

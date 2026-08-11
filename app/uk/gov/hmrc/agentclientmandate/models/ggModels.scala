@@ -24,7 +24,7 @@ import scala.xml.Elem
 case class Identifier(`type`: String, value: String)
 
 object Identifier {
-  implicit val formats: OFormat[Identifier] = Json.format[Identifier]
+  given formats: OFormat[Identifier] = Json.format[Identifier]
 }
 
 case class GsoAdminAllocateAgentXmlInput(identifiers: List[Identifier], agentCode: String, serviceName: String)  {
@@ -70,5 +70,5 @@ case class GsoAdminDeallocateAgentXmlInput(identifiers: List[Identifier], agentC
 case class NewEnrolment(userId: String, `type`: String = "delegated")
 
 object NewEnrolment {
-  implicit val formats: OFormat[NewEnrolment] = Json.format[NewEnrolment]
+  given formats: OFormat[NewEnrolment] = Json.format[NewEnrolment]
 }

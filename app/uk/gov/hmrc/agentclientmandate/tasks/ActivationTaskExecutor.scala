@@ -20,26 +20,26 @@ import play.api.Configuration
 
 import javax.inject.Inject
 import java.time.Instant
-import play.api.http.Status._
+import play.api.http.Status.*
 import uk.gov.hmrc.agentclientmandate.connectors.{EtmpConnector, HipConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.Status.Status
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
 import uk.gov.hmrc.agentclientmandate.utils.ACMFeatureSwitches
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
-import uk.gov.hmrc.agentclientmandate.utils.MandateUtils._
+import uk.gov.hmrc.agentclientmandate.utils.MandateUtils.*
 import uk.gov.hmrc.agentclientmandate.{Auditable, models}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.http.Authorization
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.tasks._
+import uk.gov.hmrc.tasks.*
 import utils.ScheduledService
 
 import scala.language.postfixOps
 import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success, Try}
 
 class ActivationTaskExecutor extends TaskExecutor
@@ -52,13 +52,13 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
                                       val emailNotificationService: NotificationEmailService,
                                       val auditConnector: AuditConnector,
                                       val fetchService: MandateFetchService,
-                                      val mandateRepo: MandateRepo,
-                                      implicit val configuration: Configuration)(implicit ec: ExecutionContext) extends Auditable with ScheduledService {
+                                      val mandateRepo: MandateRepo)(
+                                       using val configuration: Configuration, ec: ExecutionContext) extends Auditable with ScheduledService {
 
   val mandateRepository: MandateRepository = mandateRepo.repository
 
   def execute(signal: Signal): Try[Signal] = {
-    implicit val hc: HeaderCarrier = createHeaderCarrier(signal)
+    given hc: HeaderCarrier = createHeaderCarrier(signal)
 
     signal match {
       case Start(args) => start(args)
@@ -90,7 +90,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     }
   }
 
-  private def enrolTaxEnrolments(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+  private def enrolTaxEnrolments(args: Map[String, String])(using hc: HeaderCarrier): Try[Signal] = {
     Try(Await.result(taxEnrolmentConnector.allocateAgent(
       NewEnrolment(args("credId")), args("groupId"), args("clientId"), args("agentCode")), 120 seconds)
     ) match {
@@ -110,7 +110,7 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
     }
   }
 
-  private def finalize(args: Map[String, String])(implicit hc: HeaderCarrier): Try[Signal] = {
+  private def finalize(args: Map[String, String])(using hc: HeaderCarrier): Try[Signal] = {
     val fetchResult = Await.result(fetchService.fetchClientMandate(args("mandateId")), 5 seconds)
     fetchResult match {
       case MandateFetched(mandate) =>
@@ -123,8 +123,8 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
             else (m.clientParty.map(_.contactDetails.email).getOrElse(""), Some("client"), mandate.clientParty.fold("")(_.name))
             val service = m.subscription.service.id
             Try(emailNotificationService.sendMail(emailString = receiverParty._1, models.Status.Active,
-              userType = Some("agent"), recipient = receiverParty._2,service = service, recipientName = receiverParty._3, prevStatus = previousStatus)) match {
-              case Success(v) =>
+              userType = Some("agent"), recipient = receiverParty._2, service = service, recipientName = receiverParty._3, prevStatus = previousStatus)) match {
+              case Success(_) =>
                 doAudit("emailSent", args("agentCode"), m)
               case Failure(reason) =>
                 doFailedAudit("emailSentFailed", s"receiver email::${receiverParty._1} status:: ${models.Status.Active} service::$service", reason.getMessage)
@@ -139,7 +139,6 @@ class ActivationTaskService @Inject()(val etmpConnector: EtmpConnector,
       case MandateNotFound =>
         logWarn(s"[ActivationTaskExecutor] - could not find mandate with id ${args("mandateId")}")
         Failure(new Exception("Could not find mandate to activate"))
-      case _ => throw new Exception("Unknown fetch result")
     }
   }
 

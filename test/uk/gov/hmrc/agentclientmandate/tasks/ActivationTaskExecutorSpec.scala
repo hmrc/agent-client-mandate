@@ -20,20 +20,20 @@ import org.apache.pekko.actor.{ActorSystem, Props}
 import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 
 import java.time.Instant
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.connectors.{EmailSent, EtmpConnector, HipConnector, TaxEnrolmentConnector}
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
 import uk.gov.hmrc.agentclientmandate.services.{MandateFetchService, MandateUpdateService, NotificationEmailService}
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.agentclientmandate.utils.{FeatureSwitch, MockMetricsCache}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -76,7 +76,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
   val mockServiceMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockMandateRepo: MandateRepo = mock[MandateRepo]
-  implicit val mockConfiguration: Configuration = mock[Configuration]
+  given mockConfiguration: Configuration = mock[Configuration]
 
   val timeToUse: Instant = Instant.now()
   val mandate: Mandate = Mandate(mandateReferenceGen.sample.get,
@@ -140,11 +140,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     mockEmailNotificationService,
     mockAuditConnector,
     mockMandateFetchService,
-    mockMandateRepo,
-    mockConfiguration
-  )
+    mockMandateRepo
+  )(using mockConfiguration)
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
 
   "ActivationTaskExecutor" should {
     lazy val message = ActivationTaskMessage(activationTaskService, MockMetricsCache.mockMetrics)
@@ -165,7 +164,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "execute and move to 'finalize' step Tax Enrolment" when {
       "signal is Next('gg-proxy-activation', args)" in {
 
-        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(CREATED, ""))
+        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(using any())) thenReturn Future.successful(HttpResponse(CREATED, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -185,11 +184,11 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
     "execute and FINISH" when {
       "signal is Next('finalize-activation', args), sends mail to client" in {
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any()))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any()))
           .thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(), any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -203,10 +202,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "signal is Next('finalize-activation', args), sends mail to agent" in {
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("agent@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+          ArgumentMatchers.eq("agent@mail.com"), any(), any(), any(), any(), any(), any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -231,10 +230,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "signal is Next('finalize', args) but no mandate is returned" in {
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateNotFound))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateNotFound))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(),any(), any())(any())).thenReturn(Future.successful(EmailSent))
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(),any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -243,9 +242,9 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       }
 
       "signal is Next('finalize', args) but mandate update fails" in {
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdateError))
-        when(mockEmailNotificationService.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdateError))
+        when(mockEmailNotificationService.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -257,10 +256,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         val exception = new RuntimeException("some exception")
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(),any(), any(), any())(any())) thenThrow exception
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(),any(), any(), any())(using any())) thenThrow exception
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -272,8 +271,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "rollback" when {
 
       "the Signal is START and move to Finish" in {
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -351,7 +350,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
     "Error condition taxenrolments " when {
       "Return StageFailure when tax enrolments returns status other than CREATED" in {
 
-        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
+        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(using any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -384,7 +383,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('gg-proxy-activation', args)" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(CREATED, ""))
+        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(using any())) thenReturn Future.successful(HttpResponse(CREATED, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -406,11 +405,11 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize-activation', args), sends mail to client" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any()))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any()))
           .thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(), any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -426,10 +425,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize-activation', args), sends mail to agent" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("agent@mail.com"), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+          ArgumentMatchers.eq("agent@mail.com"), any(), any(), any(), any(), any(), any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -458,10 +457,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize', args) but no mandate is returned" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateNotFound))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateNotFound))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(),any(), any())(any())).thenReturn(Future.successful(EmailSent))
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(), any(),any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -472,9 +471,9 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "signal is Next('finalize', args) but mandate update fails" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdateError))
-        when(mockEmailNotificationService.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(EmailSent))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdateError))
+        when(mockEmailNotificationService.sendMail(any(), any(), any(), any(), any(), any(), any(), any())(using any())).thenReturn(Future.successful(EmailSent))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -487,10 +486,10 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
 
         val exception = new RuntimeException("some exception")
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate1)))
         when(mockEmailNotificationService.sendMail(
-          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(),any(), any(), any())(any())) thenThrow exception
+          ArgumentMatchers.eq("client@mail.com"), any(), any(), any(), any(),any(), any(), any())(using any())) thenThrow exception
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -504,8 +503,8 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "the Signal is START and move to Finish" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(mockMandateFetchService.fetchClientMandate(any())(any())).thenReturn(Future.successful(MandateFetched(mandate)))
-        when(mockMandateRepository.updateMandate(any())(any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())).thenReturn(Future.successful(MandateFetched(mandate)))
+        when(mockMandateRepository.updateMandate(any())(using any())).thenReturn(Future.successful(MandateUpdated(updatedMandate)))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 
@@ -590,7 +589,7 @@ class ActivationTaskExecutorSpec extends TestKit(ActorSystem("activation-task"))
       "Return StageFailure when tax enrolments returns status other than CREATED" in {
         FeatureSwitch.enable(FeatureSwitch("hipSwitch", true))
 
-        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
+        when(taxEnrolmentMock.allocateAgent(any(), any(), any(), any())(using any())) thenReturn Future.successful(HttpResponse(INTERNAL_SERVER_ERROR, ""))
 
         val actorRef = system.actorOf(ActivationTaskExecutorMock.props())
 

@@ -17,19 +17,20 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import play.api.http.Status
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{JsValue, Json}
+import play.api.libs.ws.writeableOf_JsValue
 import play.api.Logging
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.EtmpAtedAgentClientRelationship
 import uk.gov.hmrc.agentclientmandate.utils.HipUtilities
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
@@ -52,8 +53,8 @@ val http: HttpClientV2) extends HipConnector {
 
 trait HipConnector extends Auditable with Logging {
 
-  implicit val ec: ExecutionContext
-  implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  given ec: ExecutionContext
+  given headerCarrier: HeaderCarrier = HeaderCarrier()
 
   def hipPrefix: String
   def clientId: String

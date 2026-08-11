@@ -21,9 +21,9 @@ import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,7 +52,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
     "return a 202 accepted" when {
 
       "correct emailId Id is passed" in new Setup {
-        implicit val hc: HeaderCarrier = HeaderCarrier()
+        given hc: HeaderCarrier = HeaderCarrier()
         val emailString: String = emailGen.sample.get
         val templateId = "client_approves_mandate"
 
@@ -64,7 +64,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
       }
 
       "a uniqueAuthNumber has been added to the request" in new Setup {
-        implicit val hc: HeaderCarrier = HeaderCarrier()
+        given hc: HeaderCarrier = HeaderCarrier()
         val emailString: String = emailGen.sample.get
         val templateId = "agent_removes_mandate"
 
@@ -93,7 +93,7 @@ class EmailConnectorSpec extends PlaySpec with MockitoSugar {
     "return other status" when {
 
       "incorrect email Id are passed" in new Setup {
-        implicit val hc: HeaderCarrier = HeaderCarrier()
+        given hc: HeaderCarrier = HeaderCarrier()
         val invalidEmailString: String = emailGen.sample.get
 
         when(executePostNoBody[HttpResponse]).thenReturn(Future.successful(HttpResponse(404, "")))
