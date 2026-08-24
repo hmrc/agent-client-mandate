@@ -19,7 +19,7 @@ package uk.gov.hmrc.tasks
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.language.postfixOps
 
 class RetryPolicySpec extends AnyWordSpec with Matchers {

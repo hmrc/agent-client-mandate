@@ -19,11 +19,11 @@ package uk.gov.hmrc.agentclientmandate.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.agentclientmandate._
+import uk.gov.hmrc.agentclientmandate.*
 import uk.gov.hmrc.agentclientmandate.auth.AuthFunctionality
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.services._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
+import uk.gov.hmrc.agentclientmandate.services.*
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
@@ -43,13 +43,12 @@ class ClientController @Inject()(val createService: MandateCreateService,
                                   val cc: ControllerComponents) extends BackendController(cc) with Auditable with AuthFunctionality {
 
 
-  implicit lazy val executionContext: ExecutionContext = defaultExecutionContext
+  given executionContext: ExecutionContext = defaultExecutionContext
 
   def fetchByClient(clientId: String, service: String): Action[AnyContent] = Action.async { _ =>
     fetchService.fetchClientMandate(clientId, service).map {
       case MandateFetched(x)  => Ok(Json.toJson(x))
       case MandateNotFound    => NotFound
-      case _                  => throw new Exception("Unknown mandate status")
     }
   }
 

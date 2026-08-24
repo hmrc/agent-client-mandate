@@ -19,13 +19,13 @@ package uk.gov.hmrc.agentclientmandate.controllers
 import javax.inject.Inject
 import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
-import uk.gov.hmrc.agentclientmandate._
-import uk.gov.hmrc.agentclientmandate.auth._
+import uk.gov.hmrc.agentclientmandate.*
+import uk.gov.hmrc.agentclientmandate.auth.*
 import uk.gov.hmrc.agentclientmandate.connectors.{DefaultTaxEnrolmentConnector, UsersGroupSearchConnector}
 import uk.gov.hmrc.agentclientmandate.models.Mandate
-import uk.gov.hmrc.agentclientmandate.models.Status._
-import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.services._
+import uk.gov.hmrc.agentclientmandate.models.Status.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
+import uk.gov.hmrc.agentclientmandate.services.*
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logWarn}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -47,7 +47,7 @@ class MandateController @Inject()(val createService: MandateCreateService,
                                   val cc: ControllerComponents) extends BackendController(cc) with Auditable with AuthFunctionality {
 
 
-  implicit lazy val executionContext: ExecutionContext = defaultExecutionContext
+  given executionContext: ExecutionContext = defaultExecutionContext
 
   def fetch(mandateId: String): Action[AnyContent] = Action.async { _ =>
     fetchService.fetchClientMandate(mandateId).map {
@@ -55,7 +55,6 @@ class MandateController @Inject()(val createService: MandateCreateService,
       case MandateNotFound =>
         logWarn("Could not find mandate: " + mandateId)
         NotFound
-      case _ => throw new Exception("Unknown mandate status")
     }
   }
 
@@ -91,7 +90,6 @@ class MandateController @Inject()(val createService: MandateCreateService,
         case MandateNotFound =>
           logWarn("Could not find mandate to remove: " + mandateId)
           Future.successful(NotFound)
-        case _ => throw new Exception("Unknown mandate status")
       } recover {
         case e =>
           logError(s"[MandateController][remove] Recover Error - ${e.getMessage} - ${e.getStackTrace.mkString("\n")}")
@@ -100,7 +98,7 @@ class MandateController @Inject()(val createService: MandateCreateService,
     }
   }
 
-  private def breakRelationship(agentCode: String, mandate: Mandate)(implicit ar: AuthRetrieval, hc: HeaderCarrier): Future[Result] = {
+  private def breakRelationship(agentCode: String, mandate: Mandate)(using ar: AuthRetrieval, hc: HeaderCarrier): Future[Result] = {
     updateService.updateMandate(mandate, Some(PendingCancellation)).flatMap {
       case MandateUpdated(x) =>
         relationshipService.breakAgentClientRelationship(x, agentCode, ar.userType)
@@ -113,7 +111,7 @@ class MandateController @Inject()(val createService: MandateCreateService,
     }
   }
 
-  private def cancelMandate(status: models.Status.Value, mandate: Mandate)(implicit ar: AuthRetrieval, hc: HeaderCarrier): Future[Result] = {
+  private def cancelMandate(status: models.Status.Value, mandate: Mandate)(using ar: AuthRetrieval, hc: HeaderCarrier): Future[Result] = {
     updateService.updateMandate(mandate, Some(Cancelled)).flatMap {
       case MandateUpdated(x) =>
         val service = x.subscription.service.id

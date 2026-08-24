@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.models
 
 import java.time.Instant
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers.*
 import org.scalatest.wordspec.AnyWordSpecLike
 import play.api.libs.json.Json
 

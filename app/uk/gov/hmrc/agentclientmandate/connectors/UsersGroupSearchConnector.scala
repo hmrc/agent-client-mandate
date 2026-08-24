@@ -19,7 +19,7 @@ package uk.gov.hmrc.agentclientmandate.connectors
 import play.api.http.Status.NON_AUTHORITATIVE_INFORMATION
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -31,10 +31,10 @@ import scala.concurrent.{ExecutionContext, Future}
 class UsersGroupSearchConnector @Inject()(val auditConnector: AuditConnector,
                                           servicesConfig: ServicesConfig,
                                           http: HttpClientV2
-                                         )(implicit ec: ExecutionContext) extends Auditable {
+                                         )(using ec: ExecutionContext) extends Auditable {
   val serviceUrl: String = s"${servicesConfig.baseUrl("users-groups-search")}/users-groups-search"
 
-  def fetchAgentCode(groupId: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
+  def fetchAgentCode(groupId: String)(using hc: HeaderCarrier): Future[Option[String]] = {
     val getUrl = s"$serviceUrl/groups/$groupId"
     http.get(url"$getUrl").execute[HttpResponse].map { response =>
         response.status match {

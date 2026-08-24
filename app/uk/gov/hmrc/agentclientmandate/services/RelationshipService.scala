@@ -19,16 +19,16 @@ package uk.gov.hmrc.agentclientmandate.services
 import com.typesafe.config.{Config, ConfigFactory}
 import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.tasks.{ActivationTaskExecutor, ActivationTaskService, DeActivationTaskService, DeactivationTaskExecutor}
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logWarn
-import uk.gov.hmrc.agentclientmandate.utils.MandateConstants._
+import uk.gov.hmrc.agentclientmandate.utils.MandateConstants.*
 import uk.gov.hmrc.agentclientmandate.utils.MandateUtils
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.{credentials, groupIdentifier}
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, ~}
 import uk.gov.hmrc.auth.core.{AuthorisedFunctions, PlayAuthConnector}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
-import uk.gov.hmrc.tasks._
+import uk.gov.hmrc.tasks.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,7 +48,7 @@ trait RelationshipService extends AuthorisedFunctions {
   val activationTaskService: ActivationTaskService
   val deactivationTaskService: DeActivationTaskService
 
-  def createAgentClientRelationship(mandate: Mandate, agentCode: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def createAgentClientRelationship(mandate: Mandate, agentCode: String)(using hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
       val serviceId = mandate.subscription.service.id
       val identifier = identifiers.getString(s"${serviceId.toLowerCase()}.identifier")
@@ -73,7 +73,7 @@ trait RelationshipService extends AuthorisedFunctions {
     }
   }
 
-  def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def breakAgentClientRelationship(mandate: Mandate, agentCode: String, userType: String)(using hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     logWarn(s"$userType is breaking AgentClientRelationship")
 
     if (mandate.subscription.service.name.toUpperCase == AtedService) {
@@ -101,7 +101,7 @@ trait RelationshipService extends AuthorisedFunctions {
     }
   }
 
-  private def getUserAuthDetails(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[(String, String)] = {
+  private def getUserAuthDetails(using hc: HeaderCarrier, ec: ExecutionContext): Future[(String, String)] = {
     authorised().retrieve(credentials and groupIdentifier) {
       case Some(Credentials(ggCredId, _)) ~ Some(groupId) => Future.successful((MandateUtils.validateGroupId(groupId), ggCredId))
       case _ =>

@@ -24,6 +24,8 @@ import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.logError
 import uk.gov.hmrc.domain.{AgentCode, AtedUtr}
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+
+import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 
 class DefaultAgentDelegationForAtedController @Inject()(
@@ -33,10 +35,10 @@ class DefaultAgentDelegationForAtedController @Inject()(
                                                        ) extends BackendController(cc) with AgentDelegationForAtedController
 
 trait AgentDelegationForAtedController extends BackendController with AuthFunctionality {
-  implicit lazy val executionContext: ExecutionContext = defaultExecutionContext
+  given executionContext: ExecutionContext = defaultExecutionContext
   def agentDetailsService: AgentDetailsService
 
-  def isAuthorisedForAted(ac: AgentCode, ated: AtedUtr): Action[AnyContent] = Action.async { implicit request =>
+  def isAuthorisedForAted(@unused ac: AgentCode, ated: AtedUtr): Action[AnyContent] = Action.async { implicit request =>
     authRetrieval{ implicit ar =>
       agentDetailsService.isAuthorisedForAted(ated) map { isAuthorised =>
         if (isAuthorised) Ok

@@ -37,12 +37,12 @@ object MandateUtils {
     (msgToXml \\ "ErrorNumber").text
   }
 
-  def validateGroupId(str: String): String = if(str.trim.length != 36) {
-    if(str.contains("testGroupId-")) str.replace("testGroupId-", "")
+  def validateGroupId(str: String): String = if (str.trim.length != 36) {
+    if (str.contains("testGroupId-")) str.replace("testGroupId-", "")
     else throw new RuntimeException("Invalid groupId from auth")
   } else str.trim
 
-def secureSAXParser: SAXParser = {
+  def secureSAXParser: SAXParser = {
     val saxParserFactory = SAXParserFactory.newInstance()
     saxParserFactory.setFeature("http://xml.org/sax/features/external-general-entities", false)
     saxParserFactory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)

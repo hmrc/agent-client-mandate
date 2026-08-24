@@ -124,6 +124,6 @@ object Generators {
       finalLetters <- upperStrGen(2)
     } yield s"$startLetters$postfix $place$finalLetters"
 
-  implicit val statusGen: Gen[Status.Status] = Gen.oneOf(Status.values.toSeq)
-  implicit val statusArbitrary: Arbitrary[Status.Status] = Arbitrary(statusGen)
+  given statusGen: Gen[Status.Status] = Gen.oneOf(Status.values.toSeq)
+  given statusArbitrary: Arbitrary[Status.Status] = Arbitrary(statusGen)
 }

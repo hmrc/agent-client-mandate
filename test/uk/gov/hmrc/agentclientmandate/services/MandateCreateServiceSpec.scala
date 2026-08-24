@@ -19,19 +19,19 @@ package uk.gov.hmrc.agentclientmandate.services
 import com.typesafe.config.{Config, ConfigFactory}
 
 import java.time.Instant
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.Json
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.auth.core.retrieve.{AgentInformation, Credentials}
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -41,7 +41,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
   val agentCode = "ac"
 
   val mandateRepositoryMock: MandateRepository = mock[MandateRepository]
@@ -92,7 +92,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
       subscription = Subscription(Some("atedRefNum"), Service("ated", "ated")),
       clientDisplayName = "client display name")
 
-  implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
+  given testAuthRetrieval: AuthRetrieval = AuthRetrieval(
     enrolments = Set(
       Enrolment(
         key = "HMRC-AGENT-AGENT",
@@ -132,7 +132,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           """.stripMargin
         )
 
-        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(using any())) thenReturn {
           Future.successful(MandateCreated(mandate(mandateId, Instant.now())))
         }
 
@@ -160,7 +160,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           """.stripMargin
         )
 
-        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(using any())) thenReturn {
           Future.successful(MandateCreateError)
         }
 
@@ -262,13 +262,13 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           Future.successful(successResponseJsonETMP)
         }
 
-        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(using any())) thenReturn {
           Future.successful(MandateCreated(mandateWithClient(mandateId, Instant.now())))
         }
 
         val dto = NonUKClientDto(safeIDGen.sample.get, "atedRefNum", "ated", emailGen.sample.get, "arn", emailGen.sample.get, "client display name")
         await(TestClientMandateCreateService.createMandateForNonUKClient(agentCodeGen.sample.get, dto))
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any(), any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(using any(), any())
       }
 
       "agent registers a Non-UK Client but fails to create mandate" in {
@@ -293,7 +293,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           Future.successful(successResponseJsonETMP)
         }
 
-        when(mandateRepositoryMock.insertMandate(any())(any())) thenReturn {
+        when(mandateRepositoryMock.insertMandate(any())(using any())) thenReturn {
           Future.successful(MandateCreateError)
         }
 
@@ -332,10 +332,10 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         when(etmpConnectorMock.getRegistrationDetails(any(),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(newAgentETMPRegJson)
         }
-        when(mockMandateFetchService.fetchClientMandate(any())(any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
-        when(mandateRepositoryMock.updateMandate(any())(any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(any())(using any())) thenReturn {
           Future.successful(MandateUpdated(mandateWithClient(mandateId, Instant.now())))
         }
 
@@ -350,7 +350,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
 
         await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
 
-        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(any(), any())
+        verify(relationshipServiceMock, times(1)).createAgentClientRelationship(any(), any())(using any(), any())
       }
 
       "throw an exception during agent tries changing a Non-UK Client but no old mandate ref found" in {
@@ -407,7 +407,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         when(etmpConnectorMock.getRegistrationDetails(ArgumentMatchers.eq(agentReferenceNumber),ArgumentMatchers.eq("arn"))) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(any())(any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())) thenReturn {
           Future.successful(MandateNotFound)
         }
 
@@ -422,7 +422,7 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
           mandateReferenceGen.sample)
         val thrown = the[RuntimeException] thrownBy await(TestClientMandateCreateService.updateMandateForNonUKClient(agentCodeGen.sample.get, dto))
         thrown.getMessage must include("No existing non-uk mandate details found for mandate id")
-        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(any(), any())(any(), any())
+        verify(relationshipServiceMock, times(0)).createAgentClientRelationship(any(), any())(using any(), any())
       }
 
       "agent registers a Non-UK Client but fails to update mandate" in {
@@ -444,11 +444,11 @@ class MandateCreateServiceSpec extends PlaySpec with MockitoSugar with BeforeAnd
         when(etmpConnectorMock.getRegistrationDetails(any(), any())) thenReturn {
           Future.successful(successResponseJsonETMP)
         }
-        when(mockMandateFetchService.fetchClientMandate(any())(any())) thenReturn {
+        when(mockMandateFetchService.fetchClientMandate(any())(using any())) thenReturn {
           Future.successful(MandateFetched(mandate))
         }
 
-        when(mandateRepositoryMock.updateMandate(any())(any())) thenReturn {
+        when(mandateRepositoryMock.updateMandate(any())(using any())) thenReturn {
           Future.successful(MandateUpdateError)
         }
 

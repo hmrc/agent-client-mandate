@@ -30,5 +30,5 @@ case class NonUKClientDto(
                          )
 
 object NonUKClientDto {
-  implicit val formats: OFormat[NonUKClientDto] = Json.format[NonUKClientDto]
+  given formats: OFormat[NonUKClientDto] = Json.format[NonUKClientDto]
 }

@@ -18,12 +18,12 @@ package uk.gov.hmrc.agentclientmandate.config
 
 import play.api.inject.{Binding, Module, bind => playBind}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.agentclientmandate.connectors._
+import uk.gov.hmrc.agentclientmandate.connectors.*
 import uk.gov.hmrc.agentclientmandate.controllers.auth.{AgentDelegationForAtedController, DefaultAgentDelegationForAtedController}
 import uk.gov.hmrc.agentclientmandate.controllers.testOnly.{DefaultPerformanceTestSupportController, PerformanceTestSupportController}
 import uk.gov.hmrc.agentclientmandate.metrics.{DefaultServiceMetrics, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.repositories.{MandateMongoRepository, MandateRepo}
-import uk.gov.hmrc.agentclientmandate.services._
+import uk.gov.hmrc.agentclientmandate.services.*
 import uk.gov.hmrc.auth.core.PlayAuthConnector
 import uk.gov.hmrc.play.bootstrap.auth.DefaultAuthConnector
 

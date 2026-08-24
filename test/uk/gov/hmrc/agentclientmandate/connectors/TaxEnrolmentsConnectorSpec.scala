@@ -17,17 +17,17 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import com.codahale.metrics.Timer
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.NewEnrolment
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -71,7 +71,7 @@ class TaxEnrolmentsConnectorSpec extends PlaySpec with MockitoSugar with BeforeA
   }
 
   "TaxEnrolmentsConnector" must {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
+    given hc: HeaderCarrier = HeaderCarrier()
 
     "create allocation" in new Setup {
       val enrolment: NewEnrolment = NewEnrolment(newEnrolment)

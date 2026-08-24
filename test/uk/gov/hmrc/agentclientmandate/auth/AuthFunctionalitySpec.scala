@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.agentclientmandate.auth
 
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.when
-import org.scalatest.matchers.should.Matchers.{convertToAnyShouldWrapper, the}
+import org.scalatest.matchers.should.Matchers.*
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.mvc.Results._
+import play.api.mvc.Results.*
 import play.api.mvc.{AnyContent, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
@@ -36,9 +36,9 @@ import scala.concurrent.Future
 
 class AuthFunctionalitySpec extends AnyWordSpecLike with MockitoSugar {
 
-  lazy implicit val fakeRequest: FakeRequest[AnyContent] = FakeRequest()
+  given fakeRequest: FakeRequest[AnyContent] = FakeRequest()
   val mockAuthConnector: PlayAuthConnector = mock[PlayAuthConnector]
-  implicit lazy val hc: HeaderCarrier = HeaderCarrier()
+  given hc: HeaderCarrier = HeaderCarrier()
 
 
   protected abstract class Setup extends AuthFunctionality {

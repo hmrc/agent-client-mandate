@@ -20,7 +20,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
-import uk.gov.hmrc.agentclientmandate.models._
+import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.domain.AtedUtr
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,7 +33,7 @@ trait AgentDetailsService {
   def etmpConnector: EtmpConnector
   def mandateFetchService: MandateFetchService
 
-  def getAgentDetails(implicit authRetrieval: AuthRetrieval, ec: ExecutionContext): Future[AgentDetails] = {
+  def getAgentDetails(using authRetrieval: AuthRetrieval, ec: ExecutionContext): Future[AgentDetails] = {
 
       etmpConnector.getRegistrationDetails(authRetrieval.agentBusinessUtr.value, "arn").map { etmpDetails =>
         val isAnIndividual = (etmpDetails \ "isAnIndividual").as[Boolean]
@@ -81,7 +81,7 @@ trait AgentDetailsService {
       }
   }
 
-  def isAuthorisedForAted(ated: AtedUtr)(implicit ar: AuthRetrieval, ec: ExecutionContext): Future[Boolean] = {
+  def isAuthorisedForAted(ated: AtedUtr)(using ar: AuthRetrieval, ec: ExecutionContext): Future[Boolean] = {
       val agentRefNumberOpt = ar.agentBusinessEnrolment.identifiers.find(_.key.toLowerCase == "agentrefnumber")
       agentRefNumberOpt match {
         case Some(arn) =>

@@ -17,31 +17,31 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import com.codahale.metrics.Timer
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics
 import uk.gov.hmrc.agentclientmandate.models.{EtmpAtedAgentClientRelationship, EtmpRelationship}
 import uk.gov.hmrc.agentclientmandate.utils.{FeatureSwitch, SessionUtils}
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
-class HipConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach{
+class HipConnectorSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
   val mockMetrics: ServiceMetrics = mock[ServiceMetrics]
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
-  implicit val configuration: Configuration = mock[Configuration]
+  given configuration: Configuration = mock[Configuration]
 
-override def beforeEach(): Unit = {
+  override def beforeEach(): Unit = {
     reset(mockMetrics)
     reset(mockAuditConnector)
 
@@ -57,8 +57,7 @@ override def beforeEach(): Unit = {
   trait Setup extends ConnectorTest {
 
     class TestHipConnector extends HipConnector {
-      override implicit val ec: ExecutionContext = ExecutionContext.global
-      override implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+      override val ec: ExecutionContext = ExecutionContext.global
 
       override val transmittingSystem: String = "HIP"
       override val clientId: String = ""
@@ -134,13 +133,13 @@ override def beforeEach(): Unit = {
 
         val failureResponse: JsValue = Json.parse(
           """
-          |{
-          |  "error": {
-          |    "code": "500",
-          |    "message": "string",
-          |    "logID": "D82EBAB67AC6D7565C0682CA91BDC577"
-          |  }
-          |}""".stripMargin)
+            |{
+            |  "error": {
+            |    "code": "500",
+            |    "message": "string",
+            |    "logID": "D82EBAB67AC6D7565C0682CA91BDC577"
+            |  }
+            |}""".stripMargin)
 
         when(executeGet[HttpResponse]).thenReturn(Future.successful(HttpResponse(SERVICE_UNAVAILABLE, failureResponse.toString)))
 

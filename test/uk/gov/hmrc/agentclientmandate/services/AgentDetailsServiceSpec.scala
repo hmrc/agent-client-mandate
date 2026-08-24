@@ -17,7 +17,7 @@
 package uk.gov.hmrc.agentclientmandate.services
 
 import java.time.Instant
-import org.mockito.ArgumentMatchers._
+import org.mockito.ArgumentMatchers.*
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, when}
 import org.scalacheck.Gen
@@ -25,11 +25,11 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsValue, Json}
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.utils.Generators._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.utils.Generators.*
 import uk.gov.hmrc.auth.core.retrieve.AgentInformation
 import uk.gov.hmrc.auth.core.{Enrolment, EnrolmentIdentifier}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -38,10 +38,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndAfterEach {
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-  implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  given hc: HeaderCarrier = HeaderCarrier()
+  given ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
-  implicit val testAuthRetrieval: AuthRetrieval = AuthRetrieval(
+  given testAuthRetrieval: AuthRetrieval = AuthRetrieval(
     enrolments = Set(Enrolment(
       key = "HMRC-AGENT-AGENT",
       identifiers = Seq(EnrolmentIdentifier(key = "AgentRefNumber", value = agentBusinessUtrGen.sample.get)),
@@ -162,7 +162,7 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
 
     "returns true - for delegation authorization check for Ated" when {
       "fetched mandates have a mandate with the ATED ref number passed as subscription service reference number" in {
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any())).thenReturn(Future.successful(Seq(mandate)))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(using any(),any())).thenReturn(Future.successful(Seq(mandate)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(true)
       }
     }
@@ -179,17 +179,17 @@ class AgentDetailsServiceSpec extends PlaySpec with MockitoSugar with BeforeAndA
           credentials = None
         )
 
-        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(testAuthRetrievalNoAgentRef, ec)) must be(false)
+        await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)(using testAuthRetrievalNoAgentRef, ec)) must be(false)
       }
       "mandate subscription doesn't have subscription reference" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = None))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any()))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(using any(),any()))
           .thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }
       "mandate doesn't have the same AtedRefNumber" in {
         val mandateToUse = mandate.copy(subscription = mandate.subscription.copy(referenceNumber = Some(atedUtr2.utr)))
-        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(any(),any()))
+        when(mockMandateFetchService.getAllMandates(any(), ArgumentMatchers.eq("ated"), any(), any())(using any(),any()))
           .thenReturn(Future.successful(Seq(mandateToUse)))
         await(TestAgentDetailsService.isAuthorisedForAted(atedUtr)) must be(false)
       }

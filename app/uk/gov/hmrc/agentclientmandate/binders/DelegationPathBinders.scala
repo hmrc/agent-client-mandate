@@ -20,7 +20,7 @@ import uk.gov.hmrc.domain.{AgentCode, AtedUtr}
 
 object DelegationPathBinders {
 
-  implicit object AgentCodeBinder extends SimpleObjectBinder[AgentCode](AgentCode.apply, _.value)
-  implicit object AtedUtrBinder extends SimpleObjectBinder[AtedUtr](AtedUtr.apply, _.utr)
+  given AgentCodeBinder: SimpleObjectBinder[AgentCode] = SimpleObjectBinder[AgentCode](AgentCode.apply, _.value)
+  given AtedUtrBinder: SimpleObjectBinder[AtedUtr] = SimpleObjectBinder[AtedUtr](AtedUtr.apply, _.utr)
 
 }

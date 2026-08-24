@@ -17,18 +17,19 @@
 package uk.gov.hmrc.agentclientmandate.connectors
 
 import javax.inject.Inject
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.Json
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
 import uk.gov.hmrc.agentclientmandate.models.{NewEnrolment, UserGroupIDs}
 import uk.gov.hmrc.agentclientmandate.utils.LoggerUtil.{logError, logInfo, logWarn}
 import uk.gov.hmrc.agentclientmandate.utils.MandateConstants
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -46,7 +47,7 @@ class DefaultTaxEnrolmentConnector @Inject()(val metrics: ServiceMetrics,
 
 trait TaxEnrolmentConnector extends Auditable {
 
-  implicit val ec: ExecutionContext
+  given ec: ExecutionContext
 
   def serviceUrl: String
   def enrolmentStoreProxyURL: String
@@ -54,7 +55,7 @@ trait TaxEnrolmentConnector extends Auditable {
   def http: HttpClientV2
   def metrics: ServiceMetrics
 
-  def allocateAgent(input: NewEnrolment, agentGroupId: String, clientAgentRef: String, agentCode: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def allocateAgent(input: NewEnrolment, agentGroupId: String, clientAgentRef: String, agentCode: String)(using hc: HeaderCarrier): Future[HttpResponse] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientAgentRef"
     val postUrl = s"""$taxEnrolmentsUrl/groups/$agentGroupId/enrolments/$enrolmentKey?legacy-agentCode=$agentCode"""
     val jsonData = Json.toJson(input)
@@ -76,7 +77,7 @@ trait TaxEnrolmentConnector extends Auditable {
     }
   }
 
-  def deAllocateAgent(agentPartyId: String, clientAgentRef: String, agentCode: String, userType: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def deAllocateAgent(agentPartyId: String, clientAgentRef: String, agentCode: String, userType: String)(using hc: HeaderCarrier): Future[HttpResponse] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$clientAgentRef"
 
     getGroupsWithEnrolment(agentPartyId).flatMap { agentGroupId =>
@@ -104,7 +105,7 @@ trait TaxEnrolmentConnector extends Auditable {
     }
   }
 
-  def getGroupsWithEnrolment(agentRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
+  def getGroupsWithEnrolment(agentRefNumber: String)(using hc: HeaderCarrier): Future[Option[String]] = {
     val enrolmentKey = s"${MandateConstants.AgentServiceContractName}~${MandateConstants.AgentIdentifier}~$agentRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
 
@@ -124,7 +125,7 @@ trait TaxEnrolmentConnector extends Auditable {
     }
   }
 
-  def getGroupsWithEnrolmentDelegatedAted(atedRefNumber: String)(implicit hc: HeaderCarrier): Future[Option[String]] = {
+  def getGroupsWithEnrolmentDelegatedAted(atedRefNumber: String)(using hc: HeaderCarrier): Future[Option[String]] = {
     val enrolmentKey = s"${MandateConstants.AtedServiceContractName}~${MandateConstants.AtedIdentifier}~$atedRefNumber"
     val getUrl = s"""$enrolmentStoreProxyURL/enrolment-store/enrolments/$enrolmentKey/groups"""
     val ignoreAssignmentsParam = Map("ignore-assignments" -> "true")

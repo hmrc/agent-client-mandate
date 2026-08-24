@@ -21,5 +21,5 @@ import play.api.libs.json.{Json, OFormat}
 case class GGRelationshipDto(serviceName: String, agentPartyId: String, credId: String, clientSubscriptionId: String, agentCode: Option[String] = None)
 
 object GGRelationshipDto {
-  implicit val formats: OFormat[GGRelationshipDto] = Json.format[GGRelationshipDto]
+  given formats: OFormat[GGRelationshipDto] = Json.format[GGRelationshipDto]
 }

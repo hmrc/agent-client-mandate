@@ -19,7 +19,7 @@ package uk.gov.hmrc.tasks
 import org.apache.pekko.actor.{Actor, ActorRef, ActorSystem}
 import org.apache.pekko.testkit.{DefaultTimeout, ImplicitSender, TestKit, TestProbe}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.matchers.should.Matchers.{contain, convertToAnyShouldWrapper}
+import org.scalatest.matchers.should.Matchers.*
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.agentclientmandate.metrics.ServiceMetrics

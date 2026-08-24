@@ -23,8 +23,8 @@ import play.api.libs.json.JsValue
 import uk.gov.hmrc.agentclientmandate.Auditable
 import uk.gov.hmrc.agentclientmandate.auth.AuthRetrieval
 import uk.gov.hmrc.agentclientmandate.connectors.EtmpConnector
-import uk.gov.hmrc.agentclientmandate.models._
-import uk.gov.hmrc.agentclientmandate.repositories._
+import uk.gov.hmrc.agentclientmandate.models.*
+import uk.gov.hmrc.agentclientmandate.repositories.*
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,7 +40,7 @@ class DefaultMandateCreateService @Inject()(val etmpConnector: EtmpConnector,
 }
 
 trait MandateCreateService extends Auditable {
-  implicit val ec: ExecutionContext
+  given ec: ExecutionContext
 
   val identifiers: Config
 
@@ -57,7 +57,7 @@ trait MandateCreateService extends Auditable {
     MandateStatus(Status.New, Instant.now(), credId)
   }
 
-  def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[String] = {
+  def createMandate(agentCode: String, createMandateDto: CreateMandateDto)(using hc: HeaderCarrier, ar: AuthRetrieval): Future[String] = {
     val agentPartyId = ar.agentBusinessUtr.value
     val credId = ar.govGatewayId
 
@@ -114,7 +114,7 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
+  def createMandateForNonUKClient(ac: String, dto: NonUKClientDto)(using hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
     val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
     val nonUKClientDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.safeId, "safeid")
 
@@ -155,7 +155,7 @@ trait MandateCreateService extends Auditable {
     }
   }
 
-  def updateMandateForNonUKClient(ac: String, dto: NonUKClientDto)(implicit hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
+  def updateMandateForNonUKClient(ac: String, dto: NonUKClientDto)(using hc: HeaderCarrier, ar: AuthRetrieval): Future[Unit] = {
     val agentDetailsJsonFuture = etmpConnector.getRegistrationDetails(dto.arn, "arn")
     val mandateFuture = mandateFetchService.fetchClientMandate(dto.mandateRef.getOrElse(throw new RuntimeException("No Old Non-UK Mandate ID recieved for updating mandate")))
 
