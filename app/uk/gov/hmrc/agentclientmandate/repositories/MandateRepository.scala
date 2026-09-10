@@ -377,8 +377,6 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       equal("subscription.service.name", serviceName.toLowerCase),
       gt("currentStatus.timestamp", dateFrom.toEpochMilli()),
       equal("currentStatus.status", Status.Cancelled.toString),
-      // Equivalent to the previous $where JS predicate ("cancelled by someone other than the
-      // creator"), but evaluated natively instead of by the server-side JS interpreter.
       expr(Document("$ne" -> BsonArray(BsonString("$createdBy.credId"), BsonString("$currentStatus.updatedBy"))))
     )
 
