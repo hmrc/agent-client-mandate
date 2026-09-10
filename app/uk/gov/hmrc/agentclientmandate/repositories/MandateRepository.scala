@@ -26,6 +26,8 @@ import org.mongodb.scala.model.*
 import uk.gov.hmrc.mdc.Mdc
 import uk.gov.hmrc.mongo.*
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import org.mongodb.scala.Document
+import org.mongodb.scala.bson.{BsonArray, BsonString}
 import org.mongodb.scala.result.InsertOneResult
 import org.mongodb.scala.result.DeleteResult
 import uk.gov.hmrc.agentclientmandate.metrics.{MetricsEnum, ServiceMetrics}
@@ -90,7 +92,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
       IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
       IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
-      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId"))
+      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
+      IndexModel(ascending("currentStatus.status", "currentStatus.timestamp"), IndexOptions().name("currentStatusStatusTimestampIndex"))
     ),
     extraCodecs = Seq(Codecs.playFormatCodec(User.formats),
       Codecs.playFormatCodec(Party.formats),
@@ -342,11 +345,12 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
 
   def findOldMandates(dateFrom: Instant)(using ec: ExecutionContext): Future[Seq[Mandate]] = {
     val query = and(
-      lt("currentStatus.timestamp", dateFrom.toEpochMilli()),
-      or(equal("currentStatus.status", Status.New.toString),
-        equal("currentStatus.status", Status.Approved.toString),
-        equal("currentStatus.status", Status.PendingCancellation.toString),
-        equal("currentStatus.status", Status.PendingActivation.toString))
+      in("currentStatus.status",
+        Status.New.toString,
+        Status.Approved.toString,
+        Status.PendingCancellation.toString,
+        Status.PendingActivation.toString),
+      lt("currentStatus.timestamp", dateFrom.toEpochMilli())
     )
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFindOldMandates)
 
@@ -373,7 +377,9 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       equal("subscription.service.name", serviceName.toLowerCase),
       gt("currentStatus.timestamp", dateFrom.toEpochMilli()),
       equal("currentStatus.status", Status.Cancelled.toString),
-      where("this.createdBy.credId != this.currentStatus.updatedBy")
+      // Equivalent to the previous $where JS predicate ("cancelled by someone other than the
+      // creator"), but evaluated natively instead of by the server-side JS interpreter.
+      expr(Document("$ne" -> BsonArray(BsonString("$createdBy.credId"), BsonString("$currentStatus.updatedBy"))))
     )
 
     metrics.startTimer(MetricsEnum.RepositoryClientCancelledMandates)
