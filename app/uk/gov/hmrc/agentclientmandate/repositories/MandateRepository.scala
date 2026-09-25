@@ -89,11 +89,14 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     domainFormat = Mandate.formats,
     indexes = Seq(
       IndexModel(ascending("id"), IndexOptions().name("idIndex").unique(true).sparse(true)),
-      IndexModel(ascending("id", "service.name"), IndexOptions().name("compoundIdServiceIndex").unique(true).sparse(true)),
-      IndexModel(ascending("id","serviceName","agentPartyId","clientSubscriptionId"), IndexOptions().name("existingRelationshipIndex").sparse(true)),
-      IndexModel(ascending("id", "service.name", "clientParty.id"), IndexOptions().name("compoundClientFetchIndex").sparse(true)),
-      IndexModel(ascending("id", "createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
-      IndexModel(ascending("currentStatus.status", "currentStatus.timestamp"), IndexOptions().name("currentStatusStatusTimestampIndex"))
+      IndexModel(ascending("createdBy.credId"), IndexOptions().name("agentCreatedByCredId")),
+      IndexModel(ascending("currentStatus.status", "currentStatus.timestamp"), IndexOptions().name("currentStatusStatusTimestampIndex")),
+      IndexModel(orderBy(ascending("clientParty.id", "subscription.service.id", "currentStatus.status"), descending("_id")),
+        IndexOptions().name("clientServiceStatusIndex")),
+      IndexModel(ascending("agentParty.id", "subscription.service.name", "clientDisplayName"),
+        IndexOptions().name("agentServiceDisplayNameIndex")),
+      IndexModel(ascending("agentParty.id", "subscription.service.id", "agentParty.contactDetails.email"),
+        IndexOptions().name("agentServiceEmailIndex"))
     ),
     extraCodecs = Seq(Codecs.playFormatCodec(User.formats),
       Codecs.playFormatCodec(Party.formats),
@@ -103,6 +106,8 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
       Codecs.playFormatCodec(Subscription.formats)),
     replaceIndexes = true)
     with MandateRepository {
+
+  override lazy val requiresTtlIndex: Boolean = false
 
   val logger: Logger = Logger(getClass)
   val repository: MandateRepository = this
@@ -169,11 +174,12 @@ class MandateMongoRepository @Inject() (mongo: MongoComponent, val metrics: Serv
     val query = and(
       equal("clientParty.id", clientId),
       equal("subscription.service.id", service.toUpperCase),
-      or(equal("currentStatus.status", Status.Active.toString),
-        equal("currentStatus.status", Status.Approved.toString),
-        equal("currentStatus.status", Status.Rejected.toString),
-        equal("currentStatus.status", Status.Cancelled.toString),
-        equal("currentStatus.status", Status.Expired.toString))
+      in("currentStatus.status",
+        Status.Active.toString,
+        Status.Approved.toString,
+        Status.Rejected.toString,
+        Status.Cancelled.toString,
+        Status.Expired.toString)
     )
 
     val timerContext = metrics.startTimer(MetricsEnum.RepositoryFetchMandateByClient)
