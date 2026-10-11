@@ -68,10 +68,6 @@ class MandateRepositoryIndexSpec extends PlaySpec with DefaultPlayMongoRepositor
 
   "MandateMongoRepository indexes" must {
 
-    "have a ttl index defined" in {
-      succeed
-    }
-
     "be created on the collection" in {
       val created = repository.collection.listIndexes().toFuture().futureValue
         .flatMap(_.get("name").map(_.asString.getValue)).toSet
