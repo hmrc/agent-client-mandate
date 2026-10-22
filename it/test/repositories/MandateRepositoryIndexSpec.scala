@@ -18,7 +18,9 @@ package repositories
 
 import java.time.Instant
 import org.bson.BsonDocument
-import org.mongodb.scala.{MongoClient, ObservableFuture}
+import org.mongodb.scala.model.{IndexOptions, Indexes}
+import com.mongodb.DuplicateKeyException
+import org.mongodb.scala.{Document, MongoClient, ObservableFuture, SingleObservableFuture}
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.*
@@ -74,6 +76,22 @@ class MandateRepositoryIndexSpec extends PlaySpec with DefaultPlayMongoRepositor
       val declared = declaredIndexKeyPaths.map(_._1).toSet
 
       declared.diff(created) mustBe empty
+    }
+
+    "allow more than one legacy document without an id, because idIndex is sparse" in {
+      val legacyDocuments = Seq(Document("agentPartyId" -> "ARN1"), Document("agentPartyId" -> "ARN2"))
+      val rawCollection = mongoComponent.database.getCollection("mandates")
+
+      rawCollection.insertMany(legacyDocuments).head().futureValue.getInsertedIds.size mustBe 2
+    }
+
+    "fail to build a unique id index without sparse when more than one document has no id" in {
+      val nonSparseCollection = mongoComponent.database.getCollection("mandates-non-sparse-check")
+      nonSparseCollection.insertMany(Seq(Document("agentPartyId" -> "ARN1"), Document("agentPartyId" -> "ARN2"))).toFuture().futureValue
+
+      val error = nonSparseCollection.createIndex(Indexes.ascending("id"), IndexOptions().unique(true)).head().failed.futureValue
+      error mustBe a[DuplicateKeyException]
+      error.getMessage must include("E11000")
     }
 
     "reference fields that exist on the Mandate model" in {
