@@ -28,6 +28,7 @@ import uk.gov.hmrc.agentclientmandate.models.*
 import uk.gov.hmrc.agentclientmandate.repositories.*
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.jdk.CollectionConverters.*
 
 
 class MandateRepositoryISpec extends IntegrationSpec {
@@ -249,6 +250,15 @@ class MandateRepositoryISpec extends IntegrationSpec {
           case fetched  => fail(s"ERROR: returned ${fetched.length} mandates")
         }
       }
+    }
+
+    "declare an index supporting findOldMandates" in {
+      await(mandateRepo.repository.ensureIndexes())
+
+      val indexKeys = await(mandateRepo.repository.collection.listIndexes().toFuture())
+        .map(_("key").asDocument.keySet.asScala.toList)
+
+      indexKeys must contain (List("currentStatus.status", "currentStatus.timestamp"))
     }
 
     "Muiple Inserts and getClientCancelledMandates" in {
